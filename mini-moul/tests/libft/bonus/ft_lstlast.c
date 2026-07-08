@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include "../../../../ft_strcmp.c"
+#include "../../../../ft_lstlast.c"
 #include "../../../utils/constants.h"
 
 typedef struct s_test
@@ -16,7 +16,7 @@ int run_tests(t_test *tests, int count);
 int main(void)
 {
 	t_test tests[] = {
-	    {.desc = "TODO: ft_strcmp test cases not written yet",
+	    {.desc = "TODO: ft_lstlast test cases not written yet",
 	     .expected = ""},
 	    // Add test cases here
 	};
@@ -32,7 +32,7 @@ int run_tests(t_test *tests, int count)
 
 	for (i = 0; i < count; i++)
 	{
-		// TODO: call ft_strcmp and compare the result against tests[i].expected
+		// TODO: call ft_lstlast and compare the result against tests[i].expected
 		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
 		error -= 1;
 	}

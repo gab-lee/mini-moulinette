@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include "../../../../ft_memalloc.c"
+#include "../../../../ft_split.c"
 #include "../../../utils/constants.h"
 
 typedef struct s_test
@@ -16,7 +16,7 @@ int run_tests(t_test *tests, int count);
 int main(void)
 {
 	t_test tests[] = {
-	    {.desc = "TODO: ft_memalloc test cases not written yet",
+	    {.desc = "TODO: ft_split test cases not written yet",
 	     .expected = ""},
 	    // Add test cases here
 	};
@@ -32,7 +32,7 @@ int run_tests(t_test *tests, int count)
 
 	for (i = 0; i < count; i++)
 	{
-		// TODO: call ft_memalloc and compare the result against tests[i].expected
+		// TODO: call ft_split and compare the result against tests[i].expected
 		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
 		error -= 1;
 	}
