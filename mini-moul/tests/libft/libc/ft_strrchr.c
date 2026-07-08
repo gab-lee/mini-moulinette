@@ -1,41 +1,29 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../../../../ft_strrchr.c"
 #include "../../../utils/constants.h"
-
-typedef struct s_test
-{
-	char *desc;
-	char *expected;
-} t_test;
-
-int run_tests(t_test *tests, int count);
+#include "../../../utils/libc_compare.h"
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_strrchr test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int			error = 0;
+	const char	*s = "hello, world";
+	char		ext[7] = {'a', (char)233, 'b', (char)233, 'c', 'd', '\0'};
 
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_strrchr and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+	error += check_ptr(1, "ft_strrchr finds the last 'l'", s,
+		ft_strrchr(s, 'l'), strrchr(s, 'l'));
+	error += check_ptr(2, "ft_strrchr finds the last 'o'", s,
+		ft_strrchr(s, 'o'), strrchr(s, 'o'));
+	error += check_ptr(3, "ft_strrchr finds single occurrence 'h'", s,
+		ft_strrchr(s, 'h'), strrchr(s, 'h'));
+	error += check_ptr(4, "ft_strrchr returns NULL when absent ('z')", s,
+		ft_strrchr(s, 'z'), strrchr(s, 'z'));
+	error += check_ptr(5, "ft_strrchr('\\0') returns the terminator", s,
+		ft_strrchr(s, '\0'), strrchr(s, '\0'));
+	error += check_ptr(6, "ft_strrchr on empty string for '\\0'", "",
+		ft_strrchr("", '\0'), strrchr("", '\0'));
+	error += check_ptr(7, "ft_strrchr finds the last extended char 233", ext,
+		ft_strrchr(ext, 233), strrchr(ext, 233));
 
 	return (error);
 }

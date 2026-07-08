@@ -1,41 +1,40 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../../../../ft_memset.c"
 #include "../../../utils/constants.h"
+#include "../../../utils/libc_compare.h"
 
-typedef struct s_test
+static int	memset_case(int i, char *desc, int c, size_t n)
 {
-	char *desc;
-	char *expected;
-} t_test;
+	unsigned char	a[64];
+	unsigned char	b[64];
+	size_t			k;
+	int				error = 0;
 
-int run_tests(t_test *tests, int count);
+	for (k = 0; k < 64; k++)
+	{
+		a[k] = (unsigned char)k;
+		b[k] = (unsigned char)k;
+	}
+	if (ft_memset(a, c, n) != (void *)a)
+	{
+		printf("    " RED "[%d] %s: must return the dst pointer\n" DEFAULT, i, desc);
+		error -= 1;
+	}
+	memset(b, c, n);
+	error += check_mem(i, desc, a, b, 64);
+	return (error);
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_memset test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
-
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
 	int error = 0;
 
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_memset and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+	error += memset_case(1, "ft_memset fills 16 bytes with 'A'", 'A', 16);
+	error += memset_case(2, "ft_memset fills the whole buffer with 0", 0, 64);
+	error += memset_case(3, "ft_memset fills 32 bytes with 255", 255, 32);
+	error += memset_case(4, "ft_memset with n=0 leaves buffer untouched", 'X', 0);
+	error += memset_case(5, "ft_memset with c=300 (truncates to a byte)", 300, 16);
 
 	return (error);
 }

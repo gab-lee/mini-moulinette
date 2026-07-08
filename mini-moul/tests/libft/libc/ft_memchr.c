@@ -1,41 +1,27 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../../../../ft_memchr.c"
 #include "../../../utils/constants.h"
-
-typedef struct s_test
-{
-	char *desc;
-	char *expected;
-} t_test;
-
-int run_tests(t_test *tests, int count);
+#include "../../../utils/libc_compare.h"
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_memchr test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int				error = 0;
+	const char		*s = "hello world";
+	unsigned char	ext[4] = {1, 200, 3, 0};
 
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_memchr and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+	error += check_ptr(1, "ft_memchr finds 'w' within n=11", s,
+		ft_memchr(s, 'w', 11), memchr(s, 'w', 11));
+	error += check_ptr(2, "ft_memchr returns NULL when 'w' is beyond n=5", s,
+		ft_memchr(s, 'w', 5), memchr(s, 'w', 5));
+	error += check_ptr(3, "ft_memchr finds the first byte with n=1", s,
+		ft_memchr(s, 'h', 1), memchr(s, 'h', 1));
+	error += check_ptr(4, "ft_memchr finds '\\0' when n covers it", s,
+		ft_memchr(s, '\0', 12), memchr(s, '\0', 12));
+	error += check_ptr(5, "ft_memchr with n=0 returns NULL", s,
+		ft_memchr(s, 'h', 0), memchr(s, 'h', 0));
+	error += check_ptr(6, "ft_memchr finds byte 200 (unsigned compare)", ext,
+		ft_memchr(ext, 200, 4), memchr(ext, 200, 4));
 
 	return (error);
 }

@@ -1,41 +1,34 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
+#include <strings.h>
 #include "../../../../ft_bzero.c"
 #include "../../../utils/constants.h"
+#include "../../../utils/libc_compare.h"
 
-typedef struct s_test
+static int	bzero_case(int i, char *desc, size_t n)
 {
-	char *desc;
-	char *expected;
-} t_test;
+	unsigned char	a[64];
+	unsigned char	b[64];
+	size_t			k;
 
-int run_tests(t_test *tests, int count);
+	for (k = 0; k < 64; k++)
+	{
+		a[k] = (unsigned char)(k + 1);
+		b[k] = (unsigned char)(k + 1);
+	}
+	ft_bzero(a, n);
+	bzero(b, n);
+	return (check_mem(i, desc, a, b, 64));
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_bzero test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
-
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
 	int error = 0;
 
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_bzero and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+	error += bzero_case(1, "ft_bzero zeroes 16 bytes", 16);
+	error += bzero_case(2, "ft_bzero zeroes the whole buffer", 64);
+	error += bzero_case(3, "ft_bzero with n=0 leaves buffer untouched", 0);
+	error += bzero_case(4, "ft_bzero zeroes a single byte", 1);
 
 	return (error);
 }

@@ -1,41 +1,40 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../../../../ft_memcpy.c"
 #include "../../../utils/constants.h"
+#include "../../../utils/libc_compare.h"
 
-typedef struct s_test
+static int	memcpy_case(int i, char *desc, const void *src, size_t n)
 {
-	char *desc;
-	char *expected;
-} t_test;
+	unsigned char	a[64];
+	unsigned char	b[64];
+	int				error = 0;
 
-int run_tests(t_test *tests, int count);
+	memset(a, 0xAA, 64);
+	memset(b, 0xAA, 64);
+	if (ft_memcpy(a, src, n) != (void *)a)
+	{
+		printf("    " RED "[%d] %s: must return the dst pointer\n" DEFAULT, i, desc);
+		error -= 1;
+	}
+	memcpy(b, src, n);
+	error += check_mem(i, desc, a, b, 64);
+	return (error);
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_memcpy test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int				error = 0;
+	unsigned char	binary[64];
+	size_t			k;
 
-	return (run_tests(tests, count));
-}
+	for (k = 0; k < 64; k++)
+		binary[k] = (unsigned char)(255 - k);
 
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_memcpy and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+	error += memcpy_case(1, "ft_memcpy copies a string", "hello, world", 13);
+	error += memcpy_case(2, "ft_memcpy copies 64 binary bytes", binary, 64);
+	error += memcpy_case(3, "ft_memcpy copies embedded NULs (\"42\\0abc\")", "42\0abc", 7);
+	error += memcpy_case(4, "ft_memcpy with n=0 leaves dst untouched", "ignored", 0);
 
 	return (error);
 }

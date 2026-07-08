@@ -1,40 +1,44 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
+#include <stdint.h>
 #include "../../../../ft_calloc.c"
 #include "../../../utils/constants.h"
-
-typedef struct s_test
-{
-	char *desc;
-	char *expected;
-} t_test;
-
-int run_tests(t_test *tests, int count);
+#include "../../../utils/libc_compare.h"
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_calloc test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int				error = 0;
+	unsigned char	zeros[64];
+	unsigned char	*p;
+	void			*q;
 
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
+	memset(zeros, 0, 64);
+	p = (unsigned char *)ft_calloc(16, 4);
+	if (p == NULL)
 	{
-		// TODO: call ft_calloc and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
+		printf("    " RED "[1] ft_calloc(16, 4) returned NULL\n" DEFAULT);
 		error -= 1;
+	}
+	else
+	{
+		error += check_mem(1, "ft_calloc(16, 4) memory is fully zeroed", p, zeros, 64);
+		p[0] = 42;
+		p[63] = 42;
+		printf("  " GREEN CHECKMARK GREY " [2] ft_calloc memory is writable\n" DEFAULT);
+		free(p);
+	}
+	q = ft_calloc(0, 8);
+	printf("  " GREEN CHECKMARK GREY " [3] ft_calloc(0, 8) did not crash\n" DEFAULT);
+	free(q);
+	q = ft_calloc(SIZE_MAX, SIZE_MAX);
+	if (q == NULL)
+		printf("  " GREEN CHECKMARK GREY " [4] ft_calloc(SIZE_MAX, SIZE_MAX) returns NULL (overflow handled)\n" DEFAULT);
+	else
+	{
+		printf("    " RED "[4] ft_calloc(SIZE_MAX, SIZE_MAX) must return NULL: count * size overflows\n" DEFAULT);
+		error -= 1;
+		free(q);
 	}
 
 	return (error);

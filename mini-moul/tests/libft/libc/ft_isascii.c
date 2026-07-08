@@ -1,41 +1,36 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
+#include <ctype.h>
 #include "../../../../ft_isascii.c"
 #include "../../../utils/constants.h"
+#include "../../../utils/libc_compare.h"
 
 typedef struct s_test
 {
 	char *desc;
-	char *expected;
+	int c;
 } t_test;
-
-int run_tests(t_test *tests, int count);
 
 int main(void)
 {
 	t_test tests[] = {
-	    {.desc = "TODO: ft_isascii test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
+	    {.desc = "ft_isascii(0)", .c = 0},
+	    {.desc = "ft_isascii(127) (last ascii)", .c = 127},
+	    {.desc = "ft_isascii(128) (first non-ascii)", .c = 128},
+	    {.desc = "ft_isascii('a')", .c = 'a'},
+	    {.desc = "ft_isascii(' ')", .c = ' '},
+	    {.desc = "ft_isascii('\\n')", .c = '\n'},
+	    {.desc = "ft_isascii(200)", .c = 200},
+	    {.desc = "ft_isascii(255)", .c = 255},
+	    {.desc = "ft_isascii(EOF)", .c = EOF},
 	};
 	int count = sizeof(tests) / sizeof(tests[0]);
-
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
 	int error = 0;
+	int i;
 
 	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_isascii and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+		error += check_truthy(i + 1, tests[i].desc,
+			ft_isascii(tests[i].c), isascii(tests[i].c));
+	error += sweep_truthy(count + 1, "ft_isascii", ft_isascii, isascii);
 
 	return (error);
 }

@@ -1,41 +1,29 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../../../../ft_memcmp.c"
 #include "../../../utils/constants.h"
-
-typedef struct s_test
-{
-	char *desc;
-	char *expected;
-} t_test;
-
-int run_tests(t_test *tests, int count);
+#include "../../../utils/libc_compare.h"
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_memcmp test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int				error = 0;
+	unsigned char	hi[2] = {0x80, 0};
+	unsigned char	lo[2] = {0x01, 0};
 
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_memcmp and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+	error += check_sign(1, "ft_memcmp(\"abcdef\", \"abcdef\", 6) (equal)",
+		ft_memcmp("abcdef", "abcdef", 6), memcmp("abcdef", "abcdef", 6));
+	error += check_sign(2, "ft_memcmp(\"abcdef\", \"abcdeg\", 6) (differs at last)",
+		ft_memcmp("abcdef", "abcdeg", 6), memcmp("abcdef", "abcdeg", 6));
+	error += check_sign(3, "ft_memcmp(\"abcdeg\", \"abcdef\", 6) (reversed)",
+		ft_memcmp("abcdeg", "abcdef", 6), memcmp("abcdeg", "abcdef", 6));
+	error += check_sign(4, "ft_memcmp(\"abcdef\", \"abcdeg\", 5) (difference beyond n)",
+		ft_memcmp("abcdef", "abcdeg", 5), memcmp("abcdef", "abcdeg", 5));
+	error += check_sign(5, "ft_memcmp with n=0 (always equal)",
+		ft_memcmp("abc", "xyz", 0), memcmp("abc", "xyz", 0));
+	error += check_sign(6, "ft_memcmp({0x80}, {0x01}, 1) (unsigned byte compare)",
+		ft_memcmp(hi, lo, 1), memcmp(hi, lo, 1));
+	error += check_sign(7, "ft_memcmp(\"a\\0b\", \"a\\0c\", 3) (does NOT stop at NUL)",
+		ft_memcmp("a\0b", "a\0c", 3), memcmp("a\0b", "a\0c", 3));
 
 	return (error);
 }

@@ -122,4 +122,87 @@ static inline int sweep_exact(int i, char *name, int (*mine)(int), int (*ref)(in
 	return (-1);
 }
 
+/* Compare numeric results exactly, printed as plain numbers. */
+static inline int check_long(int i, char *desc, long mine, long ref)
+{
+	if (mine == ref)
+	{
+		printf("  " GREEN CHECKMARK GREY " [%d] %s returned %ld as expected\n" DEFAULT,
+			i, desc, mine);
+		return (0);
+	}
+	printf("    " RED "[%d] %s: expected %ld, ft version returned %ld\n" DEFAULT,
+		i, desc, ref, mine);
+	return (-1);
+}
+
+static inline const char *sign_word(int v)
+{
+	if (v > 0)
+		return ("positive");
+	if (v < 0)
+		return ("negative");
+	return ("zero");
+}
+
+/* Compare only the sign, per the strcmp family contract (<0, 0, >0). */
+static inline int check_sign(int i, char *desc, int mine, int ref)
+{
+	if (((mine > 0) - (mine < 0)) == ((ref > 0) - (ref < 0)))
+	{
+		printf("  " GREEN CHECKMARK GREY " [%d] %s sign matches (%s)\n" DEFAULT,
+			i, desc, sign_word(ref));
+		return (0);
+	}
+	printf("    " RED "[%d] %s: expected %s, ft version returned %s (%d)\n" DEFAULT,
+		i, desc, sign_word(ref), sign_word(mine), mine);
+	return (-1);
+}
+
+/* Compare pointers that should target the same location (or both NULL). */
+static inline int check_ptr(int i, char *desc, const void *base, const void *mine, const void *ref)
+{
+	if (mine == ref)
+	{
+		if (ref == NULL)
+			printf("  " GREEN CHECKMARK GREY " [%d] %s returned NULL as expected\n" DEFAULT, i, desc);
+		else
+			printf("  " GREEN CHECKMARK GREY " [%d] %s returned offset %ld as expected\n" DEFAULT,
+				i, desc, (long)((const char *)ref - (const char *)base));
+		return (0);
+	}
+	printf("    " RED "[%d] %s: expected ", i, desc);
+	if (ref == NULL)
+		printf("NULL");
+	else
+		printf("offset %ld", (long)((const char *)ref - (const char *)base));
+	printf(", ft version returned ");
+	if (mine == NULL)
+		printf("NULL");
+	else
+		printf("offset %ld", (long)((const char *)mine - (const char *)base));
+	printf("\n" DEFAULT);
+	return (-1);
+}
+
+/* Compare n bytes of two buffers, reporting the first differing byte. */
+static inline int check_mem(int i, char *desc, const void *mine, const void *ref, size_t n)
+{
+	const unsigned char *a = (const unsigned char *)mine;
+	const unsigned char *b = (const unsigned char *)ref;
+	size_t k;
+
+	for (k = 0; k < n; k++)
+	{
+		if (a[k] != b[k])
+		{
+			printf("    " RED "[%d] %s: byte %zu differs (expected 0x%02x, got 0x%02x)\n" DEFAULT,
+				i, desc, k, b[k], a[k]);
+			return (-1);
+		}
+	}
+	printf("  " GREEN CHECKMARK GREY " [%d] %s: %zu bytes match\n" DEFAULT, i, desc, n);
+	return (0);
+}
+
 #endif

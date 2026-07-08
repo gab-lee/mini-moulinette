@@ -1,41 +1,29 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../../../../ft_strnstr.c"
 #include "../../../utils/constants.h"
+#include "../../../utils/libc_compare.h"
 
-typedef struct s_test
-{
-	char *desc;
-	char *expected;
-} t_test;
-
-int run_tests(t_test *tests, int count);
-
+/* BSD function: expected pointers are hardcoded offsets into the haystack. */
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_strnstr test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int			error = 0;
+	const char	*hay = "hello";
 
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_strnstr and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+	error += check_ptr(1, "ft_strnstr with empty needle returns haystack", hay,
+		ft_strnstr(hay, "", 5), hay);
+	error += check_ptr(2, "ft_strnstr finds \"lo\" within len 5", hay,
+		ft_strnstr(hay, "lo", 5), hay + 3);
+	error += check_ptr(3, "ft_strnstr misses \"lo\" when len 4 cuts it off", hay,
+		ft_strnstr(hay, "lo", 4), NULL);
+	error += check_ptr(4, "ft_strnstr finds the whole haystack", hay,
+		ft_strnstr(hay, "hello", 5), hay);
+	error += check_ptr(5, "ft_strnstr returns NULL for an absent needle", hay,
+		ft_strnstr(hay, "world", 5), NULL);
+	error += check_ptr(6, "ft_strnstr with len far beyond the string still stops at NUL", hay,
+		ft_strnstr(hay, "lo", 100), hay + 3);
+	error += check_ptr(7, "ft_strnstr with len 0 finds nothing", hay,
+		ft_strnstr(hay, "h", 0), NULL);
 
 	return (error);
 }
