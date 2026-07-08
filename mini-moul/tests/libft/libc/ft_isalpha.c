@@ -1,41 +1,44 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
+#include <ctype.h>
 #include "../../../../ft_isalpha.c"
 #include "../../../utils/constants.h"
+#include "../../../utils/libc_compare.h"
 
 typedef struct s_test
 {
 	char *desc;
-	char *expected;
+	int c;
 } t_test;
-
-int run_tests(t_test *tests, int count);
 
 int main(void)
 {
 	t_test tests[] = {
-	    {.desc = "TODO: ft_isalpha test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
+	    {.desc = "ft_isalpha('a')", .c = 'a'},
+	    {.desc = "ft_isalpha('z')", .c = 'z'},
+	    {.desc = "ft_isalpha('A')", .c = 'A'},
+	    {.desc = "ft_isalpha('Z')", .c = 'Z'},
+	    {.desc = "ft_isalpha('`') ('a' - 1)", .c = '`'},
+	    {.desc = "ft_isalpha('{') ('z' + 1)", .c = '{'},
+	    {.desc = "ft_isalpha('@') ('A' - 1)", .c = '@'},
+	    {.desc = "ft_isalpha('[') ('Z' + 1)", .c = '['},
+	    {.desc = "ft_isalpha('0')", .c = '0'},
+	    {.desc = "ft_isalpha('9')", .c = '9'},
+	    {.desc = "ft_isalpha(' ')", .c = ' '},
+	    {.desc = "ft_isalpha('\\t')", .c = '\t'},
+	    {.desc = "ft_isalpha('\\n')", .c = '\n'},
+	    {.desc = "ft_isalpha('\\0')", .c = '\0'},
+	    {.desc = "ft_isalpha(200) (extended)", .c = 200},
+	    {.desc = "ft_isalpha(255) (extended)", .c = 255},
+	    {.desc = "ft_isalpha(EOF)", .c = EOF},
 	};
 	int count = sizeof(tests) / sizeof(tests[0]);
-
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
 	int error = 0;
+	int i;
 
 	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_isalpha and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+		error += check_truthy(i + 1, tests[i].desc,
+			ft_isalpha(tests[i].c), isalpha(tests[i].c));
+	error += sweep_truthy(count + 1, "ft_isalpha", ft_isalpha, isalpha);
 
 	return (error);
 }
