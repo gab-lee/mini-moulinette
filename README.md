@@ -81,7 +81,7 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 1. Clone the repository into `~/mini-moulinette` (the runner expects this path):
 
 ```bash
-git clone https://github.com/gab-lee/mini-moulinette-New-Common-Core-.git ~/mini-moulinette
+git clone https://github.com/gab-lee/mini-moulinette.git ~/mini-moulinette
 ```
 
 2. Create an alias for it.

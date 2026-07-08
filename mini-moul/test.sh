@@ -29,6 +29,9 @@ main()
     #print_collected_files
     for dir in ./tests/* ; do
         dirname="$(basename "$dir")"
+        case "$dirname" in
+            *"(archive)"*) continue ;;
+        esac
         available_assignments+="$dirname "
         
         if [ -d "$dir" ] && [ "$dirname" == "$1" ]; then
@@ -184,13 +187,9 @@ check_dependency()
 
 #check_dependency
 if [ "${1}" = "" ]; then
-    printf "Please select an assignment. e.g. './test.sh C01'\n"
+    printf "Please select a project. e.g. './test.sh libft'\n"
     exit 1
 fi
-if [[ "${1}" =~ ^C(0[0-9]|1[0-3])$ ]]; then
-    main "$@"
-    printf "$DEFAULT"
-    exit
-else
-    printf "${RED}Invalid argument. Please select between C00 to C13${DEFAULT}\n"
-fi
+main "$@"
+printf "$DEFAULT"
+exit
