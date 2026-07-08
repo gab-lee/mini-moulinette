@@ -32,7 +32,7 @@ static inline int check_truthy(int i, char *desc, int mine, int ref)
 {
 	if ((mine != 0) == (ref != 0))
 	{
-		printf("  " GREEN CHECKMARK GREY " [%d] %s agrees with libc (%s)\n" DEFAULT,
+		printf("  " GREEN CHECKMARK GREY " [%d] %s matches libc (%s)\n" DEFAULT,
 			i, desc, ref ? "true" : "false");
 		return (0);
 	}
@@ -80,7 +80,7 @@ static inline int sweep_truthy(int i, char *name, int (*mine)(int), int (*ref)(i
 	}
 	if (mismatches == 0)
 	{
-		printf("  " GREEN CHECKMARK GREY " [%d] %s agrees with libc for every value EOF..255\n" DEFAULT,
+		printf("  " GREEN CHECKMARK GREY " [%d] %s matches libc for every value EOF..255\n" DEFAULT,
 			i, name);
 		return (0);
 	}

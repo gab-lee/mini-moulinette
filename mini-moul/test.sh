@@ -76,55 +76,39 @@ main()
             done
 
             for assignment in $exercise_dirs; do
+                [ -d "$assignment" ] || continue
                 questions=$((questions+1))
                 score_false=0
                 assignment_name="$(basename "$assignment")"
+                printf "${PURPLE}${BOLD} ${assignment_name}${DEFAULT}\n"
                 test_files="$(collect_tests "$assignment")"
-                test_name="$(echo "$test_files" | head -n 1)"
-                test_name="$(basename "$test_name")"
 
-                if cc -Wall -Werror -Wextra -o test1 "$(echo "$test_files" | head -n 1)"; then
-                    rm test1
+                for test in $test_files; do
                     checks=$((checks+1))
-                    passed=$((passed+1))
-                    
-                    if [ -d "$assignment" ]; then
-                        index2=0
-                        
-                        for test in $test_files; do
-                            ((index2++))
-                            checks=$((checks+1))
-                            
-                            if cc -o ${test%.c} $test 2> /dev/null; then
-                                
-                                if ./${test%.c} = 0; then
-                                    passed=$((passed+1))
-                                else
-                                    break_score=1
-                                    score_false=1
-                                fi
-                                rm ${test%.c}
-                            else
-                                printf "    ""${GREY}[$(($index2+1))] $test_error ${RED}FAILED${DEFAULT}\n"
-                            fi
-                        done
-                        print_test_result
-                        space
+                    fn_name="$(basename "${test%.c}")"
+
+                    if cc -Wall -Werror -Wextra -o "${test%.c}" "$test" 2> compile_error.tmp; then
+                        test_output="$("./${test%.c}" 2>&1)"
+                        if [ $? -eq 0 ]; then
+                            passed=$((passed+1))
+                            printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
+                        else
+                            break_score=1
+                            score_false=1
+                            printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
+                            printf '%s\n' "$test_output"
+                        fi
+                        rm -f "${test%.c}"
                     else
-                        printf "${RED}    $assignment_name does not exist.${DEFAULT}\n"
+                        break_score=1
+                        score_false=1
+                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(cannot compile)${DEFAULT}\n"
+                        sed 's/^/    /' compile_error.tmp | head -15
                     fi
-                else
-                    break_score=1
-                    checks=$((checks+1))
-                    printf "${RED}    $test_name cannot compile.${DEFAULT}\n"
-                    printf "${BG_RED}${BOLD} FAIL ${DEFAULT}${PURPLE} $assignment_name/${DEFAULT}$test_name\n"
-                    space
-                    
-                    if [ $index -gt 0 ]; then
-                        result+=", "
-                    fi
-                    result+="${RED}$assignment_name: KO${DEFAULT}"
-                fi
+                    rm -f compile_error.tmp
+                done
+                print_test_result
+                space
                 ((index++))
             done
             break
@@ -176,10 +160,8 @@ print_test_result()
     fi
     if [ $score_false = 0 ]; then
         result+="${GREEN}$assignment_name: OK${DEFAULT}"
-        printf "${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT}${PURPLE} $assignment_name/${DEFAULT}$test_name\n"
     else
         result+="${RED}$assignment_name: KO${DEFAULT}"
-        printf "${BG_RED}${BOLD} FAIL ${DEFAULT}${PURPLE} $assignment_name/${DEFAULT}$test_name\n"
     fi
     if [ $break_score = 0 ]; then
         marks=$((marks+1))
