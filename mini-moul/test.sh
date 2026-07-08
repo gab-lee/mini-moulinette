@@ -41,8 +41,20 @@ main()
             space
             dirname_found=1
             index=0
-            
-            for assignment in $dir/*; do
+
+            # Run parts in subject order (libc, additional, bonus), then anything else
+            exercise_dirs=""
+            for part in libc additional bonus; do
+                [ -d "$dir/$part" ] && exercise_dirs+="$dir/$part "
+            done
+            for part in $dir/*; do
+                case "$(basename "$part")" in
+                    libc|additional|bonus) continue ;;
+                esac
+                exercise_dirs+="$part "
+            done
+
+            for assignment in $exercise_dirs; do
                 questions=$((questions+1))
                 score_false=0
                 assignment_name="$(basename "$assignment")"
