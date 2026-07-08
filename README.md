@@ -3,7 +3,7 @@
 > [!WARNING]
 > **🚧 This project is NOT live yet — do not use it. 🚧**
 >
-> This fork is a work in progress. No Common Core tests exist yet, and the runner still only works for piscine exercises. Nothing here is ready for use — please don't clone or rely on it until this notice is removed. If you're looking for a working piscine test runner, use the original [khairulhaaziq/mini-moulinette](https://github.com/khairulhaaziq/mini-moulinette) instead.
+> This fork is a work in progress. No Common Core tests exist yet — nothing here is ready for use, so please don't clone or rely on it until this notice is removed. If you're looking for a working piscine test runner, use the original [khairulhaaziq/mini-moulinette](https://github.com/khairulhaaziq/mini-moulinette) instead.
 
 ![mini-moulinette](mini-moulinette.jpg)
 
@@ -32,7 +32,9 @@ This tool was incredibly useful during my piscine: it saved me countless hours o
 
 The original project covers the piscine (C00–C08). The goal of this fork is to progressively add test suites for the Common Core, circle by circle:
 
-- [x] Piscine C00–C08 (inherited from the original project)
+> [!NOTE]
+> **A caveat:** I haven't started the 42 Cursus yet — I'll only be starting in September. A lot of the project list and scope below is pieced together from PDFs found online, so it may not match the current curriculum exactly. If you're already in the programme and would like to contribute, access to up-to-date materials would also be greatly appreciated!
+
 - [ ] Adapt the runner to detect Common Core project directories (not just `C00`–`C13`)
 - [ ] **Circle 0** — Libft (Part 1, Part 2, bonus list functions)
 - [ ] **Circle 1** — ft_printf, get_next_line (mandatory + bonus)
@@ -177,6 +179,7 @@ Contributions are very welcome — especially new test cases for Common Core pro
 
 - **Tests**: If you spot an error in a test or have an idea for a new test case, open an issue or a pull request.
 - **Code**: Pull requests for the runner itself are happily reviewed.
+- **Materials**: I haven't started the Cursus yet (September!), so if you're already in the programme, sharing up-to-date subject materials would be greatly appreciated.
 - **Feedback**: If you've used this fork and have suggestions, let me know via an issue.
 
 
@@ -189,7 +192,6 @@ Contributions are very welcome — especially new test cases for Common Core pro
 ## Contributors
 
 - This fork is co-created with Claude Code, which helps build and maintain the Common Core test suites
-- ChatGPT — contributor to the original project
 
 
 ## License
