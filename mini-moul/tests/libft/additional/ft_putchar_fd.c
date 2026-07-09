@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include "../../../../ft_putchar_fd.c"
+#include "../libft_proto.h"
 #include "../../../utils/constants.h"
 
 typedef struct s_test

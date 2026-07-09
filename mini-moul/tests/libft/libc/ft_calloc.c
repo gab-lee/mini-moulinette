@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "../../../../ft_calloc.c"
+#include "../libft_proto.h"
 #include "../../../utils/constants.h"
 #include "../../../utils/libc_compare.h"
 

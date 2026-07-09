@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include "../../../../ft_lstadd_front.c"
+#include "../libft_proto.h"
 #include "../../../utils/constants.h"
 
 typedef struct s_test

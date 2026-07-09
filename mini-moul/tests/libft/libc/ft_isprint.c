@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
-#include "../../../../ft_isprint.c"
+#include "../libft_proto.h"
 #include "../../../utils/constants.h"
 #include "../../../utils/libc_compare.h"
 

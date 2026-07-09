@@ -25,6 +25,8 @@ dirname_found=0
 
 # List a part's test files, honoring an optional 'order' file (one filename
 # per line, subject order). Files missing from 'order' are appended after.
+# A test is either a .c file (compiled and run) or a .sh check script
+# (run directly; exit 0 is a PASS).
 collect_tests()
 {
     part_dir=$1
@@ -36,12 +38,52 @@ collect_tests()
                 printf "${RED}file: %s is missing and cannot be compiled${DEFAULT}\n" "$f" >&2
             fi
         done < "$part_dir/order"
-        for f in "$part_dir"/*.c; do
+        for f in "$part_dir"/*.c "$part_dir"/*.sh; do
+            [ -f "$f" ] || continue
             grep -qx "$(basename "$f")" "$part_dir/order" || printf '%s\n' "$f"
         done
     else
-        ls "$part_dir"/*.c 2> /dev/null
+        ls "$part_dir"/*.c "$part_dir"/*.sh 2> /dev/null
     fi
+}
+
+# Compile each of the student's ft_*.c once into an object file. Tests
+# declare prototypes (tests/<suite>/libft_proto.h) and link against these
+# objects, so the student's code is never #include-d into a test. A file
+# that doesn't compile keeps its error in $OBJ_DIR/<name>.err and its test
+# reports it.
+OBJ_DIR=""
+student_objs=()
+build_student_objects()
+{
+    OBJ_DIR="$SCRIPT_DIR/.student_objs"
+    rm -rf "$OBJ_DIR"
+    mkdir -p "$OBJ_DIR"
+    student_objs=()
+    for src in ../ft_*.c; do
+        [ -f "$src" ] || continue
+        name="$(basename "${src%.c}")"
+        if cc -Wall -Werror -Wextra -c "$src" -o "$OBJ_DIR/$name.o" 2> "$OBJ_DIR/$name.err"; then
+            rm -f "$OBJ_DIR/$name.err"
+            student_objs+=("$OBJ_DIR/$name.o")
+        fi
+    done
+}
+
+# Path of the saved compile error for a function's source, if it failed
+# to build (subject allows bonus files to carry a _bonus suffix).
+student_compile_error()
+{
+    if [ -f "$OBJ_DIR/$1.err" ]; then
+        printf '%s' "$OBJ_DIR/$1.err"
+    elif [ -f "$OBJ_DIR/$1_bonus.err" ]; then
+        printf '%s' "$OBJ_DIR/$1_bonus.err"
+    fi
+}
+
+student_src_exists()
+{
+    [ -f "../$1.c" ] || [ -f "../$1_bonus.c" ]
 }
 
 main()
@@ -62,15 +104,17 @@ main()
             space
             dirname_found=1
             index=0
+            build_student_objects
 
-            # Run parts in subject order (libc, additional, bonus), then anything else
+            # Run parts in subject order (setup, libc, additional, bonus),
+            # then anything else
             exercise_dirs=""
-            for part in libc additional bonus; do
+            for part in setup libc additional bonus; do
                 [ -d "$dir/$part" ] && exercise_dirs+="$dir/$part "
             done
             for part in $dir/*; do
                 case "$(basename "$part")" in
-                    libc|additional|bonus) continue ;;
+                    setup|libc|additional|bonus) continue ;;
                 esac
                 exercise_dirs+="$part "
             done
@@ -85,9 +129,39 @@ main()
 
                 for test in $test_files; do
                     checks=$((checks+1))
-                    fn_name="$(basename "${test%.c}")"
 
-                    if cc -Wall -Werror -Wextra -o "${test%.c}" "$test" 2> compile_error.tmp; then
+                    # Shell check scripts (setup part) run as-is, with the
+                    # mini-moul directory as cwd and the project at ../
+                    case "$test" in
+                        *.sh)
+                            fn_name="$(basename "${test%.sh}")"
+                            test_output="$(bash "$test" 2>&1)"
+                            if [ $? -eq 0 ]; then
+                                passed=$((passed+1))
+                                printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
+                            else
+                                break_score=1
+                                score_false=1
+                                printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
+                                printf '%s\n' "$test_output"
+                            fi
+                            continue
+                            ;;
+                    esac
+
+                    fn_name="$(basename "${test%.c}")"
+                    src_err="$(student_compile_error "$fn_name")"
+
+                    if [ -n "$src_err" ]; then
+                        break_score=1
+                        score_false=1
+                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(your ${fn_name}.c cannot compile)${DEFAULT}\n"
+                        sed 's/^/    /' "$src_err" | head -15
+                    elif ! student_src_exists "$fn_name"; then
+                        break_score=1
+                        score_false=1
+                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(no ${fn_name}.c found in your project)${DEFAULT}\n"
+                    elif cc -Wall -Werror -Wextra -o "${test%.c}" "$test" "${student_objs[@]}" 2> compile_error.tmp; then
                         test_output="$("./${test%.c}" 2>&1)"
                         if [ $? -eq 0 ]; then
                             passed=$((passed+1))
@@ -120,6 +194,7 @@ main()
         printf "Available assignment tests: ${PURPLE}$available_assignments${DEFAULT}\n"
         exit 1
     fi
+    [ -n "$OBJ_DIR" ] && rm -rf "$OBJ_DIR"
     print_footer
 }
 

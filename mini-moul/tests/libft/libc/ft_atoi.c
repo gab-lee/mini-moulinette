@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../../../ft_atoi.c"
+#include "../libft_proto.h"
 #include "../../../utils/constants.h"
 #include "../../../utils/libc_compare.h"
 
