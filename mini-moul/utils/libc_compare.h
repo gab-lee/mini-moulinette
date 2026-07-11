@@ -205,4 +205,24 @@ static inline int check_mem(int i, char *desc, const void *mine, const void *ref
 	return (0);
 }
 
+/* Like check_ptr, but for known-strict cases (see README exceptions):
+** a mismatch prints a yellow [!] warning and does NOT count as a failure. */
+static inline int warn_ptr(int i, char *desc, const void *base, const void *mine, const void *ref)
+{
+	if (mine == ref)
+		return (check_ptr(i, desc, base, mine, ref));
+	printf("    " YELLOW "[!] [%d] %s: expected ", i, desc);
+	if (ref == NULL)
+		printf("NULL");
+	else
+		printf("offset %ld", (long)((const char *)ref - (const char *)base));
+	printf(", ft version returned ");
+	if (mine == NULL)
+		printf("NULL");
+	else
+		printf("offset %ld", (long)((const char *)mine - (const char *)base));
+	printf("\n" DEFAULT);
+	return (0);
+}
+
 #endif

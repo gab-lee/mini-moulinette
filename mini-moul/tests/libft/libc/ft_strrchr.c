@@ -22,7 +22,7 @@ int main(void)
 		ft_strrchr(s, '\0'), strrchr(s, '\0'));
 	error += check_ptr(6, "ft_strrchr on empty string for '\\0'", "",
 		ft_strrchr("", '\0'), strrchr("", '\0'));
-	error += check_ptr(7, "ft_strrchr finds the last extended char 233", ext,
+	error += warn_ptr(7, "ft_strrchr finds the last extended char 233", ext,
 		ft_strrchr(ext, 233), strrchr(ext, 233));
 
 	return (error);

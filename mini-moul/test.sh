@@ -166,6 +166,10 @@ main()
                         if [ $? -eq 0 ]; then
                             passed=$((passed+1))
                             printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
+                            # Known-strict cases surface as [!] warnings even on PASS
+                            case "$test_output" in
+                                *"[!]"*) printf '%s\n' "$test_output" | grep -F '[!]' ;;
+                            esac
                         else
                             break_score=1
                             score_false=1
