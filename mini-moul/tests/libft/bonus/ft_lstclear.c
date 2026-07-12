@@ -1,39 +1,53 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
 
-typedef struct s_test
-{
-	char *desc;
-	char *expected;
-} t_test;
+static int	g_del_calls;
 
-int run_tests(t_test *tests, int count);
+static void	count_del(void *content)
+{
+	g_del_calls++;
+	free(content);
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_lstclear test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int		error = 0;
+	t_list	*lst;
+	t_list	*empty;
 
-	return (run_tests(tests, count));
-}
+	lst = ft_lstnew(malloc(sizeof(int)));
+	lst->next = ft_lstnew(malloc(sizeof(int)));
+	lst->next->next = ft_lstnew(malloc(sizeof(int)));
 
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
+	g_del_calls = 0;
+	ft_lstclear(&lst, count_del);
+	if (g_del_calls == 3)
+		printf("  " GREEN CHECKMARK GREY " [1] ft_lstclear calls del on every node's content\n" DEFAULT);
+	else
 	{
-		// TODO: call ft_lstclear and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
+		printf("    " RED "[1] ft_lstclear: expected del to be called 3 times, got %d\n" DEFAULT,
+			g_del_calls);
+		error -= 1;
+	}
+	if (lst == NULL)
+		printf("  " GREEN CHECKMARK GREY " [2] ft_lstclear sets the list pointer to NULL\n" DEFAULT);
+	else
+	{
+		printf("    " RED "[2] ft_lstclear must set *lst to NULL after clearing\n" DEFAULT);
+		error -= 1;
+	}
+
+	empty = NULL;
+	g_del_calls = 0;
+	ft_lstclear(&empty, count_del);
+	if (empty == NULL && g_del_calls == 0)
+		printf("  " GREEN CHECKMARK GREY " [3] ft_lstclear on an already-empty list does nothing and does not crash\n" DEFAULT);
+	else
+	{
+		printf("    " RED "[3] ft_lstclear on an empty list misbehaved\n" DEFAULT);
 		error -= 1;
 	}
 

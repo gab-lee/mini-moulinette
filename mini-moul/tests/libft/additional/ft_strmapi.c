@@ -1,39 +1,74 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
+#include <ctype.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
 
-typedef struct s_test
+static char	upper_odd_index(unsigned int i, char c)
 {
-	char *desc;
-	char *expected;
-} t_test;
+	if (i % 2 == 1)
+		return (toupper((unsigned char)c));
+	return (c);
+}
 
-int run_tests(t_test *tests, int count);
+static char	replace_with_index(unsigned int i, char c)
+{
+	(void)c;
+	return ('0' + (i % 10));
+}
+
+static int	strmapi_case(int i, char *desc, char const *s,
+			char (*f)(unsigned int, char), char *expected)
+{
+	char	*res;
+
+	res = ft_strmapi(s, f);
+	if (res == NULL)
+	{
+		printf("    " RED "[%d] %s: returned NULL\n" DEFAULT, i, desc);
+		return (-1);
+	}
+	if (strcmp(res, expected) == 0)
+	{
+		printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
+		free(res);
+		return (0);
+	}
+	printf("    " RED "[%d] %s: expected \"%s\", got \"%s\"\n" DEFAULT,
+		i, desc, expected, res);
+	free(res);
+	return (-1);
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_strmapi test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int		error = 0;
+	char	orig[] = "hello";
+	char	*res;
 
-	return (run_tests(tests, count));
-}
+	error += strmapi_case(1, "ft_strmapi(\"hello\", upper_odd_index) uppercases odd indexes",
+		"hello", upper_odd_index, "hElLo");
+	error += strmapi_case(2, "ft_strmapi(\"\", upper_odd_index) on empty string returns \"\"",
+		"", upper_odd_index, "");
+	error += strmapi_case(3, "ft_strmapi(\"abcdefghijk\", replace_with_index) uses the index",
+		"abcdefghijk", replace_with_index, "01234567890");
 
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
+	res = ft_strmapi(orig, upper_odd_index);
+	if (res != NULL)
 	{
-		// TODO: call ft_strmapi and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
+		if (strcmp(orig, "hello") == 0)
+			printf("  " GREEN CHECKMARK GREY " [4] ft_strmapi does not modify the original string\n" DEFAULT);
+		else
+		{
+			printf("    " RED "[4] ft_strmapi modified the original string\n" DEFAULT);
+			error -= 1;
+		}
+		free(res);
+	}
+	else
+	{
+		printf("    " RED "[4] ft_strmapi returned NULL\n" DEFAULT);
 		error -= 1;
 	}
 

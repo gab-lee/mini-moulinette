@@ -1,41 +1,59 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
 
-typedef struct s_test
+static void	free_list(t_list *lst)
 {
-	char *desc;
-	char *expected;
-} t_test;
+	t_list	*next;
 
-int run_tests(t_test *tests, int count);
+	while (lst)
+	{
+		next = lst->next;
+		free(lst);
+		lst = next;
+	}
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_lstlast test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int		error = 0;
+	int		values[3] = {1, 2, 3};
+	t_list	*one;
+	t_list	*three;
+	t_list	*last;
 
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
+	if (ft_lstlast(NULL) == NULL)
+		printf("  " GREEN CHECKMARK GREY " [1] ft_lstlast(NULL) returns NULL\n" DEFAULT);
+	else
 	{
-		// TODO: call ft_lstlast and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
+		printf("    " RED "[1] ft_lstlast(NULL) must return NULL\n" DEFAULT);
 		error -= 1;
 	}
 
+	one = ft_lstnew(&values[0]);
+	if (ft_lstlast(one) == one)
+		printf("  " GREEN CHECKMARK GREY " [2] ft_lstlast on a single node returns that node\n" DEFAULT);
+	else
+	{
+		printf("    " RED "[2] ft_lstlast on a single node did not return itself\n" DEFAULT);
+		error -= 1;
+	}
+
+	three = ft_lstnew(&values[0]);
+	three->next = ft_lstnew(&values[1]);
+	three->next->next = ft_lstnew(&values[2]);
+	last = ft_lstlast(three);
+	if (last == three->next->next && last->next == NULL)
+		printf("  " GREEN CHECKMARK GREY " [3] ft_lstlast on a 3-node list returns the tail\n" DEFAULT);
+	else
+	{
+		printf("    " RED "[3] ft_lstlast did not return the tail of the list\n" DEFAULT);
+		error -= 1;
+	}
+
+	free_list(one);
+	free_list(three);
 	return (error);
 }

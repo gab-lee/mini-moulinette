@@ -1,41 +1,48 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
+#include <ctype.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
 
-typedef struct s_test
+static void	upper_even_index(unsigned int i, char *c)
 {
-	char *desc;
-	char *expected;
-} t_test;
+	if (i % 2 == 0)
+		*c = toupper((unsigned char)*c);
+}
 
-int run_tests(t_test *tests, int count);
+static void	replace_with_index(unsigned int i, char *c)
+{
+	*c = '0' + (i % 10);
+}
+
+static int	striteri_case(int i, char *desc, char *s,
+			void (*f)(unsigned int, char *), char *expected)
+{
+	ft_striteri(s, f);
+	if (strcmp(s, expected) == 0)
+	{
+		printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
+		return (0);
+	}
+	printf("    " RED "[%d] %s: expected \"%s\", got \"%s\"\n" DEFAULT,
+		i, desc, expected, s);
+	return (-1);
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_striteri test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int		error = 0;
+	char	s1[] = "hello";
+	char	s2[] = "";
+	char	s3[] = "abcdefghijk";
 
-	return (run_tests(tests, count));
-}
-
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_striteri and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+	error += striteri_case(1, "ft_striteri(\"hello\", upper_even_index) uppercases in place",
+		s1, upper_even_index, "HeLlO");
+	error += striteri_case(2, "ft_striteri(\"\", ...) on empty string leaves it untouched",
+		s2, upper_even_index, "");
+	error += striteri_case(3, "ft_striteri(\"abcdefghijk\", replace_with_index) uses the index",
+		s3, replace_with_index, "01234567890");
 
 	return (error);
 }

@@ -2,40 +2,67 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
 
-typedef struct s_test
-{
-	char *desc;
-	char *expected;
-} t_test;
+#define TMP_PATH ".ft_putstr_fd_tmp"
 
-int run_tests(t_test *tests, int count);
+static int	read_tmp(char *buf, size_t size)
+{
+	int		fd;
+	ssize_t	n;
+
+	fd = open(TMP_PATH, O_RDONLY);
+	if (fd < 0)
+		return (-1);
+	n = read(fd, buf, size - 1);
+	close(fd);
+	if (n < 0)
+		return (-1);
+	buf[n] = '\0';
+	return (0);
+}
+
+static int	putstr_case(int i, char *desc, char *s, char *expected)
+{
+	int		fd;
+	char	buf[64];
+
+	fd = open(TMP_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (fd < 0)
+	{
+		printf("    " RED "[%d] %s: could not open temp file\n" DEFAULT, i, desc);
+		return (-1);
+	}
+	ft_putstr_fd(s, fd);
+	close(fd);
+	if (read_tmp(buf, sizeof(buf)) != 0)
+	{
+		printf("    " RED "[%d] %s: could not read back temp file\n" DEFAULT, i, desc);
+		return (-1);
+	}
+	if (strcmp(buf, expected) == 0)
+	{
+		printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
+		return (0);
+	}
+	printf("    " RED "[%d] %s: expected \"%s\", got \"%s\"\n" DEFAULT,
+		i, desc, expected, buf);
+	return (-1);
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_putstr_fd test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int		error = 0;
+	char	hello[] = "hello, world";
 
-	return (run_tests(tests, count));
-}
+	error += putstr_case(1, "ft_putstr_fd(\"hello, world\", fd) writes the string as-is",
+		hello, "hello, world");
+	error += putstr_case(2, "ft_putstr_fd(\"\", fd) writes nothing", "", "");
+	error += putstr_case(3, "ft_putstr_fd(\"a\\nb\", fd) preserves embedded newlines",
+		"a\nb", "a\nb");
 
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_putstr_fd and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
-
+	unlink(TMP_PATH);
 	return (error);
 }

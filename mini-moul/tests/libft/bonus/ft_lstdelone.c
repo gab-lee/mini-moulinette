@@ -1,41 +1,44 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
 
-typedef struct s_test
-{
-	char *desc;
-	char *expected;
-} t_test;
+static int	g_del_calls;
+static void	*g_last_content;
 
-int run_tests(t_test *tests, int count);
+static void	track_del(void *content)
+{
+	g_del_calls++;
+	g_last_content = content;
+	free(content);
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_lstdelone test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int		error = 0;
+	t_list	*node;
+	t_list	*next;
+	int		*content;
 
-	return (run_tests(tests, count));
-}
+	content = malloc(sizeof(int));
+	*content = 42;
+	node = ft_lstnew(content);
+	next = ft_lstnew(NULL);
+	node->next = next;
 
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
-
-	for (i = 0; i < count; i++)
+	g_del_calls = 0;
+	g_last_content = NULL;
+	ft_lstdelone(node, track_del);
+	if (g_del_calls == 1 && g_last_content == content)
+		printf("  " GREEN CHECKMARK GREY " [1] ft_lstdelone calls del exactly once on the node's content\n" DEFAULT);
+	else
 	{
-		// TODO: call ft_lstdelone and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
+		printf("    " RED "[1] ft_lstdelone did not call del correctly (calls=%d)\n" DEFAULT, g_del_calls);
 		error -= 1;
 	}
+	printf("  " GREEN CHECKMARK GREY " [2] ft_lstdelone did not crash freeing the node\n" DEFAULT);
 
+	free(next);
 	return (error);
 }

@@ -1,41 +1,56 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
 
-typedef struct s_test
+static void	free_list(t_list *lst)
 {
-	char *desc;
-	char *expected;
-} t_test;
+	t_list	*next;
 
-int run_tests(t_test *tests, int count);
+	while (lst)
+	{
+		next = lst->next;
+		free(lst);
+		lst = next;
+	}
+}
+
+static int	lstsize_case(int i, char *desc, t_list *lst, int expected)
+{
+	int	res;
+
+	res = ft_lstsize(lst);
+	if (res == expected)
+	{
+		printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
+		return (0);
+	}
+	printf("    " RED "[%d] %s: expected %d, got %d\n" DEFAULT,
+		i, desc, expected, res);
+	return (-1);
+}
 
 int main(void)
 {
-	t_test tests[] = {
-	    {.desc = "TODO: ft_lstsize test cases not written yet",
-	     .expected = ""},
-	    // Add test cases here
-	};
-	int count = sizeof(tests) / sizeof(tests[0]);
+	int		error = 0;
+	int		value = 1;
+	t_list	*empty;
+	t_list	*one;
+	t_list	*three;
 
-	return (run_tests(tests, count));
-}
+	empty = NULL;
+	error += lstsize_case(1, "ft_lstsize(NULL) returns 0", empty, 0);
 
-int run_tests(t_test *tests, int count)
-{
-	int i;
-	int error = 0;
+	one = ft_lstnew(&value);
+	error += lstsize_case(2, "ft_lstsize on a single node returns 1", one, 1);
 
-	for (i = 0; i < count; i++)
-	{
-		// TODO: call ft_lstsize and compare the result against tests[i].expected
-		printf("    " RED "[%d] %s\n" DEFAULT, i + 1, tests[i].desc);
-		error -= 1;
-	}
+	three = ft_lstnew(&value);
+	three->next = ft_lstnew(&value);
+	three->next->next = ft_lstnew(&value);
+	error += lstsize_case(3, "ft_lstsize on a 3-node list returns 3", three, 3);
 
+	free_list(one);
+	free_list(three);
 	return (error);
 }
