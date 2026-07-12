@@ -55,9 +55,9 @@ There is no build step; everything runs via bash + `cc`.
 
 ## Versioning
 
-`mini-moul/config.sh` defines `VERSION` (SemVer `MAJOR.MINOR.PATCH`) — the single source of truth, printed in `test.sh`'s banner. **Every PR merged to `main` must bump it**, in the same commit/PR as the change:
+`mini-moul/config.sh` defines `VERSION` (SemVer `MAJOR.MINOR.PATCH`) — the single source of truth, printed in `test.sh`'s banner. **Every PR merged to `main` must bump it and add an entry to `CHANGELOG.md`**, in the same commit/PR as the change:
 - `PATCH` — bug fixes, test corrections, wording/output tweaks.
 - `MINOR` — new assignment/part test coverage, new features (e.g. the update-notification check), backwards-compatible additions.
 - `MAJOR` — reserved; stays `0.x.y` until the Common Core suites are actually live (see "What this is").
 
-There is no separate CHANGELOG file — the merged PR history (titles + descriptions) is the changelog. Keep PR titles/descriptions descriptive enough to serve that purpose.
+`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/): move the relevant bullets out of `[Unreleased]` into a new dated `[MAJOR.MINOR.PATCH] - YYYY-MM-DD` section (categorized under Added/Changed/Fixed/Removed) as part of the same PR that bumps `VERSION`.
