@@ -1,5 +1,7 @@
 # Mini-moulinette — New Common Core
 
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/gablee)
+
 ![mini-moulinette](mini-moulinette.jpg)
 
 Mini-moulinette is a test runner for 42 assignments. It runs a full suite of automated tests over an assignment with a single command, so you can check your code thoroughly *before* submitting — instead of finding out the hard way at evaluation.
