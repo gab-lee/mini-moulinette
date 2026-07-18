@@ -3,7 +3,7 @@
 # Single source of truth for the version banner in test.sh. Follows SemVer
 # (MAJOR.MINOR.PATCH); bump it on every PR merge to main — see CLAUDE.md
 # "Versioning".
-readonly VERSION="0.1.1"
+readonly VERSION="0.2.0"
 
 #constants
 readonly GREEN='\033[38;5;84m'

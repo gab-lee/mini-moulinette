@@ -20,6 +20,9 @@ break_score=0
 score_false=0
 available_assignments=""
 result=""
+has_bonus=0
+bonus_passed=0
+part_is_bonus=0
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 dirname_found=0
 
@@ -121,9 +124,15 @@ main()
 
             for assignment in $exercise_dirs; do
                 [ -d "$assignment" ] || continue
-                questions=$((questions+1))
-                score_false=0
                 assignment_name="$(basename "$assignment")"
+                score_false=0
+                part_is_bonus=0
+                if [ "$assignment_name" = "bonus" ]; then
+                    part_is_bonus=1
+                    has_bonus=1
+                else
+                    questions=$((questions+1))
+                fi
                 printf "${PURPLE}${BOLD} ${assignment_name}${DEFAULT}\n"
                 test_files="$(collect_tests "$assignment")"
 
@@ -140,7 +149,7 @@ main()
                                 passed=$((passed+1))
                                 printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
                             else
-                                break_score=1
+                                [ $part_is_bonus -eq 0 ] && break_score=1
                                 score_false=1
                                 printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
                                 printf '%s\n' "$test_output"
@@ -153,12 +162,12 @@ main()
                     src_err="$(student_compile_error "$fn_name")"
 
                     if [ -n "$src_err" ]; then
-                        break_score=1
+                        [ $part_is_bonus -eq 0 ] && break_score=1
                         score_false=1
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(your ${fn_name}.c cannot compile)${DEFAULT}\n"
                         sed 's/^/    /' "$src_err" | head -15
                     elif ! student_src_exists "$fn_name"; then
-                        break_score=1
+                        [ $part_is_bonus -eq 0 ] && break_score=1
                         score_false=1
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(no ${fn_name}.c found in your project)${DEFAULT}\n"
                     elif cc -Wall -Werror -Wextra -o "${test%.c}" "$test" "${student_objs[@]}" 2> compile_error.tmp; then
@@ -171,14 +180,14 @@ main()
                                 *"[!]"*) printf '%s\n' "$test_output" | grep -F '[!]' ;;
                             esac
                         else
-                            break_score=1
+                            [ $part_is_bonus -eq 0 ] && break_score=1
                             score_false=1
                             printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
                             printf '%s\n' "$test_output"
                         fi
                         rm -f "${test%.c}"
                     else
-                        break_score=1
+                        [ $part_is_bonus -eq 0 ] && break_score=1
                         score_false=1
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(cannot compile)${DEFAULT}\n"
                         sed 's/^/    /' compile_error.tmp | head -15
@@ -242,7 +251,9 @@ print_test_result()
     else
         result+="${RED}$assignment_name: KO${DEFAULT}"
     fi
-    if [ $break_score = 0 ]; then
+    if [ $part_is_bonus -eq 1 ]; then
+        [ $score_false = 0 ] && bonus_passed=1
+    elif [ $break_score = 0 ]; then
         marks=$((marks+1))
     fi
 }
@@ -251,14 +262,33 @@ print_footer()
 {
     printf "${PURPLE}-----------------------------------${DEFAULT}\n"
     space
-    PERCENT=$((100 * marks / questions))
     #printf "Total checks:  ""${GREEN}${passed} passed  ${DEFAULT} ""${checks} total"
     printf "Result:        ${result}\n"
-    if [ $PERCENT -ge 50 ]; then
-        printf "Final score:   ""${GREEN}$(echo $PERCENT | bc)/100${DEFAULT}\n"
+
+    mandatory_percent=0
+    [ $questions -gt 0 ] && mandatory_percent=$((100 * marks / questions))
+
+    # Bonus is only ever graded once the mandatory part is a perfect 100,
+    # mirroring 42's own moulinette. It's a flat +25, not proportional.
+    final_score=$mandatory_percent
+    denom=100
+    if [ $has_bonus -eq 1 ] && [ $mandatory_percent -eq 100 ]; then
+        denom=125
+        if [ $bonus_passed -eq 1 ]; then
+            final_score=125
+            printf "Bonus:         ${GREEN}+25${DEFAULT}\n"
+        else
+            printf "Bonus:         ${RED}+0 (bonus checks failed)${DEFAULT}\n"
+        fi
+    elif [ $has_bonus -eq 1 ]; then
+        printf "Bonus:         ${GREY}not evaluated (mandatory part isn't perfect)${DEFAULT}\n"
+    fi
+
+    if [ $final_score -ge 50 ]; then
+        printf "Final score:   ""${GREEN}${final_score}/${denom}${DEFAULT}\n"
         printf "Status:        ""${GREEN}passed${DEFAULT}\n"
     else
-        printf "Final score:   ""${RED}$(echo $PERCENT | bc)/100${DEFAULT}\n"
+        printf "Final score:   ""${RED}${final_score}/${denom}${DEFAULT}\n"
         printf "Status:        ""${RED}FAILED${DEFAULT}\n"
     fi
     end_time=$(date +%s)

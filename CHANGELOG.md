@@ -9,6 +9,16 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-18
+
+### Added
+- `test.sh` now scores assignments the way 42's real moulinette does: the
+  mandatory parts are worth `/100`, and a `bonus` part is only graded (a flat
+  `+25`, capping the final score at `/125`) once the mandatory part is a
+  perfect 100. If the mandatory part isn't perfect, `bonus` still runs for
+  feedback but doesn't affect the score, and the footer says so. Previously
+  every part (including `bonus`) counted as an equal-weight fraction of 100.
+
 ## [0.1.1] - 2026-07-18
 
 ### Fixed
