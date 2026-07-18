@@ -1,6 +1,6 @@
 # Mini-moulinette — New Common Core
 
-[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/gablee)
+[![Buy Me A Beer](https://img.shields.io/badge/%F0%9F%8D%BA-Buy%20Me%20A%20Beer-FFDD00?style=for-the-badge)](https://buymeacoffee.com/gablee)
 
 ![mini-moulinette](mini-moulinette.jpg)
 
