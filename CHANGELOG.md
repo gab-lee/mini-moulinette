@@ -9,6 +9,26 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-18
+
+### Changed
+- The project is now **live**. Removed the "not live yet" warning banner and
+  the matching caution note in "Get Started" from `README.md`.
+- `README.md` overhaul: moved "Get Started" up to directly follow "How Does
+  It Work?"; reworked "Updating" to describe the automatic update check
+  `mini-moul.sh` already performs on every run (manual `git pull` is now
+  presented as a fallback); replaced the stale piscine `C05` segfault-
+  debugging example with a real, current `libft/libc/ft_isalpha.c` one;
+  renamed "Contributing" to "Contribution"; simplified the "License" section
+  to drop the now-unnecessary attribution link; fixed links to Khairul
+  Haaziq's profile/repo to point at their current handle
+  (`https://github.com/k11q`).
+- Roadmap: marked Circle 0 (Libft) complete, noted Circle 1 (ft_printf,
+  get_next_line) is targeting end of August, and dropped the "Exam practice
+  mode" line and the stale "(not just C00–C13)" qualifier. Coverage Status
+  table updated to match (Libft: Complete; ft_printf/get_next_line: Planned,
+  targeting end of Aug).
+
 ## [0.3.0] - 2026-07-18
 
 ### Added
