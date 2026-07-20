@@ -1,0 +1,8 @@
+ft_printf_flag_minus.c
+ft_printf_flag_zero.c
+ft_printf_width.c
+ft_printf_precision.c
+ft_printf_flag_hash.c
+ft_printf_flag_plus.c
+ft_printf_flag_space.c
+ft_printf_combinations.c

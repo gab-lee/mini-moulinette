@@ -54,7 +54,7 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 | Circle | Project                    | Exercises / Parts to cover                 | Coverage        | Cross-tested against 42 submissions |
 | :----: | :------------------------- | :----------------------------------------- | :-------------: | :---------------------------------- |
 | 0      | Libft                      | Part 1 (libc), Part 2 (additional), bonus  | In progress (libc done) | [Mia Combeau](https://github.com/mcombeau/libft/tree/main) |
-| 1      | ft_printf                  | Mandatory conversions + bonus flags        | Planned         | —                                    |
+| 1      | ft_printf                  | Mandatory conversions + bonus flags        | Done            | —                                    |
 | 1      | get_next_line              | Mandatory + multiple-fd bonus              | Planned         | —                                    |
 | 1      | Born2beroot                | —                                          | Out of scope (VM / sysadmin) | —                       |
 | 2      | push_swap                  | Operation validity, sort check, op count   | Planned         | —                                    |

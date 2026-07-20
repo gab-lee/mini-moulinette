@@ -9,6 +9,43 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-20
+
+### Added
+- Full `ft_printf` test suite: `setup` (Makefile/`ar`/`libftprintf.a` check,
+  prototype check), `libc` (all nine mandatory conversions `cspdiuxX%`, plus
+  a combined-conversions test), and `bonus` (`-`, `0`, `.` precision,
+  minimum field width, `#`, `+`, space flag, and stacked combinations of
+  all of the above). Every case compares `ft_printf`'s captured stdout
+  output and return value directly against the real `printf` given the
+  same format/args, instead of hand-computed expected strings.
+- `utils/printf_compare.h`: captures a function's stdout output (via fd
+  redirection, since `ft_printf` writes directly rather than through
+  buffered stdio) and its return value for byte-exact comparison against
+  real `printf`. Reference calls route through a `real_printf` function
+  pointer rather than calling `printf()` directly, since some of the most
+  useful cases here (conflicting flags, zero-length formats) are exactly
+  the ones GCC's static format-string checker (`-Wformat`, part of `-Wall`)
+  rejects on a direct call even though the real `printf` handles them fine
+  at runtime.
+
+### Changed
+- `build_student_objects()` now compiles every `../*.c` at the project
+  root, not just `../ft_*.c` — needed since `ft_printf`'s internal helper
+  files aren't bound to any naming convention. Any file whose compiled
+  object defines `main` is excluded, so a student's own scratch test
+  harness can't collide with a test binary's `main()` at link time.
+- Added an optional per-assignment `target` file (`tests/<assignment>/target`)
+  so every test in every part of an assignment can check compile
+  errors/missing-source against one shared source name instead of each
+  test's own filename — needed for `ft_printf`, where many test files (one
+  per conversion or flag) all exercise the same `ft_printf.c`. Assignments
+  without a `target` file (e.g. `libft`) are unaffected.
+- `check_prototypes` (in `utils/proto_check.sh`) now takes the student's
+  header filename as its first argument instead of hardcoding `libft.h`,
+  so it can be reused for `ft_printf.h`. `libft`'s three `prototypes.sh`
+  call sites updated to pass `"libft.h"` explicitly; behavior unchanged.
+
 ## [0.2.0] - 2026-07-18
 
 ### Added
