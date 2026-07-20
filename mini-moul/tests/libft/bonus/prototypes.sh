@@ -8,7 +8,7 @@
 source ./config.sh
 source ./utils/proto_check.sh
 
-check_prototypes \
+check_prototypes "libft.h" \
 	"ft_lstnew|t_list *(*p)(void *)|t_list *ft_lstnew(void *content)" \
 	"ft_lstadd_front|void (*p)(t_list **, t_list *)|void ft_lstadd_front(t_list **lst, t_list *new)" \
 	"ft_lstsize|int (*p)(t_list *)|int ft_lstsize(t_list *lst)" \

@@ -7,7 +7,7 @@
 source ./config.sh
 source ./utils/proto_check.sh
 
-check_prototypes \
+check_prototypes "libft.h" \
 	"ft_isalpha|int (*p)(int)|int ft_isalpha(int c)" \
 	"ft_isdigit|int (*p)(int)|int ft_isdigit(int c)" \
 	"ft_isalnum|int (*p)(int)|int ft_isalnum(int c)" \
