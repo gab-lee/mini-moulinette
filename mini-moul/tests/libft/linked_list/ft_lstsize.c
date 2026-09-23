@@ -16,9 +16,9 @@ static void	free_list(t_list *lst)
 	}
 }
 
-static int	lstsize_case(int i, char *desc, t_list *lst, int expected)
+static int	lstsize_case(int i, char *desc, t_list *lst, unsigned int expected)
 {
-	int	res;
+	unsigned int	res;
 
 	res = ft_lstsize(lst);
 	if (res == expected)
@@ -26,7 +26,7 @@ static int	lstsize_case(int i, char *desc, t_list *lst, int expected)
 		printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
 		return (0);
 	}
-	printf("    " RED "[%d] %s: expected %d, got %d\n" DEFAULT,
+	printf("    " RED "[%d] %s: expected %u, got %u\n" DEFAULT,
 		i, desc, expected, res);
 	return (-1);
 }

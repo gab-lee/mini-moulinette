@@ -9,6 +9,15 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-09-23
+
+### Fixed
+- `ft_lstsize`'s checked prototype was `int ft_lstsize(t_list *lst)` in both
+  `tests/libft/linked_list/prototypes.sh` and `tests/libft/libft_proto.h`,
+  but the subject specifies `unsigned int`. This rewarded a wrong `int`
+  signature and would hard-fail a subject-correct one. Fixed both, and
+  updated `ft_lstsize.c`'s local variables to `unsigned int` to match.
+
 ## [2.0.0] - 2026-09-23
 
 ### Changed
