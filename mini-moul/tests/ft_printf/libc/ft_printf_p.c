@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include "../ft_printf_proto.h"
 #include "../../../utils/constants.h"
 #include "../../../utils/printf_compare.h"
@@ -54,6 +55,30 @@ int main(void)
 	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "ptr=%p end", ptr);
 	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "ptr=%p end", ptr);
 	error += check_printf(4, "ft_printf(\"ptr=%p end\", &local_var)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	ptr = (void *)1;
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "%p", ptr);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "%p", ptr);
+	error += check_printf(5, "ft_printf(\"%p\", (void *)1)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	ptr = (void *)ULONG_MAX;
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "%p", ptr);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "%p", ptr);
+	error += check_printf(6, "ft_printf(\"%p\", (void *)ULONG_MAX) (all 64 bits set)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	ptr = (void *)LONG_MIN;
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "%p %p", ptr, (void *)LONG_MAX);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "%p %p", ptr, (void *)LONG_MAX);
+	error += check_printf(7, "ft_printf(\"%p %p\", (void *)LONG_MIN, (void *)LONG_MAX) (address treated as unsigned)",
 		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
 	free(out_mine);
 	free(out_ref);

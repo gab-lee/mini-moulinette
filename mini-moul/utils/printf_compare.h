@@ -5,13 +5,12 @@
 ** Helpers for testing ft_printf by comparing its output and return value
 ** against the real printf, instead of hand-computing expected strings.
 **
-** ft_printf writes straight to fd 1 (no FILE* buffering), so output is
-** captured by redirecting fd 1 to a temp file around the call and reading
-** it back — this works whether the student's implementation goes through
-** write() or a buffered FILE* on their end. Captured output is compared
-** by exact byte range (length + memcmp), not strcmp, so an embedded NUL
-** byte in the output (e.g. "%c" with argument 0) can't silently truncate
-** the comparison.
+** Each call runs in a forked child with fd 1 redirected to a temp file, so
+** a crash or an infinite loop in one case is reported against that case
+** (the child is killed after PF_TIMEOUT seconds) instead of taking down
+** the whole test file. Captured output is compared by exact byte range
+** (length + memcmp), not strcmp, so an embedded NUL byte in the output
+** (e.g. "%c" with argument 0) can't silently truncate the comparison.
 **
 ** Usage in a test file:
 **
@@ -26,6 +25,9 @@
 **   free(out_mine);
 **   free(out_ref);
 **
+** If the call crashed, out_var is NULL and len_var holds the signal number
+** (0 if the child exited without returning); check_printf reports it.
+**
 ** Reference calls must go through real_printf, not printf() directly:
 ** some of the most useful cases here are deliberately unusual (conflicting
 ** flags, zero-length formats, ...) and GCC's static format-string checker
@@ -38,57 +40,102 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
+# include <signal.h>
 # include <unistd.h>
 # include <fcntl.h>
+# include <sys/wait.h>
 # include "constants.h"
+
+# define PF_TIMEOUT 3
 
 static int (* const real_printf)(const char *, ...) = printf;
 
 # define PF_RUN(fn, ret_var, out_var, len_var, ...) \
 	do { \
 		char pf_tmp_path[64]; \
-		int pf_saved_fd = pf_capture_start(pf_tmp_path); \
-		(ret_var) = fn(__VA_ARGS__); \
-		(out_var) = pf_capture_end(pf_saved_fd, pf_tmp_path, &(len_var)); \
+		int pf_pipe[2]; \
+		pid_t pf_pid; \
+		int pf_ret; \
+		pf_prepare(pf_tmp_path, pf_pipe); \
+		pf_pid = fork(); \
+		if (pf_pid == 0) \
+		{ \
+			pf_child_start(pf_tmp_path, pf_pipe); \
+			pf_ret = fn(__VA_ARGS__); \
+			pf_child_end(pf_pipe, pf_ret); \
+		} \
+		(out_var) = pf_collect(pf_pid, pf_tmp_path, pf_pipe, \
+			&(ret_var), &(len_var)); \
 	} while (0)
 
-/* Redirects fd 1 to a fresh temp file; returns a saved copy of the old fd 1. */
-static inline int pf_capture_start(char *tmp_path)
+static inline void pf_prepare(char *tmp_path, int *fds)
 {
-	int fd;
-	int saved;
-
 	fflush(stdout);
 	snprintf(tmp_path, 64, ".printf_capture_%d.tmp", (int)getpid());
-	fd = open(tmp_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	saved = dup(STDOUT_FILENO);
-	dup2(fd, STDOUT_FILENO);
-	close(fd);
-	return (saved);
+	if (pipe(fds) != 0)
+	{
+		perror("pipe");
+		exit(1);
+	}
 }
 
-/* Restores fd 1 and returns the captured bytes as a malloc'd buffer
-** (NUL-terminated for convenience, but *len is the real byte count and is
-** what comparisons must use). Caller must free() it. */
-static inline char *pf_capture_end(int saved, char *tmp_path, long *len)
+/* In the child: send fd 1 to the capture file and arm the timeout. */
+static inline void pf_child_start(char *tmp_path, int *fds)
 {
+	int fd;
+
+	close(fds[0]);
+	fd = open(tmp_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	dup2(fd, STDOUT_FILENO);
+	close(fd);
+	alarm(PF_TIMEOUT);
+}
+
+static inline void pf_child_end(int *fds, int ret)
+{
+	fflush(stdout);
+	if (write(fds[1], &ret, sizeof(ret)) != sizeof(ret))
+		_exit(1);
+	_exit(0);
+}
+
+/* In the parent: waits for the child and returns the captured bytes as a
+** malloc'd buffer (NUL-terminated for convenience, but *len is the real
+** byte count and is what comparisons must use), or NULL if the child
+** crashed, timed out or never returned. Caller must free() it. */
+static inline char *pf_collect(pid_t pid, char *tmp_path, int *fds,
+	int *ret, long *len)
+{
+	int status;
+	long got;
 	int fd;
 	long size;
 	char *buf;
 
-	fflush(stdout);
-	dup2(saved, STDOUT_FILENO);
-	close(saved);
+	close(fds[1]);
+	waitpid(pid, &status, 0);
+	got = read(fds[0], ret, sizeof(*ret));
+	close(fds[0]);
 	fd = open(tmp_path, O_RDONLY);
-	size = lseek(fd, 0, SEEK_END);
-	lseek(fd, 0, SEEK_SET);
+	size = (fd < 0) ? 0 : lseek(fd, 0, SEEK_END);
 	buf = malloc(size + 1);
-	if (size > 0 && read(fd, buf, size) != size)
-		size = 0;
+	if (fd >= 0)
+	{
+		lseek(fd, 0, SEEK_SET);
+		if (size > 0 && read(fd, buf, size) != size)
+			size = 0;
+		close(fd);
+	}
 	buf[size] = '\0';
-	close(fd);
 	unlink(tmp_path);
 	*len = size;
+	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0
+		|| got != (long)sizeof(*ret))
+	{
+		free(buf);
+		*len = WIFSIGNALED(status) ? WTERMSIG(status) : 0;
+		return (NULL);
+	}
 	return (buf);
 }
 
@@ -126,6 +173,18 @@ static inline int check_printf(int i, char *desc,
 {
 	int output_matches;
 
+	if (mine_out == NULL)
+	{
+		printf("    " RED "[%d] %s\n" DEFAULT, i, desc);
+		if (mine_len == SIGALRM)
+			printf("    " RED "    timed out after %ds (infinite loop?)\n" DEFAULT,
+				PF_TIMEOUT);
+		else if (mine_len > 0)
+			printf("    " RED "    crashed: %s\n" DEFAULT, strsignal((int)mine_len));
+		else
+			printf("    " RED "    exited before returning\n" DEFAULT);
+		return (-1);
+	}
 	output_matches = (mine_len == ref_len)
 		&& (ref_len == 0 || memcmp(mine_out, ref_out, ref_len) == 0);
 	if (mine_ret == ref_ret && output_matches)

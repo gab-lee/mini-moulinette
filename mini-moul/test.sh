@@ -50,13 +50,11 @@ collect_tests()
     fi
 }
 
-# Compile every .c file at the student's project root once into an object
-# file. Tests declare prototypes (tests/<suite>/*_proto.h) and link against
-# these objects, so the student's code is never #include-d into a test.
-# A file that doesn't compile keeps its error in $OBJ_DIR/<name>.err and
-# its test reports it. Any file that defines main() is excluded (e.g. a
-# scratch main.c some students keep for local testing) so it can't clash
-# with a test binary's own main() at link time.
+# Compile each of the student's ft_*.c once into an object file. Tests
+# declare prototypes (tests/<suite>/libft_proto.h) and link against these
+# objects, so the student's code is never #include-d into a test. A file
+# that doesn't compile keeps its error in $OBJ_DIR/<name>.err and its test
+# reports it.
 OBJ_DIR=""
 student_objs=()
 build_student_objects()
@@ -65,16 +63,12 @@ build_student_objects()
     rm -rf "$OBJ_DIR"
     mkdir -p "$OBJ_DIR"
     student_objs=()
-    for src in ../*.c; do
+    for src in ../ft_*.c; do
         [ -f "$src" ] || continue
         name="$(basename "${src%.c}")"
         if cc -Wall -Werror -Wextra -c "$src" -o "$OBJ_DIR/$name.o" 2> "$OBJ_DIR/$name.err"; then
             rm -f "$OBJ_DIR/$name.err"
-            if nm "$OBJ_DIR/$name.o" 2> /dev/null | grep -q ' T main$'; then
-                rm -f "$OBJ_DIR/$name.o"
-            else
-                student_objs+=("$OBJ_DIR/$name.o")
-            fi
+            student_objs+=("$OBJ_DIR/$name.o")
         fi
     done
 }
@@ -95,22 +89,6 @@ student_src_exists()
     [ -f "../$1.c" ] || [ -f "../$1_bonus.c" ]
 }
 
-# The source-file name to check compile errors/existence against for a
-# given test. Defaults to the test's own basename (e.g. libft, where one
-# test file maps 1:1 to one student source file). An assignment can drop
-# a 'target' file at its root (tests/<assignment>/target, one name, no
-# extension) to point every test in every part at a single shared source
-# instead — e.g. ft_printf, where many test files (one per conversion or
-# flag) all exercise the same ft_printf.c.
-test_target_name()
-{
-    if [ -f "$1/target" ]; then
-        cat "$1/target"
-    else
-        printf '%s' "$2"
-    fi
-}
-
 main()
 {
     start_time=$(date +%s)
@@ -129,7 +107,13 @@ main()
             space
             dirname_found=1
             index=0
-            build_student_objects
+            # An assignment whose subject has the student's Makefile build a
+            # library (tests/<assignment>/library names it, e.g.
+            # libftprintf.a) links its tests against that library, built by
+            # the setup part, instead of compiling ../ft_*.c.
+            library=""
+            [ -f "$dir/library" ] && library="$(cat "$dir/library")"
+            [ -z "$library" ] && build_student_objects
 
             # Run parts in subject order (setup, libc, additional, bonus),
             # then anything else
@@ -158,6 +142,16 @@ main()
                 printf "${PURPLE}${BOLD} ${assignment_name}${DEFAULT}\n"
                 test_files="$(collect_tests "$assignment")"
 
+                bonus_build_failed=0
+                if [ -n "$library" ] && [ $part_is_bonus -eq 1 ]; then
+                    if ! make --no-print-directory -C .. bonus > make_bonus.tmp 2>&1; then
+                        bonus_build_failed=1
+                        printf "    ${RED}'make bonus' failed:${DEFAULT}\n"
+                        sed 's/^/    /' make_bonus.tmp | head -15
+                    fi
+                    rm -f make_bonus.tmp
+                fi
+
                 for test in $test_files; do
                     checks=$((checks+1))
 
@@ -181,19 +175,31 @@ main()
                     esac
 
                     fn_name="$(basename "${test%.c}")"
-                    target_fn="$(test_target_name "$dir" "$fn_name")"
-                    src_err="$(student_compile_error "$target_fn")"
+                    fail_reason=""
+                    fail_detail=""
+                    if [ -n "$library" ]; then
+                        link_inputs=("../$library")
+                        if [ $bonus_build_failed -eq 1 ]; then
+                            fail_reason="'make bonus' failed"
+                        elif [ ! -f "../$library" ]; then
+                            fail_reason="no $library in your project; see setup"
+                        fi
+                    else
+                        link_inputs=("${student_objs[@]}")
+                        fail_detail="$(student_compile_error "$fn_name")"
+                        if [ -n "$fail_detail" ]; then
+                            fail_reason="your ${fn_name}.c cannot compile"
+                        elif ! student_src_exists "$fn_name"; then
+                            fail_reason="no ${fn_name}.c found in your project"
+                        fi
+                    fi
 
-                    if [ -n "$src_err" ]; then
+                    if [ -n "$fail_reason" ]; then
                         [ $part_is_bonus -eq 0 ] && break_score=1
                         score_false=1
-                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(your ${target_fn}.c cannot compile)${DEFAULT}\n"
-                        sed 's/^/    /' "$src_err" | head -15
-                    elif ! student_src_exists "$target_fn"; then
-                        [ $part_is_bonus -eq 0 ] && break_score=1
-                        score_false=1
-                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(no ${target_fn}.c found in your project)${DEFAULT}\n"
-                    elif cc -Wall -Werror -Wextra -o "${test%.c}" "$test" "${student_objs[@]}" 2> compile_error.tmp; then
+                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(${fail_reason})${DEFAULT}\n"
+                        [ -n "$fail_detail" ] && sed 's/^/    /' "$fail_detail" | head -15
+                    elif cc -Wall -Werror -Wextra -o "${test%.c}" "$test" "${link_inputs[@]}" 2> compile_error.tmp; then
                         test_output="$("./${test%.c}" 2>&1)"
                         if [ $? -eq 0 ]; then
                             passed=$((passed+1))

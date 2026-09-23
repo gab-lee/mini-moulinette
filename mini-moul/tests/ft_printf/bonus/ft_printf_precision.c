@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include "../ft_printf_proto.h"
 #include "../../../utils/constants.h"
 #include "../../../utils/printf_compare.h"
@@ -64,6 +65,41 @@ int main(void)
 	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%.5d]", -42);
 	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%.5d]", -42);
 	error += check_printf(7, "ft_printf(\"[%.5d]\", -42)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%5.0d]", 0);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%5.0d]", 0);
+	error += check_printf(8, "ft_printf(\"[%5.0d]\", 0) (width still applies when the digits vanish)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%.0x][%.0u]", 0, 0);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%.0x][%.0u]", 0, 0);
+	error += check_printf(9, "ft_printf(\"[%.0x][%.0u]\", 0, 0)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%.0s]", "hello");
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%.0s]", "hello");
+	error += check_printf(10, "ft_printf(\"[%.0s]\", \"hello\") (precision 0 prints no characters)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%-8.3s]", "hello");
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%-8.3s]", "hello");
+	error += check_printf(11, "ft_printf(\"[%-8.3s]\", \"hello\")",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%.12d]", INT_MIN);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%.12d]", INT_MIN);
+	error += check_printf(12, "ft_printf(\"[%.12d]\", INT_MIN) (zeros go after the '-')",
 		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
 	free(out_mine);
 	free(out_ref);

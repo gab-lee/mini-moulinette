@@ -58,5 +58,19 @@ int main(void)
 	free(out_mine);
 	free(out_ref);
 
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "%c", 0);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "%c", 0);
+	error += check_printf(7, "ft_printf(\"%c\", 0) (NUL byte is still printed and counted)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "a%cb%cc", 0, 0);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "a%cb%cc", 0, 0);
+	error += check_printf(8, "ft_printf(\"a%cb%cc\", 0, 0) (output continues after a NUL)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
 	return (error);
 }

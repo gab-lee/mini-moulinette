@@ -52,5 +52,12 @@ int main(void)
 	free(out_mine);
 	free(out_ref);
 
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "%i", INT_MAX);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "%i", INT_MAX);
+	error += check_printf(6, "ft_printf(\"%i\", INT_MAX)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
 	return (error);
 }

@@ -54,9 +54,30 @@ int main(void)
 	free(out_mine);
 	free(out_ref);
 
-	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%4%]");
-	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%4%]");
-	error += check_printf(6, "ft_printf(\"[%4%]\") (width with the %% conversion)",
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%20p]", (void *)0x2a);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%20p]", (void *)0x2a);
+	error += check_printf(6, "ft_printf(\"[%20p]\", (void *)0x2a)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%-20p]", (void *)0x2a);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%-20p]", (void *)0x2a);
+	error += check_printf(7, "ft_printf(\"[%-20p]\", (void *)0x2a)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%10s]", (char *)NULL);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%10s]", (char *)NULL);
+	error += check_printf(8, "ft_printf(\"[%10s]\", NULL)",
+		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
+	free(out_mine);
+	free(out_ref);
+
+	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%1d]", -42);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%1d]", -42);
+	error += check_printf(9, "ft_printf(\"[%1d]\", -42) (width smaller than the number)",
 		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
 	free(out_mine);
 	free(out_ref);
