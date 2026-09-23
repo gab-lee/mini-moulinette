@@ -9,6 +9,19 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-09-23
+
+### Removed
+- The archived piscine suites (`tests/42Piscine(archive)/`, C00–C08). The
+  runner already skipped any folder named `(archive)`, so they could never
+  run. The now-unused `(archive)` filters in `mini-moul.sh` and `test.sh`
+  are gone too.
+- `README.md`: the "Cross-tested against 42 submissions" column in
+  Coverage Status, and the "Looking for piscine tests?" note.
+
+### Changed
+- `README.md`: merged the "Credits" section into "Authors".
+
 ## [2.0.1] - 2026-09-23
 
 ### Fixed

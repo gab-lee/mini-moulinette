@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Mini-moulinette is a bash-based test runner for 42 School assignments. This fork extends the original piscine-focused tool to the New Common Core curriculum (Circles 0–6). It is **live** — Circle 0 (`libft`) is complete and `ft_printf` has a first-cut suite; the rest of the curriculum is being added circle by circle (see README "Roadmap").
+Mini-moulinette is a bash-based test runner for 42 School assignments. This fork extends the original piscine-focused tool to the New Common Core curriculum (Circles 0–6); the piscine suites have been removed. It is **live** — Circle 0 (`libft`) is complete and `ft_printf` has a first-cut suite; the rest of the curriculum is being added circle by circle (see README "Roadmap").
 
 ## Running tests
 
@@ -14,7 +14,7 @@ There is no build step; everything runs via bash + `cc`.
   ```bash
   ~/mini-moulinette/mini-moul.sh
   ```
-  This copies `mini-moul/` into the current directory, detects the assignment from the directory's basename (must match a folder in `mini-moul/tests/`, and not contain `(archive)`), executes `test.sh <assignment>`, then cleans up. norminette is **not** run — see the note below.
+  This copies `mini-moul/` into the current directory, detects the assignment from the directory's basename (must match a folder in `mini-moul/tests/`), executes `test.sh <assignment>`, then cleans up. norminette is **not** run — see the note below.
 
 - To run directly without the copy/cleanup wrapper (useful while iterating on tests), from inside `mini-moul/`:
   ```bash

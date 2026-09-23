@@ -63,12 +63,9 @@ check_for_updates() {
   esac
 }
 
-# Current directory must match a test suite under mini-moul/tests (archives excluded)
+# Current directory must match a test suite under mini-moul/tests
 detect_assignment() {
   assignment=$(basename "$(pwd)")
-  case "$assignment" in
-    *"(archive)"*) return 1 ;;
-  esac
   [ -d ~/mini-moulinette/mini-moul/tests/"$assignment" ]
 }
 
@@ -84,7 +81,7 @@ else
   printf "${RED}No test suite found for directory '$(basename "$(pwd)")'.${DEFAULT}\n"
   printf "${RED}Navigate to a project directory named after its test suite (e.g. libft) to run tests.${DEFAULT}\n"
   printf "${RED}Available test suites:${DEFAULT}\n"
-  ls ~/mini-moulinette/mini-moul/tests | grep -v "(archive)"
+  ls ~/mini-moulinette/mini-moul/tests
 fi
 
 exit 1

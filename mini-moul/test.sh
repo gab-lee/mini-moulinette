@@ -95,9 +95,6 @@ main()
     #print_collected_files
     for dir in ./tests/* ; do
         dirname="$(basename "$dir")"
-        case "$dirname" in
-            *"(archive)"*) continue ;;
-        esac
         available_assignments+="$dirname "
         
         if [ -d "$dir" ] && [ "$dirname" == "$1" ]; then
