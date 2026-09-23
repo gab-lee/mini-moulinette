@@ -30,6 +30,9 @@ This tool was incredibly useful during my piscine: it saved me countless hours o
 > ***Warning***
 > Mini-moulinette is not 100% accurate — the tests may not cover every edge case the real moulinette does. Use it as a safety net, not a guarantee.
 
+> [!IMPORTANT]
+> Mini-moulinette does **not** check norminette compliance. Run `norminette` yourself before submitting — the real 42 moulinette still enforces it, and a norm error there means a `0`.
+
 1. Clone the repository into `~/mini-moulinette` (the runner expects this path):
 
 ```bash

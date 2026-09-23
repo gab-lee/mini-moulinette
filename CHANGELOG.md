@@ -9,6 +9,18 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-23
+
+### Removed
+- Norminette check. It ran as an ordinary `libft` `setup`-part test case
+  (`tests/libft/setup/norminette.sh`, `utils/norminette_check.sh`) but caused
+  bugs, so it's gone. Norm compliance is no longer graded by
+  mini-moulinette — run `norminette` yourself before submitting.
+
+### Changed
+- `README.md`: added a "Get Started" note reminding students to run
+  `norminette` themselves, since mini-moulinette no longer checks it.
+
 ## [1.0.0] - 2026-07-18
 
 ### Changed
