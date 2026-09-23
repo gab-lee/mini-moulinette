@@ -14,7 +14,7 @@ There is no build step; everything runs via bash + `cc`.
   ```bash
   ~/mini-moulinette/mini-moul.sh
   ```
-  This copies `mini-moul/` into the current directory, detects the assignment from the directory's basename (must match a folder in `mini-moul/tests/`, and not contain `(archive)`), executes `test.sh <assignment>`, then cleans up. norminette (if installed) runs as an ordinary `setup`-part test case, not a separate step — see the `norminette_check.sh` bullet below.
+  This copies `mini-moul/` into the current directory, detects the assignment from the directory's basename (must match a folder in `mini-moul/tests/`, and not contain `(archive)`), executes `test.sh <assignment>`, then cleans up. norminette is **not** run — see the note below.
 
 - To run directly without the copy/cleanup wrapper (useful while iterating on tests), from inside `mini-moul/`:
   ```bash
@@ -32,7 +32,7 @@ There is no build step; everything runs via bash + `cc`.
 **`mini-moul.sh`** (repo root) — user-facing entrypoint. Validates the current directory matches a known test suite, stages a throwaway copy of `mini-moul/`, delegates to `test.sh`, and removes the copy afterward (also on `SIGINT`).
 
 **`mini-moul/test.sh`** — the actual runner, invoked as `./test.sh <assignment>`:
-- Finds `tests/<assignment>/`, iterates its subdirectories ("parts": conventionally `setup`, `libc`, `additional`, `bonus`, run in that order, then any others) as scoring units.
+- Finds `tests/<assignment>/`, iterates its subdirectories ("parts": conventionally `setup`, `libc`, `additional`, `bonus`, run in that order, then any others) as scoring units. A part literally named `bonus` is graded separately (flat `+25`, only once the mandatory parts hit 100%) — `libft`'s linked-list part is mandatory per the subject, so it's named `linked_list`, not `bonus`, and counts as an ordinary mandatory part.
 - `build_student_objects()` compiles every `../ft_*.c` once into `.o` files (capturing compile errors per-file into `.student_objs/*.err`); these objects are linked into each test binary rather than recompiling the student's sources repeatedly.
 - Within a part, `collect_tests()` lists test files, honoring an optional `order` file (one filename per line) so tests run in subject order; anything not listed is appended after.
 - Each test file is either:
@@ -47,9 +47,9 @@ There is no build step; everything runs via bash + `cc`.
 
 **`mini-moul/tests/<assignment>/*/prototypes.sh`** — setup-part scripts that call `check_prototypes` (defined in `mini-moul/utils/proto_check.sh`) with `"name|pointer-decl|subject prototype"` triples. Each entry compiles a tiny probe assigning the student's function to a function-pointer of the exact subject-declared type; because C doesn't check types at link time, this is the only place a wrong signature (return type, param types, missing `const`, ...) gets caught, distinct from behavioral tests.
 
-**`mini-moul/tests/<assignment>/setup/norminette.sh`** — sources `check_norminette` (defined in `mini-moul/utils/norminette_check.sh`) to run norminette as an ordinary setup test case: a single PASS/FAIL line, no raw norm-error output even on failure (run `norminette` yourself for details), and a graceful skip (still PASS) when norminette isn't installed. Any assignment's `setup` part can add the same check by sourcing the helper.
+**No norminette check.** Norm compliance is not part of any assignment's `setup` part — it caused bugs (false PASS/FAIL against the student's actual norm state) and was removed. Students must run `norminette` themselves before submitting; 42's real moulinette still enforces it.
 
-**`mini-moul/utils/`** — shared C headers/shell helpers included by tests across assignments (`constants.h`, `libc_compare.h`, `proto_check.sh`, `norminette_check.sh`). Prefer extending these over duplicating comparison logic in individual test files.
+**`mini-moul/utils/`** — shared C headers/shell helpers included by tests across assignments (`constants.h`, `libc_compare.h`, `proto_check.sh`). Prefer extending these over duplicating comparison logic in individual test files.
 
 **Adding a new assignment/part**: create `mini-moul/tests/<assignment>/<part>/`, add `.c`/`.sh` test files (optionally an `order` file), and if needed a `prototypes.sh` sourcing `proto_check.sh`. `test.sh` picks it up automatically — no registration needed elsewhere.
 

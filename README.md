@@ -30,6 +30,9 @@ This tool was incredibly useful during my piscine: it saved me countless hours o
 > ***Warning***
 > Mini-moulinette is not 100% accurate — the tests may not cover every edge case the real moulinette does. Use it as a safety net, not a guarantee.
 
+> [!IMPORTANT]
+> Mini-moulinette does **not** check norminette compliance. Run `norminette` yourself before submitting — the real 42 moulinette still enforces it, and a norm error there means a `0`.
+
 1. Clone the repository into `~/mini-moulinette` (the runner expects this path):
 
 ```bash
@@ -73,7 +76,7 @@ The original project covers the piscine (C00–C08). The goal of this fork is to
 > **A caveat:** I haven't started the 42 Cursus yet — I'll only be starting in September. A lot of the project list and scope below is pieced together from PDFs found online, so it may not match the current curriculum exactly. If you're already in the programme and would like to contribute, access to up-to-date materials would also be greatly appreciated!
 
 - [x] Adapt the runner to detect Common Core project directories
-- [x] **Circle 0** — Libft (Part 1, Part 2, bonus list functions)
+- [x] **Circle 0** — Libft (Part 1, Part 2, Part 3 - linked list)
 - [ ] **Circle 1** — ft_printf, get_next_line (mandatory + bonus) — targeting end of August
 - [ ] **Circle 2** — push_swap (operation validity + sort check), minitalk / pipex
 - [ ] **Circle 3** — philosophers (death timing / no-death scenarios), minishell (command comparison against bash)
@@ -89,7 +92,7 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 
 | Circle | Project                    | Exercises / Parts to cover                 | Coverage        | Cross-tested against 42 submissions |
 | :----: | :------------------------- | :----------------------------------------- | :-------------: | :---------------------------------- |
-| 0      | Libft                      | Part 1 (libc), Part 2 (additional), bonus  | Complete        | [Mia Combeau](https://github.com/mcombeau/libft/tree/main) |
+| 0      | Libft                      | Part 1 (libc), Part 2 (additional), Part 3 (linked list) | Complete | [Mia Combeau](https://github.com/mcombeau/libft/tree/main) |
 | 1      | ft_printf                  | Mandatory conversions + bonus flags        | Planned (targeting end of Aug) | —                     |
 | 1      | get_next_line              | Mandatory + multiple-fd bonus              | Planned (targeting end of Aug) | —                     |
 | 1      | Born2beroot                | —                                          | Out of scope (VM / sysadmin) | —                       |

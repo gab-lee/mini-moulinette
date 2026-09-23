@@ -9,6 +9,42 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-09-23
+
+### Fixed
+- `ft_lstsize`'s checked prototype was `int ft_lstsize(t_list *lst)` in both
+  `tests/libft/linked_list/prototypes.sh` and `tests/libft/libft_proto.h`,
+  but the subject specifies `unsigned int`. This rewarded a wrong `int`
+  signature and would hard-fail a subject-correct one. Fixed both, and
+  updated `ft_lstsize.c`'s local variables to `unsigned int` to match.
+
+## [2.0.0] - 2026-09-23
+
+### Changed
+- **Breaking:** `libft`'s linked-list part (`ft_lstnew`, `ft_lstadd_front`,
+  `ft_lstsize`, `ft_lstlast`, `ft_lstadd_back`, `ft_lstdelone`,
+  `ft_lstclear`, `ft_lstiter`, `ft_lstmap`) moved from `tests/libft/bonus/`
+  to `tests/libft/linked_list/`. The subject now lists it as "Part 3" under
+  the mandatory part, not a separate bonus chapter, so it's no longer
+  graded as optional `+25` extra credit gated on a perfect mandatory
+  score — it now counts as an ordinary mandatory part toward the 100%.
+- `libc_compare.h`'s `check_truthy`/`sweep_truthy` (used by `isalpha`,
+  `isdigit`, `isalnum`, `isascii`, `isprint`) now require an exact `1` or
+  `0` return, matching the subject's explicit requirement, instead of
+  accepting any nonzero value as "true".
+
+## [1.0.1] - 2026-09-23
+
+### Removed
+- Norminette check. It ran as an ordinary `libft` `setup`-part test case
+  (`tests/libft/setup/norminette.sh`, `utils/norminette_check.sh`) but caused
+  bugs, so it's gone. Norm compliance is no longer graded by
+  mini-moulinette — run `norminette` yourself before submitting.
+
+### Changed
+- `README.md`: added a "Get Started" note reminding students to run
+  `norminette` themselves, since mini-moulinette no longer checks it.
+
 ## [1.0.0] - 2026-07-18
 
 ### Changed

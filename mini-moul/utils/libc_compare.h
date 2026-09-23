@@ -5,8 +5,9 @@
 ** Helpers for testing the libc part of libft by comparing the ft_ function
 ** against the real libc function, instead of hardcoding expected values.
 **
-** - check_truthy: for the is* family. libc only promises zero/nonzero, so
-**   only agreement on true/false is compared, never the exact number.
+** - check_truthy: for the is* family. The subject requires an exact 1/0
+**   return (not just any nonzero value), so mine is compared against
+**   libc's truthiness normalized to 1 or 0.
 ** - check_exact: for toupper/tolower and anything returning a real value.
 ** - sweep_truthy / sweep_exact: run the comparison for every value from
 **   EOF (-1) through 255, catching cases no named test thought of.
@@ -27,17 +28,21 @@ static inline void print_char_value(int c)
 		printf("%d", c);
 }
 
-/* Compare yes/no behaviour. Returns 0 on agreement, -1 on mismatch. */
+/* Compare yes/no behaviour. The subject requires an exact 1 or 0, not just
+** any nonzero value, so mine must equal libc's truthiness normalized to
+** 1/0. Returns 0 on agreement, -1 on mismatch. */
 static inline int check_truthy(int i, char *desc, int mine, int ref)
 {
-	if ((mine != 0) == (ref != 0))
+	int expected = (ref != 0);
+
+	if (mine == expected)
 	{
 		printf("  " GREEN CHECKMARK GREY " [%d] %s matches libc (%s)\n" DEFAULT,
-			i, desc, ref ? "true" : "false");
+			i, desc, expected ? "true" : "false");
 		return (0);
 	}
-	printf("    " RED "[%d] %s: libc says %s, ft version returned %d\n" DEFAULT,
-		i, desc, ref ? "true (nonzero)" : "false (0)", mine);
+	printf("    " RED "[%d] %s: expected %d (libc says %s), ft version returned %d\n" DEFAULT,
+		i, desc, expected, expected ? "true" : "false", mine);
 	return (-1);
 }
 
@@ -59,22 +64,25 @@ static inline int check_exact(int i, char *desc, int mine, int ref)
 	return (-1);
 }
 
-/* Sweep EOF..255 comparing truthiness. Prints up to 5 mismatches. */
+/* Sweep EOF..255 comparing truthiness. Requires an exact 1/0 return, same
+** as check_truthy. Prints up to 5 mismatches. */
 static inline int sweep_truthy(int i, char *name, int (*mine)(int), int (*ref)(int))
 {
 	int c;
 	int mismatches = 0;
+	int expected;
 
 	for (c = -1; c <= 255; c++)
 	{
-		if ((mine(c) != 0) != (ref(c) != 0))
+		expected = (ref(c) != 0);
+		if (mine(c) != expected)
 		{
 			if (++mismatches <= 5)
 			{
 				printf("    " RED "[%d] %s sweep mismatch at c=" DEFAULT RED, i, name);
 				print_char_value(c);
-				printf(": libc says %s, ft version returned %d\n" DEFAULT,
-					ref(c) ? "true" : "false", mine(c));
+				printf(": expected %d (libc says %s), ft version returned %d\n" DEFAULT,
+					expected, expected ? "true" : "false", mine(c));
 			}
 		}
 	}
