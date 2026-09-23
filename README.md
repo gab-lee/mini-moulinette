@@ -90,24 +90,24 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 
 > Looking for **piscine** tests (C00–C08)? This fork focuses on the New Common Core — head over to the original [k11q/mini-moulinette](https://github.com/k11q/mini-moulinette) for the piscine test suites.
 
-| Circle | Project                    | Exercises / Parts to cover                 | Coverage        | Cross-tested against 42 submissions |
-| :----: | :------------------------- | :----------------------------------------- | :-------------: | :---------------------------------- |
-| 0      | Libft                      | Part 1 (libc), Part 2 (additional), Part 3 (linked list) | Complete | [Mia Combeau](https://github.com/mcombeau/libft/tree/main) |
-| 1      | ft_printf                  | Mandatory conversions + bonus flags        | Planned (targeting end of Aug) | —                     |
-| 1      | get_next_line              | Mandatory + multiple-fd bonus              | Planned (targeting end of Aug) | —                     |
-| 1      | Born2beroot                | —                                          | Out of scope (VM / sysadmin) | —                       |
-| 2      | push_swap                  | Operation validity, sort check, op count   | Planned         | —                                    |
-| 2      | minitalk / pipex           | Signal transmission / pipe behaviour       | Planned         | —                                    |
-| 2      | so_long / FdF / fract-ol   | —                                          | Out of scope (graphical) | —                           |
-| 3      | philosophers               | Death timing, no-death scenarios           | Planned         | —                                    |
-| 3      | minishell                  | Output comparison against bash             | Planned         | —                                    |
-| 4      | NetPractice                | —                                          | Out of scope (web exercise) | —                        |
-| 4      | cub3D / miniRT             | —                                          | Out of scope (graphical) | —                           |
-| 4      | CPP Modules 00–04          | Per-exercise behaviour tests               | Planned         | —                                    |
-| 5      | CPP Modules 05–09          | Per-exercise behaviour tests               | Planned         | —                                    |
-| 5      | webserv / ft_irc           | Basic protocol conformance                 | Planned         | —                                    |
-| 5      | inception                  | —                                          | Out of scope (Docker infra) | —                        |
-| 6      | ft_transcendence           | —                                          | Out of scope (web project) | —                         |
+| Circle | Project                    | Exercises / Parts to cover                 | Coverage        |
+| :----: | :------------------------- | :----------------------------------------- | :-------------: |
+| 0      | Libft                      | Part 1 (libc), Part 2 (additional), Part 3 (linked list) | Complete |
+| 1      | ft_printf                  | Mandatory conversions + bonus flags        | Planned (targeting end of Aug) |
+| 1      | get_next_line              | Mandatory + multiple-fd bonus              | Planned (targeting end of Aug) |
+| 1      | Born2beroot                | —                                          | Out of scope (VM / sysadmin) |
+| 2      | push_swap                  | Operation validity, sort check, op count   | Planned         |
+| 2      | minitalk / pipex           | Signal transmission / pipe behaviour       | Planned         |
+| 2      | so_long / FdF / fract-ol   | —                                          | Out of scope (graphical) |
+| 3      | philosophers               | Death timing, no-death scenarios           | Planned         |
+| 3      | minishell                  | Output comparison against bash             | Planned         |
+| 4      | NetPractice                | —                                          | Out of scope (web exercise) |
+| 4      | cub3D / miniRT             | —                                          | Out of scope (graphical) |
+| 4      | CPP Modules 00–04          | Per-exercise behaviour tests               | Planned         |
+| 5      | CPP Modules 05–09          | Per-exercise behaviour tests               | Planned         |
+| 5      | webserv / ft_irc           | Basic protocol conformance                 | Planned         |
+| 5      | inception                  | —                                          | Out of scope (Docker infra) |
+| 6      | ft_transcendence           | —                                          | Out of scope (web project) |
 
 > [!NOTE]
 > **Known strictness exceptions.** The libc tests compare against the *real* libc, which is stricter than 42's moulinette in a few corners. These cases print a yellow `[!]` warning instead of failing the function:
