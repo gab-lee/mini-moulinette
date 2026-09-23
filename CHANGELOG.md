@@ -9,6 +9,30 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-09-23
+
+### Added
+- First-cut `ft_printf` suite: `setup` (Makefile builds `libftprintf.a`
+  with `-Wall -Wextra -Werror`, no relink, `clean`/`fclean`/`re` rules;
+  prototype check), `libc` (all nine mandatory conversions `cspdiuxX%`,
+  plus a combined-conversions test) and `bonus` (`-`, `0`, `.`, width,
+  `#`, `+`, space, and stacked combinations). Every case compares
+  `ft_printf`'s output and return value byte-for-byte against the real
+  `printf` given the same format and arguments.
+- `utils/printf_compare.h`: runs each call in a forked child with fd 1
+  captured and a 3-second timeout, so a crash or infinite loop is
+  reported against its case instead of ending the test file.
+- Runner library mode: a `tests/<assignment>/library` file (ft_printf:
+  `libftprintf.a`) makes every `.c` test link against the library the
+  student's Makefile builds instead of compiling `../ft_*.c`. The runner
+  runs `make bonus` before the `bonus` part and fails the part if it
+  fails.
+
+### Changed
+- `check_prototypes` (in `utils/proto_check.sh`) now takes the student's
+  header filename as its first argument instead of hardcoding `libft.h`.
+  The libft call sites pass `"libft.h"`; behavior unchanged.
+
 ## [2.0.2] - 2026-09-23
 
 ### Removed

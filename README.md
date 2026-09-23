@@ -84,7 +84,7 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 | Circle | Project                    | Exercises / Parts to cover                 | Coverage        |
 | :----: | :------------------------- | :----------------------------------------- | :-------------: |
 | 0      | Libft                      | Part 1 (libc), Part 2 (additional), Part 3 (linked list) | Complete |
-| 1      | ft_printf                  | Mandatory conversions + bonus flags        | Planned (targeting end of Aug) |
+| 1      | ft_printf                  | Makefile, `cspdiuxX%` conversions, bonus flags `-0.# +` and width | First cut |
 | 1      | get_next_line              | Mandatory + multiple-fd bonus              | Planned (targeting end of Aug) |
 | 1      | Born2beroot                | —                                          | Out of scope (VM / sysadmin) |
 | 2      | push_swap                  | Operation validity, sort check, op count   | Planned         |
@@ -104,6 +104,9 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 > **Known strictness exceptions.** The libc tests compare against the *real* libc, which is stricter than 42's moulinette in a few corners. These cases print a yellow `[!]` warning instead of failing the function:
 > - `ft_strchr` / `ft_strrchr` searching for an extended character (e.g. 233): implementations that compare as `unsigned char` return NULL where libc finds the byte.
 > - `ft_calloc(SIZE_MAX, SIZE_MAX)`: the real calloc returns NULL on `count * size` overflow, but passing this is not required.
+
+> [!NOTE]
+> **ft_printf** is tested the way 42's moulinette does it: `setup` runs your `make`, and every test links against the `libftprintf.a` it builds, so sources in subfolders or a bundled libft are fine. The `bonus` part runs `make bonus` first. Output and return values are compared against the real `printf` on your machine, so `%p` of `NULL` expects `(nil)` on Linux and `0x0` on macOS. The subject lets you do only some bonus flags, but the `bonus` part currently expects all of them.
 
 
 ## Updating
