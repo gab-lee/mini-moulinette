@@ -3,7 +3,10 @@
 # Single source of truth for the version banner in test.sh. Follows SemVer
 # (MAJOR.MINOR.PATCH); bump it on every PR merge to main — see CLAUDE.md
 # "Versioning".
-readonly VERSION="2.1.0"
+readonly VERSION="2.2.0"
+
+# Seconds a single test file may run before test.sh kills it
+readonly TEST_TIMEOUT=60
 
 #constants
 readonly GREEN='\033[38;5;84m'
@@ -15,6 +18,7 @@ readonly BLACK='\033[38;5;0m'
 readonly BG_GREEN='\033[48;5;84m'
 readonly BG_RED='\033[48;5;197m'
 readonly GREY='\033[38;5;8m'
+readonly YELLOW='\033[38;5;220m'
 readonly BOLD='\033[1m'
 readonly DEFAULT='\033[0m'
 readonly CHECKMARK='\xE2\x9C\x93'

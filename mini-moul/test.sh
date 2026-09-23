@@ -89,6 +89,74 @@ student_src_exists()
     [ -f "../$1.c" ] || [ -f "../$1_bonus.c" ]
 }
 
+# run_limited <status-file> <command...>
+# Runs the command in its own process group and kills the whole group
+# after $TEST_TIMEOUT seconds, so a hanging test (or anything it forked)
+# can't stall the run. Writes "timeout" or the killing signal's name to
+# <status-file> when the command didn't exit normally. perl, not
+# timeout(1), because macOS has no timeout(1).
+run_limited()
+{
+    perl -e '
+        use Config;
+        my ($limit, $status_file, @cmd) = @ARGV;
+        my $pid = fork();
+        die "fork: $!\n" unless defined $pid;
+        if ($pid == 0) { setpgrp(0, 0); exec { $cmd[0] } @cmd; exit 127; }
+        my $timed_out = 0;
+        $SIG{ALRM} = sub { $timed_out = 1; kill "KILL", -$pid; };
+        alarm $limit;
+        while (waitpid($pid, 0) == -1 && $!{EINTR}) { }
+        my $status = $?;
+        alarm 0;
+        my @names = split " ", $Config{sig_name};
+        my $note = $timed_out ? "timeout"
+            : ($status & 127) ? "SIG" . $names[$status & 127] : "";
+        if ($note ne "") {
+            open(my $fh, ">", $status_file) or die "$status_file: $!\n";
+            print $fh $note;
+            close $fh;
+            exit 1;
+        }
+        exit($status >> 8);
+    ' "$TEST_TIMEOUT" "$@"
+}
+
+# run_test <name> <command...>
+# Runs one test under run_limited and prints its PASS/FAIL line. Exit 0 is
+# a PASS; [!] lines in a passing test's output are known-strictness
+# warnings and are still shown.
+run_test()
+{
+    local name=$1
+    shift
+    local status_file=.test_status
+    local output code note=""
+
+    rm -f "$status_file"
+    output="$(run_limited "$status_file" "$@" 2>&1 < /dev/null)"
+    code=$?
+    if [ -f "$status_file" ]; then
+        case "$(cat "$status_file")" in
+            timeout) note=" (timed out after ${TEST_TIMEOUT}s)" ;;
+            *) note=" (crashed: $(cat "$status_file"))" ;;
+        esac
+        rm -f "$status_file"
+    fi
+    if [ $code -eq 0 ]; then
+        passed=$((passed+1))
+        printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${name}\n"
+        case "$output" in
+            *"[!]"*) printf '%s\n' "$output" | grep -F '[!]' ;;
+        esac
+    else
+        [ $part_is_bonus -eq 0 ] && break_score=1
+        score_false=1
+        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name}${RED}${note}${DEFAULT}\n"
+        [ -n "$output" ] && printf '%s\n' "$output"
+    fi
+}
+
 main()
 {
     start_time=$(date +%s)
@@ -112,10 +180,10 @@ main()
             [ -f "$dir/library" ] && library="$(cat "$dir/library")"
             [ -z "$library" ] && build_student_objects
 
-            # Run parts in subject order (setup, libc, additional, bonus),
-            # then anything else
+            # Run parts in subject order (setup, libc, additional), then any
+            # other part, then bonus last
             exercise_dirs=""
-            for part in setup libc additional bonus; do
+            for part in setup libc additional; do
                 [ -d "$dir/$part" ] && exercise_dirs+="$dir/$part "
             done
             for part in $dir/*; do
@@ -124,6 +192,7 @@ main()
                 esac
                 exercise_dirs+="$part "
             done
+            [ -d "$dir/bonus" ] && exercise_dirs+="$dir/bonus "
 
             for assignment in $exercise_dirs; do
                 [ -d "$assignment" ] || continue
@@ -156,17 +225,7 @@ main()
                     # mini-moul directory as cwd and the project at ../
                     case "$test" in
                         *.sh)
-                            fn_name="$(basename "${test%.sh}")"
-                            test_output="$(bash "$test" 2>&1)"
-                            if [ $? -eq 0 ]; then
-                                passed=$((passed+1))
-                                printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
-                            else
-                                [ $part_is_bonus -eq 0 ] && break_score=1
-                                score_false=1
-                                printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
-                                printf '%s\n' "$test_output"
-                            fi
+                            run_test "$(basename "${test%.sh}")" bash "$test"
                             continue
                             ;;
                     esac
@@ -197,20 +256,7 @@ main()
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(${fail_reason})${DEFAULT}\n"
                         [ -n "$fail_detail" ] && sed 's/^/    /' "$fail_detail" | head -15
                     elif cc -Wall -Werror -Wextra -o "${test%.c}" "$test" "${link_inputs[@]}" 2> compile_error.tmp; then
-                        test_output="$("./${test%.c}" 2>&1)"
-                        if [ $? -eq 0 ]; then
-                            passed=$((passed+1))
-                            printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
-                            # Known-strict cases surface as [!] warnings even on PASS
-                            case "$test_output" in
-                                *"[!]"*) printf '%s\n' "$test_output" | grep -F '[!]' ;;
-                            esac
-                        else
-                            [ $part_is_bonus -eq 0 ] && break_score=1
-                            score_false=1
-                            printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
-                            printf '%s\n' "$test_output"
-                        fi
+                        run_test "$fn_name" "./${test%.c}"
                         rm -f "${test%.c}"
                     else
                         [ $part_is_bonus -eq 0 ] && break_score=1
