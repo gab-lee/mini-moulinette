@@ -32,7 +32,7 @@ There is no build step; everything runs via bash + `cc`.
 **`mini-moul.sh`** (repo root) — user-facing entrypoint. Validates the current directory matches a known test suite, stages a throwaway copy of `mini-moul/`, delegates to `test.sh`, and removes the copy afterward (also on `SIGINT`).
 
 **`mini-moul/test.sh`** — the actual runner, invoked as `./test.sh <assignment>`:
-- Finds `tests/<assignment>/`, iterates its subdirectories ("parts": conventionally `setup`, `libc`, `additional`, `bonus`, run in that order, then any others) as scoring units.
+- Finds `tests/<assignment>/`, iterates its subdirectories ("parts": conventionally `setup`, `libc`, `additional`, `bonus`, run in that order, then any others) as scoring units. A part literally named `bonus` is graded separately (flat `+25`, only once the mandatory parts hit 100%) — `libft`'s linked-list part is mandatory per the subject, so it's named `linked_list`, not `bonus`, and counts as an ordinary mandatory part.
 - `build_student_objects()` compiles every `../ft_*.c` once into `.o` files (capturing compile errors per-file into `.student_objs/*.err`); these objects are linked into each test binary rather than recompiling the student's sources repeatedly.
 - Within a part, `collect_tests()` lists test files, honoring an optional `order` file (one filename per line) so tests run in subject order; anything not listed is appended after.
 - Each test file is either:

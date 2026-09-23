@@ -9,6 +9,21 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-23
+
+### Changed
+- **Breaking:** `libft`'s linked-list part (`ft_lstnew`, `ft_lstadd_front`,
+  `ft_lstsize`, `ft_lstlast`, `ft_lstadd_back`, `ft_lstdelone`,
+  `ft_lstclear`, `ft_lstiter`, `ft_lstmap`) moved from `tests/libft/bonus/`
+  to `tests/libft/linked_list/`. The subject now lists it as "Part 3" under
+  the mandatory part, not a separate bonus chapter, so it's no longer
+  graded as optional `+25` extra credit gated on a perfect mandatory
+  score — it now counts as an ordinary mandatory part toward the 100%.
+- `libc_compare.h`'s `check_truthy`/`sweep_truthy` (used by `isalpha`,
+  `isdigit`, `isalnum`, `isascii`, `isprint`) now require an exact `1` or
+  `0` return, matching the subject's explicit requirement, instead of
+  accepting any nonzero value as "true".
+
 ## [1.0.1] - 2026-09-23
 
 ### Removed

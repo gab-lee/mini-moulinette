@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Checks that every bonus-part function is declared in the student's
+# Checks that every linked-list-part function is declared in the student's
 # libft.h with the prototype the subject defines (using their own
-# t_list, which libft.h must provide for the bonus part).
+# t_list, which libft.h must provide for the linked-list part).
 # Run by test.sh with mini-moul as cwd.
 
 source ./config.sh
