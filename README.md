@@ -9,13 +9,6 @@ Mini-moulinette is a test runner for 42 assignments. It runs a full suite of aut
 This repository is a fork that extends mini-moulinette to the **New Common Core** curriculum (Circles 0–6).
 
 
-## Credits
-
-All credit for the original mini-moulinette goes to **[Khairul Haaziq](https://github.com/k11q)** — the original project lives at [k11q/mini-moulinette](https://github.com/k11q/mini-moulinette).
-
-This tool was incredibly useful during my piscine: it saved me countless hours of waiting for evaluations only to fail on silly mistakes. This fork exists because I want the same safety net while going through the Common Core. Thank you, Khairul! 🙏
-
-
 ## How Does It Work?
 
 ![screenshot](screenshot.jpg)
@@ -87,8 +80,6 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 
 
 ## Coverage Status
-
-> Looking for **piscine** tests (C00–C08)? This fork focuses on the New Common Core — head over to the original [k11q/mini-moulinette](https://github.com/k11q/mini-moulinette) for the piscine test suites.
 
 | Circle | Project                    | Exercises / Parts to cover                 | Coverage        |
 | :----: | :------------------------- | :----------------------------------------- | :-------------: |
@@ -185,6 +176,10 @@ Contributions are very welcome — especially new test cases for Common Core pro
 
 - Original author: [Khairul Haaziq](https://github.com/k11q)
 - New Common Core fork: [gab-lee](https://github.com/gab-lee)
+
+All credit for the original mini-moulinette goes to **[Khairul Haaziq](https://github.com/k11q)** — the original project lives at [k11q/mini-moulinette](https://github.com/k11q/mini-moulinette).
+
+This tool was incredibly useful during my piscine: it saved me countless hours of waiting for evaluations only to fail on silly mistakes. This fork exists because I want the same safety net while going through the Common Core. Thank you, Khairul! 🙏
 
 
 ## Contributors
