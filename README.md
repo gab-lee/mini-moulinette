@@ -66,12 +66,14 @@ mini
 The original project covers the piscine (C00–C08). The goal of this fork is to progressively add test suites for the Common Core, circle by circle:
 
 > [!NOTE]
-> **A caveat:** I haven't started the 42 Cursus yet — I'll only be starting in September. A lot of the project list and scope below is pieced together from PDFs found online, so it may not match the current curriculum exactly. If you're already in the programme and would like to contribute, access to up-to-date materials would also be greatly appreciated!
+> **A note on sources:** I started the 42 Common Core in September 2026, and the project list and scope below follow the subjects I have. Subject versions change between campuses and years, so if a test disagrees with your subject, please open an issue.
 
 - [x] Adapt the runner to detect Common Core project directories
 - [x] **Circle 0** — Libft (Part 1, Part 2, Part 3 - linked list)
-- [ ] **Circle 1** — ft_printf, get_next_line (mandatory + bonus) — first cut of both suites done
-- [ ] **Circle 2** — push_swap (operation validity + sort check), minitalk / pipex
+- [ ] **Circle 1** — ft_printf (mandatory + bonus) — first cut done
+- [ ] **Circle 1** — get_next_line (mandatory + bonus) — first cut done
+- [ ] **Circle 1** — push_swap (operation validity + sort check)
+- [ ] **Circle 2** — minitalk / pipex
 - [ ] **Circle 3** — philosophers (death timing / no-death scenarios), minishell (command comparison against bash)
 - [ ] **Circle 4** — CPP Modules 00–04
 - [ ] **Circle 5** — CPP Modules 05–09, webserv / ft_irc basic conformance tests
@@ -86,8 +88,8 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 | 0 | Libft | Your own C library: libc functions, string and memory helpers, and a linked list, reused in later projects. | Part 1 (libc), Part 2 (additional), Part 3 (linked list), Makefile | Complete |
 | 1 | ft_printf | Recode `printf()` as the `libftprintf.a` library, using variadic arguments. | Makefile, `cspdiuxX%` conversions, bonus flags `-0.# +` and width | First cut |
 | 1 | get_next_line | A function that returns one line per call from a file descriptor, using static variables. | Every `BUFFER_SIZE` from 1 to 10000000, files, stdin and pipes, invalid fds, leaks, multiple-fd bonus | First cut |
-| 1 | Born2beroot | Set up a hardened Linux server in a virtual machine (partitions, sudo and password policy, firewall, SSH, monitoring script). | — | Out of scope (VM / sysadmin) |
-| 2 | push_swap | Sort integers with two stacks and a limited set of operations, in as few operations as possible. | Operation validity, sort check, operation count | Planned |
+| 1 | push_swap | Sort integers with two stacks and a limited set of operations, in as few operations as possible. | Operation validity, sort check, operation count | Planned |
+| 2 | Born2beroot | Set up a hardened Linux server in a virtual machine (partitions, sudo and password policy, firewall, SSH, monitoring script). | — | Out of scope (VM / sysadmin) |
 | 2 | pipex *(or minitalk)* | Reproduce the shell pipeline `< file1 cmd1 \| cmd2 > file2` with `pipe`, `fork`, `dup2` and `execve`. | Output and exit status against the real shell | Planned |
 | 2 | minitalk *(or pipex)* | A client and server that exchange strings using only the `SIGUSR1` and `SIGUSR2` signals. | Message delivery, including Unicode and long strings | Planned |
 | 2 | so_long *(or FdF, fract-ol)* | A small 2D game with the MiniLibX: collect every item and reach the exit on a map read from a `.ber` file. | — | Out of scope (graphical) |
@@ -190,7 +192,7 @@ Contributions are very welcome — especially new test cases for Common Core pro
 
 - **Tests**: If you spot an error in a test or have an idea for a new test case, open an issue or a pull request.
 - **Code**: Pull requests for the runner itself are happily reviewed.
-- **Materials**: I haven't started the Cursus yet (September!), so if you're already in the programme, sharing up-to-date subject materials would be greatly appreciated.
+- **Materials**: If your campus's subject versions differ from what the tests expect, sharing them would be greatly appreciated.
 - **Feedback**: If you've used this fork and have suggestions, let me know via an issue.
 
 
