@@ -1,0 +1,3 @@
+read_file.sh
+read_stdin.sh
+invalid_fd.sh

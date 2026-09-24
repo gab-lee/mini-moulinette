@@ -9,6 +9,76 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-23
+
+### Added
+- First-cut `get_next_line` suite. `setup`: the three required files,
+  header include guard, prototype, builds with every tested
+  `BUFFER_SIZE` (1, 2, 5, 42, 9999, 10000000) and without
+  `-D BUFFER_SIZE`, no global variables, no functions beyond
+  `read`/`malloc`/`free`. `mandatory`: 13 regular-file cases (empty file,
+  missing final `'\n'`, only newlines, 10000-character lines, 100 lines,
+  every line length from 1 to 60), standard input and pipes (including a
+  pipe that stays open, which fails an implementation that reads ahead
+  past the first line), and invalid fds and `read()` errors. `bonus`: the
+  same file checks on the `_bonus` files, at most one static variable,
+  and five interleaved multiple-fd cases. Every case runs in a forked
+  child with a 5-second limit; leaks, unfreeable lines and reading the
+  whole file first are caught by recompiling the student's files with
+  `malloc`/`free`/`read` rerouted to counters in the test driver.
+- Runner timeout: every test file runs in its own process group and is
+  killed after `TEST_TIMEOUT` seconds (60, in `config.sh`); the FAIL line
+  now says `(timed out after 60s)` or names the crash signal, e.g.
+  `(crashed: SIGSEGV)`, for `.c` and `.sh` tests alike.
+- `README.md`: a one-line description of every Common Core project, one
+  row per project instead of grouping alternatives, plus libasm.
+
+### Changed
+- The `bonus` part now always runs last, after any custom-named
+  mandatory part.
+- `[!]` warnings from a passing `.sh` test are now shown, as they already
+  were for `.c` tests.
+- `README.md`: push_swap moved to Circle 1 and Born2beroot to Circle 2;
+  the roadmap lists ft_printf, get_next_line and push_swap on separate
+  lines; the "haven't started the Cursus yet" disclaimer is removed.
+
+## [2.1.0] - 2026-09-23
+
+### Added
+- First-cut `ft_printf` suite: `setup` (Makefile builds `libftprintf.a`
+  with `-Wall -Wextra -Werror`, no relink, `clean`/`fclean`/`re` rules;
+  prototype check), `libc` (all nine mandatory conversions `cspdiuxX%`,
+  plus a combined-conversions test) and `bonus` (`-`, `0`, `.`, width,
+  `#`, `+`, space, and stacked combinations). Every case compares
+  `ft_printf`'s output and return value byte-for-byte against the real
+  `printf` given the same format and arguments.
+- `utils/printf_compare.h`: runs each call in a forked child with fd 1
+  captured and a 3-second timeout, so a crash or infinite loop is
+  reported against its case instead of ending the test file.
+- Runner library mode: a `tests/<assignment>/library` file (ft_printf:
+  `libftprintf.a`) makes every `.c` test link against the library the
+  student's Makefile builds instead of compiling `../ft_*.c`. The runner
+  runs `make bonus` before the `bonus` part and fails the part if it
+  fails.
+
+### Changed
+- `check_prototypes` (in `utils/proto_check.sh`) now takes the student's
+  header filename as its first argument instead of hardcoding `libft.h`.
+  The libft call sites pass `"libft.h"`; behavior unchanged.
+
+## [2.0.2] - 2026-09-23
+
+### Removed
+- The archived piscine suites (`tests/42Piscine(archive)/`, C00–C08). The
+  runner already skipped any folder named `(archive)`, so they could never
+  run. The now-unused `(archive)` filters in `mini-moul.sh` and `test.sh`
+  are gone too.
+- `README.md`: the "Cross-tested against 42 submissions" column in
+  Coverage Status, and the "Looking for piscine tests?" note.
+
+### Changed
+- `README.md`: merged the "Credits" section into "Authors".
+
 ## [2.0.1] - 2026-09-23
 
 ### Fixed

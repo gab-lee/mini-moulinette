@@ -7,7 +7,7 @@
 source ./config.sh
 source ./utils/proto_check.sh
 
-check_prototypes \
+check_prototypes "libft.h" \
 	"ft_substr|char *(*p)(char const *, unsigned int, size_t)|char *ft_substr(char const *s, unsigned int start, size_t len)" \
 	"ft_strjoin|char *(*p)(char const *, char const *)|char *ft_strjoin(char const *s1, char const *s2)" \
 	"ft_strtrim|char *(*p)(char const *, char const *)|char *ft_strtrim(char const *s1, char const *set)" \

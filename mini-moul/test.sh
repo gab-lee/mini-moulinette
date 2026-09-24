@@ -89,15 +89,80 @@ student_src_exists()
     [ -f "../$1.c" ] || [ -f "../$1_bonus.c" ]
 }
 
+# run_limited <status-file> <command...>
+# Runs the command in its own process group and kills the whole group
+# after $TEST_TIMEOUT seconds, so a hanging test (or anything it forked)
+# can't stall the run. Writes "timeout" or the killing signal's name to
+# <status-file> when the command didn't exit normally. perl, not
+# timeout(1), because macOS has no timeout(1).
+run_limited()
+{
+    perl -e '
+        use Config;
+        my ($limit, $status_file, @cmd) = @ARGV;
+        my $pid = fork();
+        die "fork: $!\n" unless defined $pid;
+        if ($pid == 0) { setpgrp(0, 0); exec { $cmd[0] } @cmd; exit 127; }
+        my $timed_out = 0;
+        $SIG{ALRM} = sub { $timed_out = 1; kill "KILL", -$pid; };
+        alarm $limit;
+        while (waitpid($pid, 0) == -1 && $!{EINTR}) { }
+        my $status = $?;
+        alarm 0;
+        my @names = split " ", $Config{sig_name};
+        my $note = $timed_out ? "timeout"
+            : ($status & 127) ? "SIG" . $names[$status & 127] : "";
+        if ($note ne "") {
+            open(my $fh, ">", $status_file) or die "$status_file: $!\n";
+            print $fh $note;
+            close $fh;
+            exit 1;
+        }
+        exit($status >> 8);
+    ' "$TEST_TIMEOUT" "$@"
+}
+
+# run_test <name> <command...>
+# Runs one test under run_limited and prints its PASS/FAIL line. Exit 0 is
+# a PASS; [!] lines in a passing test's output are known-strictness
+# warnings and are still shown.
+run_test()
+{
+    local name=$1
+    shift
+    local status_file=.test_status
+    local output code note=""
+
+    rm -f "$status_file"
+    output="$(run_limited "$status_file" "$@" 2>&1 < /dev/null)"
+    code=$?
+    if [ -f "$status_file" ]; then
+        case "$(cat "$status_file")" in
+            timeout) note=" (timed out after ${TEST_TIMEOUT}s)" ;;
+            *) note=" (crashed: $(cat "$status_file"))" ;;
+        esac
+        rm -f "$status_file"
+    fi
+    if [ $code -eq 0 ]; then
+        passed=$((passed+1))
+        printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${name}\n"
+        case "$output" in
+            *"[!]"*) printf '%s\n' "$output" | grep -F '[!]' ;;
+        esac
+    else
+        [ $part_is_bonus -eq 0 ] && break_score=1
+        score_false=1
+        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name}${RED}${note}${DEFAULT}\n"
+        [ -n "$output" ] && printf '%s\n' "$output"
+    fi
+}
+
 main()
 {
     start_time=$(date +%s)
     #print_collected_files
     for dir in ./tests/* ; do
         dirname="$(basename "$dir")"
-        case "$dirname" in
-            *"(archive)"*) continue ;;
-        esac
         available_assignments+="$dirname "
         
         if [ -d "$dir" ] && [ "$dirname" == "$1" ]; then
@@ -107,12 +172,18 @@ main()
             space
             dirname_found=1
             index=0
-            build_student_objects
+            # An assignment whose subject has the student's Makefile build a
+            # library (tests/<assignment>/library names it, e.g.
+            # libftprintf.a) links its tests against that library, built by
+            # the setup part, instead of compiling ../ft_*.c.
+            library=""
+            [ -f "$dir/library" ] && library="$(cat "$dir/library")"
+            [ -z "$library" ] && build_student_objects
 
-            # Run parts in subject order (setup, libc, additional, bonus),
-            # then anything else
+            # Run parts in subject order (setup, libc, additional), then any
+            # other part, then bonus last
             exercise_dirs=""
-            for part in setup libc additional bonus; do
+            for part in setup libc additional; do
                 [ -d "$dir/$part" ] && exercise_dirs+="$dir/$part "
             done
             for part in $dir/*; do
@@ -121,6 +192,7 @@ main()
                 esac
                 exercise_dirs+="$part "
             done
+            [ -d "$dir/bonus" ] && exercise_dirs+="$dir/bonus "
 
             for assignment in $exercise_dirs; do
                 [ -d "$assignment" ] || continue
@@ -136,6 +208,16 @@ main()
                 printf "${PURPLE}${BOLD} ${assignment_name}${DEFAULT}\n"
                 test_files="$(collect_tests "$assignment")"
 
+                bonus_build_failed=0
+                if [ -n "$library" ] && [ $part_is_bonus -eq 1 ]; then
+                    if ! make --no-print-directory -C .. bonus > make_bonus.tmp 2>&1; then
+                        bonus_build_failed=1
+                        printf "    ${RED}'make bonus' failed:${DEFAULT}\n"
+                        sed 's/^/    /' make_bonus.tmp | head -15
+                    fi
+                    rm -f make_bonus.tmp
+                fi
+
                 for test in $test_files; do
                     checks=$((checks+1))
 
@@ -143,48 +225,38 @@ main()
                     # mini-moul directory as cwd and the project at ../
                     case "$test" in
                         *.sh)
-                            fn_name="$(basename "${test%.sh}")"
-                            test_output="$(bash "$test" 2>&1)"
-                            if [ $? -eq 0 ]; then
-                                passed=$((passed+1))
-                                printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
-                            else
-                                [ $part_is_bonus -eq 0 ] && break_score=1
-                                score_false=1
-                                printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
-                                printf '%s\n' "$test_output"
-                            fi
+                            run_test "$(basename "${test%.sh}")" bash "$test"
                             continue
                             ;;
                     esac
 
                     fn_name="$(basename "${test%.c}")"
-                    src_err="$(student_compile_error "$fn_name")"
-
-                    if [ -n "$src_err" ]; then
-                        [ $part_is_bonus -eq 0 ] && break_score=1
-                        score_false=1
-                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(your ${fn_name}.c cannot compile)${DEFAULT}\n"
-                        sed 's/^/    /' "$src_err" | head -15
-                    elif ! student_src_exists "$fn_name"; then
-                        [ $part_is_bonus -eq 0 ] && break_score=1
-                        score_false=1
-                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(no ${fn_name}.c found in your project)${DEFAULT}\n"
-                    elif cc -Wall -Werror -Wextra -o "${test%.c}" "$test" "${student_objs[@]}" 2> compile_error.tmp; then
-                        test_output="$("./${test%.c}" 2>&1)"
-                        if [ $? -eq 0 ]; then
-                            passed=$((passed+1))
-                            printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
-                            # Known-strict cases surface as [!] warnings even on PASS
-                            case "$test_output" in
-                                *"[!]"*) printf '%s\n' "$test_output" | grep -F '[!]' ;;
-                            esac
-                        else
-                            [ $part_is_bonus -eq 0 ] && break_score=1
-                            score_false=1
-                            printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
-                            printf '%s\n' "$test_output"
+                    fail_reason=""
+                    fail_detail=""
+                    if [ -n "$library" ]; then
+                        link_inputs=("../$library")
+                        if [ $bonus_build_failed -eq 1 ]; then
+                            fail_reason="'make bonus' failed"
+                        elif [ ! -f "../$library" ]; then
+                            fail_reason="no $library in your project; see setup"
                         fi
+                    else
+                        link_inputs=("${student_objs[@]}")
+                        fail_detail="$(student_compile_error "$fn_name")"
+                        if [ -n "$fail_detail" ]; then
+                            fail_reason="your ${fn_name}.c cannot compile"
+                        elif ! student_src_exists "$fn_name"; then
+                            fail_reason="no ${fn_name}.c found in your project"
+                        fi
+                    fi
+
+                    if [ -n "$fail_reason" ]; then
+                        [ $part_is_bonus -eq 0 ] && break_score=1
+                        score_false=1
+                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(${fail_reason})${DEFAULT}\n"
+                        [ -n "$fail_detail" ] && sed 's/^/    /' "$fail_detail" | head -15
+                    elif cc -Wall -Werror -Wextra -o "${test%.c}" "$test" "${link_inputs[@]}" 2> compile_error.tmp; then
+                        run_test "$fn_name" "./${test%.c}"
                         rm -f "${test%.c}"
                     else
                         [ $part_is_bonus -eq 0 ] && break_score=1
