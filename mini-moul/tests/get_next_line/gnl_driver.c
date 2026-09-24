@@ -196,8 +196,9 @@ static void	init_stream(t_stream *s, int fd, const char *name,
 
 /* After a line ending at byte `end` was returned: a correct get_next_line
 ** has read at most end - 1 + BUFFER_SIZE bytes, since it stops calling
-** read() once it has a '\n'. Reading the whole file first is a failure;
-** reading a bit further than needed is only a [!] warning. */
+** read() once it has a '\n'. Reading the whole input on the first call
+** (slurping the file) is a failure; any other over-read, such as one
+** extra read() per call, is only a [!] warning. */
 static int	check_overread(const t_stream *s, size_t end)
 {
 	long	got;
@@ -207,12 +208,13 @@ static int	check_overread(const t_stream *s, size_t end)
 	got = g_bytes_read[s->fd];
 	if (got < (long)end + g_bs)
 		return (0);
-	if (got >= (long)s->len && (long)s->len >= (long)end + g_bs)
+	if (s->calls == 1 && got >= (long)s->len
+		&& (long)s->len >= (long)end + g_bs)
 	{
 		put_call(s);
-		printf("get_next_line read the whole input (%ld bytes) before "
-			"returning a line that ends at byte %zu; return the line as soon "
-			"as you find its '\\n'\n" DEFAULT, got, end);
+		printf("get_next_line read the whole input (%ld bytes) on its first "
+			"call, to return a line that ends at byte %zu; return the line as "
+			"soon as you find its '\\n'\n" DEFAULT, got, end);
 		return (1);
 	}
 	if (!g_warned)
@@ -726,6 +728,7 @@ int	main(int argc, char **argv)
 	int				failed;
 	int				result;
 	int				sig;
+	int				warned;
 	static char		details[DETAIL_MAX];
 
 	if (argc != 5)
@@ -757,13 +760,17 @@ int	main(int argc, char **argv)
 		count = sizeof(g_multi_cases) / sizeof(*g_multi_cases);
 	}
 	failed = 0;
+	warned = 0;
 	i = 0;
 	while (i < count)
 	{
 		sig = 0;
 		result = run_case(&cases[i], details, &sig);
-		if (result == 0)
+		if (result == 0 && details[0] != '\0' && !warned)
+		{
 			printf("%s", details);
+			warned = 1;
+		}
 		else
 		{
 			if (failed < MAX_SHOWN)

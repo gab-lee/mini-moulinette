@@ -116,9 +116,21 @@ static inline char *pf_collect(pid_t pid, char *tmp_path, int *fds,
 	waitpid(pid, &status, 0);
 	got = read(fds[0], ret, sizeof(*ret));
 	close(fds[0]);
+	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0
+		|| got != (long)sizeof(*ret))
+	{
+		unlink(tmp_path);
+		*len = WIFSIGNALED(status) ? WTERMSIG(status) : 0;
+		return (NULL);
+	}
 	fd = open(tmp_path, O_RDONLY);
 	size = (fd < 0) ? 0 : lseek(fd, 0, SEEK_END);
 	buf = malloc(size + 1);
+	if (buf == NULL)
+	{
+		perror("malloc");
+		exit(1);
+	}
 	if (fd >= 0)
 	{
 		lseek(fd, 0, SEEK_SET);
@@ -129,13 +141,6 @@ static inline char *pf_collect(pid_t pid, char *tmp_path, int *fds,
 	buf[size] = '\0';
 	unlink(tmp_path);
 	*len = size;
-	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0
-		|| got != (long)sizeof(*ret))
-	{
-		free(buf);
-		*len = WIFSIGNALED(status) ? WTERMSIG(status) : 0;
-		return (NULL);
-	}
 	return (buf);
 }
 

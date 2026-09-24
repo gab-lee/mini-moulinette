@@ -178,14 +178,15 @@ gnl_run()
 }
 
 # gnl_check_symbols <mandatory|bonus> [max static variables]
-# Inspects the BUFFER_SIZE=42 objects: no global variables, no function
-# beyond read/malloc/free and, when given, a cap on static variables.
-# Calls the compiler may emit on its own (memset/memcpy for initialising
-# arrays, __stack_chk_* for stack protection) are allowed.
+# Inspects the BUFFER_SIZE=42 objects with nm: no global variables (a
+# file-scope static counts too; only a static inside a function is not a
+# global), no function beyond read/malloc/free and, when given, a cap on
+# static variables. The compiler names a function's static "name.N" or
+# "function.name", so a dot tells it from a file-scope variable.
 gnl_check_symbols()
 {
 	local variant=$1 max_statics=$2 dir="$GNL_BUILD/$1" error=0
-	local objs symbols globals extra statics count
+	local objs symbols data globals calls extra helpers statics count
 
 	objs=("$dir"/*.42.o)
 	if [ ! -f "${objs[0]}" ]; then
@@ -197,31 +198,39 @@ gnl_check_symbols()
 		symbols="$(printf '%s\n' "$symbols" | sed 's/ _/ /')"
 	fi
 
-	globals="$(printf '%s\n' "$symbols" | awk '$1 ~ /^[BCDGRSV]$/ { print $2 }' | sort -u | paste -sd ' ' -)"
+	# Data symbols, minus assembler-local labels (macOS ltmpN, l_/L_ names)
+	data="$(printf '%s\n' "$symbols" | awk '$1 ~ /^[BbCDdGRrSsV]$/' \
+		| grep -vE ' (ltmp[0-9]+|[lL]_.*|\..*)$')"
+	globals="$(printf '%s\n' "$data" | awk '$1 ~ /^[BCDGRSV]$/ || $2 !~ /\./ { print $2 }' \
+		| sort -u | paste -sd ' ' -)"
 	if [ -z "$globals" ]; then
 		printf "  ${GREEN}${CHECKMARK}${GREY} [1] no global variables${DEFAULT}\n"
 	else
-		printf "    ${RED}[1] global variables are forbidden: %s${DEFAULT}\n" "$globals"
+		printf "    ${RED}[1] global variables are forbidden (a static outside a function is one too): %s${DEFAULT}\n" "$globals"
 		error=1
 	fi
 
 	# Undefined in one file but defined in the other (the student's own
 	# helpers) is fine; only calls that leave the student's code count.
-	extra="$(printf '%s\n' "$symbols" | awk '
+	calls="$(printf '%s\n' "$symbols" | awk '
 		$1 == "U" { used[$2] = 1; next }
 		{ defined[$2] = 1 }
 		END { for (s in used) if (!(s in defined)) print s }' | sort \
-		| grep -vxE 'read|malloc|free|memset|memcpy|memmove|bzero|__.*|dyld_stub_binder' \
-		| paste -sd ' ' -)"
-	if [ -z "$extra" ]; then
-		printf "  ${GREEN}${CHECKMARK}${GREY} [2] only read, malloc and free are used${DEFAULT}\n"
-	else
+		| grep -vxE 'read|malloc|free|__.*|dyld_stub_binder')"
+	helpers="$(printf '%s\n' "$calls" | grep -xE 'memset|memcpy|memmove|bzero' | paste -sd ' ' -)"
+	extra="$(printf '%s\n' "$calls" | grep -vxE 'memset|memcpy|memmove|bzero' | paste -sd ' ' -)"
+	if [ -n "$extra" ]; then
 		printf "    ${RED}[2] uses functions the subject does not allow (only read, malloc and free are; no libft, no lseek): %s${DEFAULT}\n" "$extra"
 		error=1
+	else
+		printf "  ${GREEN}${CHECKMARK}${GREY} [2] only read, malloc and free are used${DEFAULT}\n"
+	fi
+	if [ -n "$helpers" ]; then
+		printf "  ${YELLOW}[!] your code calls %s: fine if the compiler generated it (e.g. to zero an array), but calling it yourself is forbidden${DEFAULT}\n" "$helpers"
 	fi
 
 	if [ -n "$max_statics" ]; then
-		statics="$(printf '%s\n' "$symbols" | awk '$1 ~ /^[bd]$/ { print $2 }' | sort -u)"
+		statics="$(printf '%s\n' "$data" | awk '$1 ~ /^[bdrs]$/ { print $2 }' | sort -u)"
 		count="$(printf '%s' "$statics" | grep -c .)"
 		if [ "$count" -le "$max_statics" ]; then
 			printf "  ${GREEN}${CHECKMARK}${GREY} [3] uses at most %s static variable${DEFAULT}\n" "$max_statics"

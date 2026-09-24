@@ -116,9 +116,11 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 *(or …)* marks a choice: at that circle you complete only one of the listed alternatives.
 
 > [!NOTE]
-> **Known strictness exceptions.** The libc tests compare against the *real* libc, which is stricter than 42's moulinette in a few corners. These cases print a yellow `[!]` warning instead of failing the function:
+> **Known strictness exceptions.** Some checks are stricter than 42's moulinette, or cannot tell a real mistake from something the compiler did. These cases print a yellow `[!]` warning instead of failing:
 > - `ft_strchr` / `ft_strrchr` searching for an extended character (e.g. 233): implementations that compare as `unsigned char` return NULL where libc finds the byte.
 > - `ft_calloc(SIZE_MAX, SIZE_MAX)`: the real calloc returns NULL on `count * size` overflow, but passing this is not required.
+> - get_next_line reading further ahead than it needs to (for example one extra `read()` per call): the subject says to read as little as possible, but only reading the whole file on the first call fails.
+> - get_next_line calling `memset`, `memcpy`, `memmove` or `bzero`: the compiler can generate these calls on its own (for example to zero an array), so they are not failed, but calling them yourself is forbidden.
 
 > [!NOTE]
 > **ft_printf** is tested the way 42's moulinette does it: `setup` runs your `make`, and every test links against the `libftprintf.a` it builds, so sources in subfolders or a bundled libft are fine. The `bonus` part runs `make bonus` first. Output and return values are compared against the real `printf` on your machine, so `%p` of `NULL` expects `(nil)` on Linux and `0x0` on macOS. The subject lets you do only some bonus flags, but the `bonus` part currently expects all of them.

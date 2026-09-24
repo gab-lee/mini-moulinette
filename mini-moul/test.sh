@@ -105,6 +105,8 @@ run_limited()
         if ($pid == 0) { setpgrp(0, 0); exec { $cmd[0] } @cmd; exit 127; }
         my $timed_out = 0;
         $SIG{ALRM} = sub { $timed_out = 1; kill "KILL", -$pid; };
+        # The test is in its own process group, so Ctrl-C only reaches us
+        $SIG{$_} = sub { kill "KILL", -$pid; exit 130; } for qw(INT TERM HUP);
         alarm $limit;
         while (waitpid($pid, 0) == -1 && $!{EINTR}) { }
         my $status = $?;
@@ -179,6 +181,9 @@ main()
             library=""
             [ -f "$dir/library" ] && library="$(cat "$dir/library")"
             [ -z "$library" ] && build_student_objects
+            # Written by the setup part only when this run's make succeeded,
+            # so a stale library from an earlier build is never tested
+            rm -f .library_built
 
             # Run parts in subject order (setup, libc, additional), then any
             # other part, then bonus last
@@ -237,8 +242,8 @@ main()
                         link_inputs=("../$library")
                         if [ $bonus_build_failed -eq 1 ]; then
                             fail_reason="'make bonus' failed"
-                        elif [ ! -f "../$library" ]; then
-                            fail_reason="no $library in your project; see setup"
+                        elif [ ! -f .library_built ] || [ ! -f "../$library" ]; then
+                            fail_reason="$library was not built by this run's make; see setup"
                         fi
                     else
                         link_inputs=("${student_objs[@]}")

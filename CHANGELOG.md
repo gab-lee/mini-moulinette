@@ -38,6 +38,21 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   mandatory part.
 - `[!]` warnings from a passing `.sh` test are now shown, as they already
   were for `.c` tests.
+- Library mode (ft_printf) only tests a library built by this run's
+  `make`: a stale `libftprintf.a` left from an earlier build is no longer
+  linked when `make` now fails.
+- get_next_line: reading one extra chunk per call is now a `[!]` warning
+  instead of a failure; only reading the whole input on the first call
+  fails. A file-scope `static` variable is now reported as a global.
+  Calls to `memset`/`memcpy`/`memmove`/`bzero` get a `[!]` warning instead
+  of passing silently, since the check cannot tell them from calls the
+  compiler generates.
+- Ctrl-C now also kills the test that is running; before, it could keep a
+  hanging test running with no timeout.
+- `printf_compare.h` no longer reads the output of a call that crashed or
+  timed out, and checks its allocation.
+- `README.md`: the two new get_next_line `[!]` warnings are listed under
+  Known strictness exceptions.
 - `README.md`: push_swap moved to Circle 1 and Born2beroot to Circle 2;
   the roadmap lists ft_printf, get_next_line and push_swap on separate
   lines; the "haven't started the Cursus yet" disclaimer is removed.

@@ -30,6 +30,7 @@ if make --no-print-directory -C .. > "$make_out" 2>&1; then
 	printf "  ${GREEN}${CHECKMARK}${GREY} [3] make runs without error${DEFAULT}\n"
 	if [ -f ../libftprintf.a ]; then
 		printf "  ${GREEN}${CHECKMARK}${GREY} [4] make produced libftprintf.a${DEFAULT}\n"
+		touch .library_built
 		# 1s gap so a relink is visible on filesystems with 1s timestamps
 		touch "$marker"
 		sleep 1
