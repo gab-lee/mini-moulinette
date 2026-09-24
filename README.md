@@ -65,9 +65,6 @@ mini
 
 The original project covers the piscine (C00–C08). The goal of this fork is to progressively add test suites for the Common Core, circle by circle:
 
-> [!NOTE]
-> **A note on sources:** I started the 42 Common Core in September 2026, and the project list and scope below follow the subjects I have. Subject versions change between campuses and years, so if a test disagrees with your subject, please open an issue.
-
 - [x] Adapt the runner to detect Common Core project directories
 - [x] **Circle 0** — Libft (Part 1, Part 2, Part 3 - linked list)
 - [ ] **Circle 1** — ft_printf (mandatory + bonus) — first cut done

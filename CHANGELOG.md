@@ -40,8 +40,7 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   were for `.c` tests.
 - `README.md`: push_swap moved to Circle 1 and Born2beroot to Circle 2;
   the roadmap lists ft_printf, get_next_line and push_swap on separate
-  lines; the "haven't started the Cursus yet" notes are replaced now that
-  the Common Core has started.
+  lines; the "haven't started the Cursus yet" disclaimer is removed.
 
 ## [2.1.0] - 2026-09-23
 
