@@ -9,90 +9,90 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
-## [2.2.0] - 2026-09-23
+## [2.1.0] - 2026-09-28
 
 ### Added
+- First-cut `ft_printf` suite. `setup`: the Makefile builds
+  `libftprintf.a` with `-Wall -Wextra -Werror`, does not relink, and has
+  `clean`/`fclean`/`re` rules; `ft_printf` is prototyped as the subject
+  defines. `libc`: all nine mandatory conversions `cspdiuxX%` (including
+  a NUL `%c`, `NULL` `%s` and `%p`, `INT_MIN`/`INT_MAX`, extreme `%p`
+  values) plus a combined-conversions test. `bonus`: `-`, `0`, `.`,
+  width, `#`, `+`, space, and stacked combinations. Every case compares
+  `ft_printf`'s output and return value byte-for-byte against the real
+  `printf` given the same format and arguments.
+- `utils/printf_compare.h`: runs each `ft_printf` call in a forked child
+  with fd 1 captured and a 3-second timeout, so a crash or infinite loop
+  is reported against its case instead of ending the test file.
 - First-cut `get_next_line` suite. `setup`: the three required files,
   header include guard, prototype, builds with every tested
   `BUFFER_SIZE` (1, 2, 5, 42, 9999, 10000000) and without
-  `-D BUFFER_SIZE`, no global variables, no functions beyond
-  `read`/`malloc`/`free`. `mandatory`: 13 regular-file cases (empty file,
-  missing final `'\n'`, only newlines, 10000-character lines, 100 lines,
-  every line length from 1 to 60), standard input and pipes (including a
-  pipe that stays open, which fails an implementation that reads ahead
-  past the first line), and invalid fds and `read()` errors. `bonus`: the
-  same file checks on the `_bonus` files, at most one static variable,
-  and five interleaved multiple-fd cases. Every case runs in a forked
-  child with a 5-second limit; leaks, unfreeable lines and reading the
-  whole file first are caught by recompiling the student's files with
+  `-D BUFFER_SIZE`, no global variables (a file-scope `static` counts),
+  no functions beyond `read`/`malloc`/`free`. `mandatory`: 13
+  regular-file cases (empty file, missing final `'\n'`, only newlines,
+  10000-character lines, 100 lines, every line length from 1 to 60),
+  standard input and pipes (including a pipe that stays open, which fails
+  an implementation that reads ahead past the first line), and invalid
+  fds and `read()` errors. `bonus`: the same file checks on the `_bonus`
+  files, at most one static variable, and five interleaved multiple-fd
+  cases. Every case runs in a forked child with a 5-second limit. Leaks,
+  unfreeable lines and reading the whole input on the first call fail;
+  they are caught by recompiling the student's files with
   `malloc`/`free`/`read` rerouted to counters in the test driver.
+  Smaller over-reads, and calls to `memset`/`memcpy`/`memmove`/`bzero`
+  (which the compiler can generate), only print a `[!]` warning.
+- Runner library mode: a `tests/<assignment>/library` file (ft_printf:
+  `libftprintf.a`) makes every `.c` test link against the library the
+  student's Makefile builds instead of compiling `../ft_*.c`. Only a
+  library built by this run's `make` is tested, never a stale one. The
+  runner runs `make bonus` before the `bonus` part and fails the part if
+  it fails.
 - Runner timeout: every test file runs in its own process group and is
-  killed after `TEST_TIMEOUT` seconds (60, in `config.sh`); the FAIL line
-  now says `(timed out after 60s)` or names the crash signal, e.g.
-  `(crashed: SIGSEGV)`, for `.c` and `.sh` tests alike.
+  killed after `TEST_TIMEOUT` seconds (60, in `config.sh`) or on Ctrl-C;
+  the FAIL line says `(timed out after 60s)` or names the crash signal,
+  e.g. `(crashed: SIGSEGV)`, for `.c` and `.sh` tests alike.
 - `README.md`: a one-line description of every Common Core project, one
-  row per project instead of grouping alternatives, plus libasm.
+  row per project instead of grouping alternatives, plus libasm; notes on
+  how the ft_printf and get_next_line suites work; the two new
+  get_next_line `[!]` warnings listed under Known strictness exceptions.
 
 ### Changed
 - The `bonus` part now always runs last, after any custom-named
   mandatory part.
 - `[!]` warnings from a passing `.sh` test are now shown, as they already
   were for `.c` tests.
-- Library mode (ft_printf) only tests a library built by this run's
-  `make`: a stale `libftprintf.a` left from an earlier build is no longer
-  linked when `make` now fails.
-- get_next_line: reading one extra chunk per call is now a `[!]` warning
-  instead of a failure; only reading the whole input on the first call
-  fails. A file-scope `static` variable is now reported as a global.
-  Calls to `memset`/`memcpy`/`memmove`/`bzero` get a `[!]` warning instead
-  of passing silently, since the check cannot tell them from calls the
-  compiler generates.
-- Ctrl-C now also kills the test that is running; before, it could keep a
-  hanging test running with no timeout.
-- `printf_compare.h` no longer reads the output of a call that crashed or
-  timed out, and checks its allocation.
-- `README.md`: the two new get_next_line `[!]` warnings are listed under
-  Known strictness exceptions.
-- `README.md`: push_swap moved to Circle 1 and Born2beroot to Circle 2;
-  the roadmap lists ft_printf, get_next_line and push_swap on separate
-  lines; the "haven't started the Cursus yet" disclaimer is removed.
-
-## [2.1.0] - 2026-09-23
-
-### Added
-- First-cut `ft_printf` suite: `setup` (Makefile builds `libftprintf.a`
-  with `-Wall -Wextra -Werror`, no relink, `clean`/`fclean`/`re` rules;
-  prototype check), `libc` (all nine mandatory conversions `cspdiuxX%`,
-  plus a combined-conversions test) and `bonus` (`-`, `0`, `.`, width,
-  `#`, `+`, space, and stacked combinations). Every case compares
-  `ft_printf`'s output and return value byte-for-byte against the real
-  `printf` given the same format and arguments.
-- `utils/printf_compare.h`: runs each call in a forked child with fd 1
-  captured and a 3-second timeout, so a crash or infinite loop is
-  reported against its case instead of ending the test file.
-- Runner library mode: a `tests/<assignment>/library` file (ft_printf:
-  `libftprintf.a`) makes every `.c` test link against the library the
-  student's Makefile builds instead of compiling `../ft_*.c`. The runner
-  runs `make bonus` before the `bonus` part and fails the part if it
-  fails.
-
-### Changed
 - `check_prototypes` (in `utils/proto_check.sh`) now takes the student's
   header filename as its first argument instead of hardcoding `libft.h`.
   The libft call sites pass `"libft.h"`; behavior unchanged.
-
-## [2.0.2] - 2026-09-23
+- `README.md`: push_swap moved to Circle 1 and Born2beroot to Circle 2;
+  the roadmap lists ft_printf, get_next_line and push_swap on separate
+  lines; the "Credits" section is merged into "Authors".
 
 ### Removed
 - The archived piscine suites (`tests/42Piscine(archive)/`, C00–C08). The
   runner already skipped any folder named `(archive)`, so they could never
   run. The now-unused `(archive)` filters in `mini-moul.sh` and `test.sh`
   are gone too.
-- `README.md`: the "Cross-tested against 42 submissions" column in
-  Coverage Status, and the "Looking for piscine tests?" note.
+- `README.md`: the "Cross-tested against 42 submissions" column, the
+  "Looking for piscine tests?" note, and the roadmap disclaimer about not
+  having started the Cursus.
 
-### Changed
-- `README.md`: merged the "Credits" section into "Authors".
+## [2.0.2] - 2026-09-28
+
+### Fixed
+- `ft_split` test only exercised short inputs (at most two multi-character
+  words) and only `' '` and `','` as separators. Added cases for:
+  - multiple words: `"hello world foo"`, four-, nine- and twenty-word
+    strings, and long words of differing lengths;
+  - whitespace separators: `'\t'`, `'\n'`, `'\v'`, `'\f'`, `'\r'`, and a
+    tabs-only string;
+  - whitespace that is not the separator: tabs and other whitespace must
+    stay inside words when splitting on `' '`, and spaces must stay inside
+    words when splitting on `'\t'`;
+  - a `'\0'` separator returning the whole string as one element.
+- `ft_split` failure messages now print whitespace escaped (`\t`, `\n`, ...)
+  instead of raw, and an unexpectedly non-empty result for an empty-array
+  case is reported as such instead of "past index -1".
 
 ## [2.0.1] - 2026-09-23
 
