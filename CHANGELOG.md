@@ -9,6 +9,14 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-09-28
+
+### Fixed
+- `ft_split` test only exercised short inputs (at most two multi-character
+  words). Added cases for `"hello world foo"`, a nine-word sentence, a `'\0'`
+  separator, and long words of differing lengths, so an implementation that
+  returns empty strings for longer inputs now fails.
+
 ## [2.0.1] - 2026-09-23
 
 ### Fixed

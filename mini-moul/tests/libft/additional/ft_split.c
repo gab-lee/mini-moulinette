@@ -60,6 +60,12 @@ int main(void)
 	char	*single[] = {"hello"};
 	char	*three[] = {"a", "b", "c"};
 	char	*ab[] = {"a", "b"};
+	char	*hwf[] = {"hello", "world", "foo"};
+	char	*sentence[] = {"The", "quick", "brown", "fox", "jumps", "over",
+		"the", "lazy", "dog"};
+	char	*whole[] = {"hello world"};
+	char	*long_words[] = {"abcdefghijklmnopqrstuvwxyz", "0123456789",
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
 
 	error += split_case(1, "ft_split(\"hello world\", ' ') splits on a single space",
 		"hello world", ' ', words, 2);
@@ -75,6 +81,15 @@ int main(void)
 		"a,b,c", ',', three, 3);
 	error += split_case(7, "ft_split(\",a,,b,\", ',') ignores leading/trailing/doubled separators",
 		",a,,b,", ',', ab, 2);
+	error += split_case(8, "ft_split(\"hello world foo\", ' ') returns three filled words",
+		"hello world foo", ' ', hwf, 3);
+	error += split_case(9, "ft_split on a nine-word sentence keeps every word's content",
+		"The quick brown fox jumps over the lazy dog", ' ', sentence, 9);
+	error += split_case(10, "ft_split(\"hello world\", '\\0') returns the whole string as one element",
+		"hello world", '\0', whole, 1);
+	error += split_case(11, "ft_split with long words of differing lengths",
+		"--abcdefghijklmnopqrstuvwxyz-0123456789---ABCDEFGHIJKLMNOPQRSTUVWXYZ-", '-',
+		long_words, 3);
 
 	return (error);
 }
