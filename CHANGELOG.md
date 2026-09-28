@@ -9,6 +9,23 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-09-28
+
+### Fixed
+- `ft_split` test only exercised short inputs (at most two multi-character
+  words) and only `' '` and `','` as separators. Added cases for:
+  - multiple words: `"hello world foo"`, four-, nine- and twenty-word
+    strings, and long words of differing lengths;
+  - whitespace separators: `'\t'`, `'\n'`, `'\v'`, `'\f'`, `'\r'`, and a
+    tabs-only string;
+  - whitespace that is not the separator: tabs and other whitespace must
+    stay inside words when splitting on `' '`, and spaces must stay inside
+    words when splitting on `'\t'`;
+  - a `'\0'` separator returning the whole string as one element.
+- `ft_split` failure messages now print whitespace escaped (`\t`, `\n`, ...)
+  instead of raw, and an unexpectedly non-empty result for an empty-array
+  case is reported as such instead of "past index -1".
+
 ## [2.0.1] - 2026-09-23
 
 ### Fixed
