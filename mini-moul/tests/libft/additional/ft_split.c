@@ -16,6 +16,33 @@ static void	free_split(char **arr)
 	free(arr);
 }
 
+static void	print_escaped(char const *s)
+{
+	if (!s)
+	{
+		printf("(null)");
+		return ;
+	}
+	printf("\"");
+	while (*s)
+	{
+		if (*s == '\t')
+			printf("\\t");
+		else if (*s == '\n')
+			printf("\\n");
+		else if (*s == '\v')
+			printf("\\v");
+		else if (*s == '\f')
+			printf("\\f");
+		else if (*s == '\r')
+			printf("\\r");
+		else
+			printf("%c", *s);
+		s++;
+	}
+	printf("\"");
+}
+
 static int	split_case(int i, char *desc, char const *s, char c,
 			char **expected, int expected_count)
 {
@@ -33,8 +60,11 @@ static int	split_case(int i, char *desc, char const *s, char c,
 	{
 		if (res[k] == NULL || strcmp(res[k], expected[k]) != 0)
 		{
-			printf("    " RED "[%d] %s: element %d expected \"%s\", got \"%s\"\n" DEFAULT,
-				i, desc, k, expected[k], res[k] ? res[k] : "(null)");
+			printf("    " RED "[%d] %s: element %d expected ", i, desc, k);
+			print_escaped(expected[k]);
+			printf(", got ");
+			print_escaped(res[k]);
+			printf("\n" DEFAULT);
 			free_split(res);
 			return (-1);
 		}
@@ -42,8 +72,12 @@ static int	split_case(int i, char *desc, char const *s, char c,
 	}
 	if (res[expected_count] != NULL)
 	{
-		printf("    " RED "[%d] %s: array has extra elements past index %d, or is not NULL-terminated\n" DEFAULT,
-			i, desc, expected_count - 1);
+		if (expected_count == 0)
+			printf("    " RED "[%d] %s: expected an empty array, got a non-NULL first element\n" DEFAULT,
+				i, desc);
+		else
+			printf("    " RED "[%d] %s: array has extra elements past index %d, or is not NULL-terminated\n" DEFAULT,
+				i, desc, expected_count - 1);
 		free_split(res);
 		return (-1);
 	}
@@ -66,6 +100,13 @@ int main(void)
 	char	*whole[] = {"hello world"};
 	char	*long_words[] = {"abcdefghijklmnopqrstuvwxyz", "0123456789",
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+	char	*tab_kept[] = {"a\tb", "c"};
+	char	*ws_kept[] = {"one\ttwo\nthree\vfour\ffive\rsix"};
+	char	*ws_split[] = {"a b", "c d"};
+	char	*four[] = {"alpha", "beta", "gamma", "delta"};
+	char	*many[] = {"w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8",
+		"w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18",
+		"w19"};
 
 	error += split_case(1, "ft_split(\"hello world\", ' ') splits on a single space",
 		"hello world", ' ', words, 2);
@@ -90,6 +131,29 @@ int main(void)
 	error += split_case(11, "ft_split with long words of differing lengths",
 		"--abcdefghijklmnopqrstuvwxyz-0123456789---ABCDEFGHIJKLMNOPQRSTUVWXYZ-", '-',
 		long_words, 3);
+	error += split_case(12, "ft_split(\"\\thello\\t\\tworld\\tfoo\\t\", '\\t') splits on tab",
+		"\thello\t\tworld\tfoo\t", '\t', hwf, 3);
+	error += split_case(13, "ft_split(\"hello\\nworld\\nfoo\", '\\n') splits on newline",
+		"hello\nworld\nfoo", '\n', hwf, 3);
+	error += split_case(14, "ft_split(\"\\vhello\\vworld\\v\\vfoo\", '\\v') splits on vertical tab",
+		"\vhello\vworld\v\vfoo", '\v', hwf, 3);
+	error += split_case(15, "ft_split(\"hello\\fworld\\ffoo\\f\", '\\f') splits on form feed",
+		"hello\fworld\ffoo\f", '\f', hwf, 3);
+	error += split_case(16, "ft_split(\"hello\\rworld\\rfoo\", '\\r') splits on carriage return",
+		"hello\rworld\rfoo", '\r', hwf, 3);
+	error += split_case(17, "ft_split(\"a\\tb c\", ' ') keeps the tab inside a word",
+		"a\tb c", ' ', tab_kept, 2);
+	error += split_case(18, "ft_split(\"  one\\ttwo\\n...six  \", ' ') treats other whitespace as ordinary characters",
+		"  one\ttwo\nthree\vfour\ffive\rsix  ", ' ', ws_kept, 1);
+	error += split_case(19, "ft_split(\"\\ta b\\t\\tc d\\t\", '\\t') keeps spaces inside words",
+		"\ta b\t\tc d\t", '\t', ws_split, 2);
+	error += split_case(20, "ft_split(\"\\t\\t\\t\", '\\t') on tabs-only returns an empty array",
+		"\t\t\t", '\t', none, 0);
+	error += split_case(21, "ft_split(\"alpha beta gamma delta\", ' ') returns four words",
+		"alpha beta gamma delta", ' ', four, 4);
+	error += split_case(22, "ft_split on a twenty-word string returns every word",
+		"w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19",
+		' ', many, 20);
 
 	return (error);
 }
