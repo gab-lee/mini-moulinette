@@ -2,17 +2,14 @@
 
 source config.sh
 
-# Compiler flags shared by every compile/link step. AddressSanitizer is on
-# by default: it catches memory-safety bugs (heap-buffer-overflow,
+# Compiler flags shared by every compile/link step. AddressSanitizer is
+# always on: it catches memory-safety bugs (heap-buffer-overflow,
 # use-after-free) that pure output/return-value comparison can't see, and
 # on Linux its LeakSanitizer also fails a test that leaks. LeakSanitizer
 # isn't supported on macOS/arm64, so there only memory-safety bugs are
-# caught. Set MINI_ASAN=0 to turn it off, e.g.:
-#   MINI_ASAN=0 ./test.sh libft
-# If the compiler can't build with -fsanitize=address, it's skipped with a
-# notice instead of failing every test.
-CC_FLAGS="-Wall -Werror -Wextra"
-ASAN_ENABLED=0
+# caught. There is no opt-out: if the compiler can't build with
+# -fsanitize=address, the run stops instead of grading without it.
+CC_FLAGS="-Wall -Werror -Wextra -fsanitize=address -g"
 asan_probe()
 {
     probe_dir="$(mktemp -d)"
@@ -23,17 +20,17 @@ asan_probe()
     rm -rf "$probe_dir"
     return $status
 }
-if [ "$MINI_ASAN" != "0" ]; then
-    if asan_probe; then
-        ASAN_ENABLED=1
-        CC_FLAGS="$CC_FLAGS -fsanitize=address -g"
-        # Oversized requests (e.g. ft_calloc(INT_MAX, INT_MAX)) must return
-        # NULL like the real allocator instead of aborting the test.
-        asan_opts="allocator_may_return_null=1"
-        [ "$(uname -s)" = "Linux" ] && asan_opts="$asan_opts:detect_leaks=1"
-        export ASAN_OPTIONS="${asan_opts}${ASAN_OPTIONS:+:$ASAN_OPTIONS}"
-    fi
+if ! asan_probe; then
+    printf "${RED}AddressSanitizer is unavailable: cc cannot build and run a program with -fsanitize=address.${DEFAULT}\n"
+    printf "${RED}Mini always tests with AddressSanitizer; install a compiler that supports it and run again.${DEFAULT}\n"
+    exit 1
 fi
+# Oversized requests (e.g. ft_calloc(INT_MAX, INT_MAX)) must return NULL
+# like the real allocator instead of aborting the test. Appended after any
+# user ASAN_OPTIONS so they can't switch these off (later options win).
+asan_opts="allocator_may_return_null=1"
+[ "$(uname -s)" = "Linux" ] && asan_opts="$asan_opts:detect_leaks=1"
+export ASAN_OPTIONS="${ASAN_OPTIONS:+$ASAN_OPTIONS:}${asan_opts}"
 
 #utils
 index=0
@@ -264,13 +261,7 @@ print_header()
     printf "${DEFAULT}"
     printf "${BLUE}Mini moulinette ${DEFAULT}version ${VERSION}.\n"
     printf "${BLUE}Written by ${DEFAULT}gab-lee.\n"
-    if [ $ASAN_ENABLED -eq 1 ]; then
-        printf "${BLUE}AddressSanitizer ${DEFAULT}on.\n"
-    elif [ "$MINI_ASAN" = "0" ]; then
-        printf "${BLUE}AddressSanitizer ${DEFAULT}off (MINI_ASAN=0).\n"
-    else
-        printf "${BLUE}AddressSanitizer ${GREY}unavailable with this compiler; memory errors and leaks are not checked.${DEFAULT}\n"
-    fi
+    printf "${BLUE}AddressSanitizer ${DEFAULT}on.\n"
     space
 }
 

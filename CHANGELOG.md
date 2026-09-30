@@ -37,12 +37,13 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 - README credits Tripouille/libftTester as a source of the libft cases.
 
 ### Changed
-- AddressSanitizer is on by default (previously opt-in with
-  `MINI_ASAN=1`). On Linux LeakSanitizer now fails any test that leaks.
-  `MINI_ASAN=0` turns it off; if the compiler cannot build with
-  `-fsanitize=address`, the run continues without it and the banner says
-  so. `ASAN_OPTIONS=allocator_may_return_null=1` makes oversized requests
-  return NULL like the real allocator instead of aborting.
+- AddressSanitizer is always on (previously opt-in with `MINI_ASAN=1`,
+  which is removed). On Linux LeakSanitizer now fails any test that leaks.
+  There is no opt-out: if the compiler cannot build with
+  `-fsanitize=address`, the run stops with an error. `test.sh` appends
+  `allocator_may_return_null=1` (and `detect_leaks=1` on Linux) after any
+  user `ASAN_OPTIONS`, so oversized requests return NULL like the real
+  allocator and leak checks can't be switched off.
 - `ft_calloc(SIZE_MAX, SIZE_MAX)` returning a pointer is now a failure,
   not a `[!]` warning; removed from the README strictness exceptions.
 

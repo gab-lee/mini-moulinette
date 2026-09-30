@@ -72,9 +72,9 @@ mini
 
 ## Memory Safety
 
-Every test is compiled and linked with
-[AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer)
-by default, so memory bugs that do not change the visible result still
+Every test is always compiled and linked with
+[AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer),
+so memory bugs that do not change the visible result still
 fail: a `malloc` one byte too short, a heap-buffer-overflow, a
 use-after-free. On Linux, LeakSanitizer also fails any test that leaks
 memory. LeakSanitizer is not supported on macOS/arm64, so there leaks are
@@ -85,12 +85,9 @@ Tests that return a newly allocated block (`ft_strdup`, `ft_calloc`,
 `ft_strmapi`, `ft_lstnew`) also check that it is exactly the size needed,
 e.g. `strlen + 1` for a string.
 
-If your compiler cannot build with `-fsanitize=address`, mini skips it
-and says so in the banner. To turn it off yourself:
-
-```bash
-MINI_ASAN=0 mini
-```
+There is no way to turn it off. If your compiler cannot build with
+`-fsanitize=address`, mini stops with an error instead of grading without
+it.
 
 
 ## Roadmap
