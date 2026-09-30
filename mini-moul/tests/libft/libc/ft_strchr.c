@@ -22,6 +22,10 @@ int main(void)
 		ft_strchr(s, '\0'), strchr(s, '\0'));
 	error += check_ptr(6, "ft_strchr on empty string for '\\0'", "",
 		ft_strchr("", '\0'), strchr("", '\0'));
+	error += check_ptr(8, "ft_strchr(s, 'h' + 256) converts c to char", s,
+		ft_strchr(s, 'h' + 256), strchr(s, 'h' + 256));
+	error += check_ptr(9, "ft_strchr(s, 'w' + 256) converts c to char", s,
+		ft_strchr(s, 'w' + 256), strchr(s, 'w' + 256));
 	error += warn_ptr(7, "ft_strchr finds extended char 233", ext,
 		ft_strchr(ext, 233), strchr(ext, 233));
 

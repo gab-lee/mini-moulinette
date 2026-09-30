@@ -15,6 +15,8 @@ All credit for the original mini-moulinette goes to **[Khairul Haaziq](https://g
 
 This tool was incredibly useful during my piscine: it saved me countless hours of waiting for evaluations only to fail on silly mistakes. This fork exists because I want the same safety net while going through the Common Core. Thank you, Khairul! 🙏
 
+The libft suite also integrates the test cases from **[Tripouille/libftTester](https://github.com/Tripouille/libftTester)**, including its exact allocation-size checks.
+
 
 ## How Does It Work?
 
@@ -68,24 +70,27 @@ mini
 5. That's it — run it in every project directory where tests are provided. Have fun!
 
 
-## Memory Safety (optional)
+## Memory Safety
 
-By default, tests only compare output and return values against what's
-expected — this passes code that still corrupts memory (e.g. a `malloc`
-one byte too short, a use-after-free) as long as the bad byte doesn't
-change the visible result. Set `MINI_ASAN=1` to also compile and link
-everything with [AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer),
-which catches that class of bug directly:
+Every test is compiled and linked with
+[AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer)
+by default, so memory bugs that do not change the visible result still
+fail: a `malloc` one byte too short, a heap-buffer-overflow, a
+use-after-free. On Linux, LeakSanitizer also fails any test that leaks
+memory. LeakSanitizer is not supported on macOS/arm64, so there leaks are
+not reported.
+
+Tests that return a newly allocated block (`ft_strdup`, `ft_calloc`,
+`ft_substr`, `ft_strjoin`, `ft_strtrim`, `ft_split`, `ft_itoa`,
+`ft_strmapi`, `ft_lstnew`) also check that it is exactly the size needed,
+e.g. `strlen + 1` for a string.
+
+If your compiler cannot build with `-fsanitize=address`, mini skips it
+and says so in the banner. To turn it off yourself:
 
 ```bash
-MINI_ASAN=1 mini
+MINI_ASAN=0 mini
 ```
-
-This is off by default so it never changes your score — a sanitizer trip
-just turns a test that used to silently PASS into a FAIL with a stack
-trace. Note LeakSanitizer isn't supported on macOS/arm64, so this only
-catches out-of-bounds access and use-after-free, not a plain unfreed
-allocation.
 
 
 ## Roadmap
@@ -132,7 +137,6 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 > [!NOTE]
 > **Known strictness exceptions.** The libc tests compare against the *real* libc, which is stricter than 42's moulinette in a few corners. These cases print a yellow `[!]` warning instead of failing the function:
 > - `ft_strchr` / `ft_strrchr` searching for an extended character (e.g. 233): implementations that compare as `unsigned char` return NULL where libc finds the byte.
-> - `ft_calloc(SIZE_MAX, SIZE_MAX)`: the real calloc returns NULL on `count * size` overflow, but passing this is not required.
 
 
 ## Updating

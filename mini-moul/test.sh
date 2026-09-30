@@ -2,18 +2,37 @@
 
 source config.sh
 
-# Compiler flags shared by every compile/link step. Set MINI_ASAN=1 to also
-# catch memory-safety bugs (heap-buffer-overflow, use-after-free) that pure
-# output/return-value comparison can't see, e.g.:
-#   MINI_ASAN=1 ./test.sh libft
-# LeakSanitizer isn't supported on macOS/arm64, so this is AddressSanitizer
-# only - it won't report a plain unfreed-but-otherwise-safe allocation, but
-# it will catch out-of-bounds access and use-after-free. Off by default:
-# it changes a test's exit code/output on a sanitizer trip, so it stays
-# opt-in rather than silently changing default scoring.
+# Compiler flags shared by every compile/link step. AddressSanitizer is on
+# by default: it catches memory-safety bugs (heap-buffer-overflow,
+# use-after-free) that pure output/return-value comparison can't see, and
+# on Linux its LeakSanitizer also fails a test that leaks. LeakSanitizer
+# isn't supported on macOS/arm64, so there only memory-safety bugs are
+# caught. Set MINI_ASAN=0 to turn it off, e.g.:
+#   MINI_ASAN=0 ./test.sh libft
+# If the compiler can't build with -fsanitize=address, it's skipped with a
+# notice instead of failing every test.
 CC_FLAGS="-Wall -Werror -Wextra"
-if [ -n "$MINI_ASAN" ]; then
-    CC_FLAGS="$CC_FLAGS -fsanitize=address"
+ASAN_ENABLED=0
+asan_probe()
+{
+    probe_dir="$(mktemp -d)"
+    printf 'int main(void)\n{\n\treturn (0);\n}\n' > "$probe_dir/p.c"
+    cc -fsanitize=address -o "$probe_dir/p" "$probe_dir/p.c" > /dev/null 2>&1 \
+        && "$probe_dir/p" > /dev/null 2>&1
+    status=$?
+    rm -rf "$probe_dir"
+    return $status
+}
+if [ "$MINI_ASAN" != "0" ]; then
+    if asan_probe; then
+        ASAN_ENABLED=1
+        CC_FLAGS="$CC_FLAGS -fsanitize=address -g"
+        # Oversized requests (e.g. ft_calloc(INT_MAX, INT_MAX)) must return
+        # NULL like the real allocator instead of aborting the test.
+        asan_opts="allocator_may_return_null=1"
+        [ "$(uname -s)" = "Linux" ] && asan_opts="$asan_opts:detect_leaks=1"
+        export ASAN_OPTIONS="${asan_opts}${ASAN_OPTIONS:+:$ASAN_OPTIONS}"
+    fi
 fi
 
 #utils
@@ -245,6 +264,13 @@ print_header()
     printf "${DEFAULT}"
     printf "${BLUE}Mini moulinette ${DEFAULT}version ${VERSION}.\n"
     printf "${BLUE}Written by ${DEFAULT}gab-lee.\n"
+    if [ $ASAN_ENABLED -eq 1 ]; then
+        printf "${BLUE}AddressSanitizer ${DEFAULT}on.\n"
+    elif [ "$MINI_ASAN" = "0" ]; then
+        printf "${BLUE}AddressSanitizer ${DEFAULT}off (MINI_ASAN=0).\n"
+    else
+        printf "${BLUE}AddressSanitizer ${GREY}unavailable with this compiler; memory errors and leaks are not checked.${DEFAULT}\n"
+    fi
     space
 }
 

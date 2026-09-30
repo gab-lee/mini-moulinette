@@ -9,7 +9,42 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
-## [2.1.1] - 2026-09-30
+## [2.2.0] - 2026-09-30
+
+### Added
+- Test cases from [Tripouille/libftTester](https://github.com/Tripouille/libftTester)
+  integrated into the libft suite:
+  - `utils/alloc_check.h` (`check_alloc_size`, ported from its `mcheck`):
+    `ft_strdup`, `ft_calloc`, `ft_substr`, `ft_strjoin`, `ft_strtrim`,
+    `ft_itoa`, `ft_strmapi`, `ft_lstnew` and `ft_split` (array and every
+    word) must allocate exactly the size needed.
+  - `ft_calloc`: `(0, 0)`, `(0, -5)`, `(-5, 0)` must return a pointer;
+    `(INT_MAX, INT_MAX)`, `(INT_MIN, INT_MIN)`, `(-5, -5)`, `(3, -5)`,
+    `(-5, 3)` must return NULL.
+  - `ft_memcpy(dst, NULL, 0)` must return `dst`.
+  - `ft_memchr` / `ft_strchr` / `ft_strrchr` with `c + 256` (cast check),
+    plus `ft_strrchr("", 'V')` and a last-character match.
+  - `ft_strlcpy`: sizes 2, 6, 7, 8 and `-1`, and no write past the NUL.
+  - `ft_strlcat`: 16 cases including size `-1`, sizes below the dst
+    length, and an empty dst with sizes 0 to 4.
+  - `ft_strncmp`: 18 cases including `n = -1` and negative bytes.
+  - `ft_strnstr`: 16 cases including `len = -1`, empty haystack/needle,
+    and matches that end exactly at or past `len`.
+  - `ft_atoi`: whitespace after the sign returns 0, whitespace after a
+    digit stops parsing, `--1` / `++1` return 0.
+  - `ft_substr`, `ft_strjoin`, `ft_strtrim`, `ft_split`, `ft_strmapi`,
+    `ft_lstadd_back` (appending a whole second list): Tripouille's cases.
+- README credits Tripouille/libftTester as a source of the libft cases.
+
+### Changed
+- AddressSanitizer is on by default (previously opt-in with
+  `MINI_ASAN=1`). On Linux LeakSanitizer now fails any test that leaks.
+  `MINI_ASAN=0` turns it off; if the compiler cannot build with
+  `-fsanitize=address`, the run continues without it and the banner says
+  so. `ASAN_OPTIONS=allocator_may_return_null=1` makes oversized requests
+  return NULL like the real allocator instead of aborting.
+- `ft_calloc(SIZE_MAX, SIZE_MAX)` returning a pointer is now a failure,
+  not a `[!]` warning; removed from the README strictness exceptions.
 
 ### Fixed
 - `ft_calloc` test now enforces the subject's (v19.3) zero-size rule: if

@@ -4,6 +4,7 @@
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
 #include "../../../utils/libc_compare.h"
+#include "../../../utils/alloc_check.h"
 
 int main(void)
 {
@@ -33,6 +34,7 @@ int main(void)
 	}
 	else
 		printf("  " GREEN CHECKMARK GREY " [3] the copy is independent of the original\n" DEFAULT);
+	error += check_alloc_size(5, "ft_strdup(\"hello, world\")", dup, 13);
 	free(dup);
 	dup = ft_strdup("");
 	if (dup == NULL || dup[0] != '\0')
@@ -42,6 +44,7 @@ int main(void)
 	}
 	else
 		printf("  " GREEN CHECKMARK GREY " [4] ft_strdup(\"\") returns an empty string\n" DEFAULT);
+	error += check_alloc_size(6, "ft_strdup(\"\")", dup, 1);
 	free(dup);
 
 	return (error);

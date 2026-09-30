@@ -21,7 +21,7 @@ There is no build step; everything runs via bash + `cc`.
   ./test.sh <assignment>          # e.g. ./test.sh libft
   ```
 
-- Set `MINI_ASAN=1` to compile/link everything (student objects and test binaries) with `-fsanitize=address` in addition to `-Wall -Werror -Wextra` — catches memory-safety bugs (heap-buffer-overflow, use-after-free) that plain output/return-value comparison can't see. Off by default (see README "Memory Safety"). Both compile lines share one `CC_FLAGS` variable set near the top of `test.sh` — extend that, not the individual `cc` invocations, if you add another opt-in flag.
+- AddressSanitizer is **on by default**: `test.sh` probes `cc -fsanitize=address` at startup and, if it works, compiles/links everything (student objects and test binaries) with `-fsanitize=address -g` on top of `-Wall -Werror -Wextra`, exporting `ASAN_OPTIONS=allocator_may_return_null=1` (plus `detect_leaks=1` on Linux, so LeakSanitizer fails leaking tests; unsupported on macOS/arm64). If the probe fails it runs without ASan and says so in the banner. `MINI_ASAN=0` turns it off (see README "Memory Safety"). Test files must therefore free everything they allocate, or they fail under LeakSanitizer. Both compile lines share one `CC_FLAGS` variable set near the top of `test.sh` — extend that, not the individual `cc` invocations, if you add another flag.
   Note `test.sh` expects the student project one level up (`../ft_*.c`, `../libft.h`, etc.), so run it from a copy of `mini-moul/` placed inside the student project — mirror what `mini-moul.sh` does, or symlink a test project's sources into a scratch `../` for a quicker loop.
 
 - Run a single test binary directly once compiled, e.g.:
@@ -44,18 +44,18 @@ There is no build step; everything runs via bash + `cc`.
 
 **`mini-moul/tests/<assignment>/<part>/`** — one directory per assignment (e.g. `libft`, `ft_printf`, `philo`), each with subdirectories per part. Test files are named after the function/program they test (e.g. `libft/libc/ft_strlen.c` tests `ft_strlen`). Each `.c` test:
 - `#include`s a local prototypes header (e.g. `libft_proto.h`) declaring the functions under test — the student's own source/headers are **never** `#include`d, only their compiled `.o` linked in, so student helpers/macros/static functions can't leak into or break the test.
-- Uses shared helpers from `mini-moul/utils/` (e.g. `libc_compare.h` for `check_truthy`/`check_exact`/sweep helpers that compare `ft_*` output against the real libc function instead of hardcoded expected values; `constants.h` for shared color/formatting macros).
+- Uses shared helpers from `mini-moul/utils/` (e.g. `libc_compare.h` for `check_truthy`/`check_exact`/sweep helpers that compare `ft_*` output against the real libc function instead of hardcoded expected values; `constants.h` for shared color/formatting macros; `alloc_check.h` for `check_alloc_size`, which compares a returned block's usable size against `malloc(required)`, ported from Tripouille/libftTester's `mcheck`).
 - Declares cases as a `t_test` struct array (see README "Debugging" section for the shape) or as straight-line assertions with `check_*` calls, one numbered case per behavior, each printing a PASS/FAIL line.
 
 **`mini-moul/tests/<assignment>/*/prototypes.sh`** — setup-part scripts that call `check_prototypes` (defined in `mini-moul/utils/proto_check.sh`) with `"name|pointer-decl|subject prototype"` triples. Each entry compiles a tiny probe assigning the student's function to a function-pointer of the exact subject-declared type; because C doesn't check types at link time, this is the only place a wrong signature (return type, param types, missing `const`, ...) gets caught, distinct from behavioral tests.
 
 **No norminette check.** Norm compliance is not part of any assignment's `setup` part — it caused bugs (false PASS/FAIL against the student's actual norm state) and was removed. Students must run `norminette` themselves before submitting; 42's real moulinette still enforces it.
 
-**`mini-moul/utils/`** — shared C headers/shell helpers included by tests across assignments (`constants.h`, `libc_compare.h`, `proto_check.sh`). Prefer extending these over duplicating comparison logic in individual test files.
+**`mini-moul/utils/`** — shared C headers/shell helpers included by tests across assignments (`constants.h`, `libc_compare.h`, `alloc_check.h`, `proto_check.sh`). Prefer extending these over duplicating comparison logic in individual test files.
 
 **Adding a new assignment/part**: create `mini-moul/tests/<assignment>/<part>/`, add `.c`/`.sh` test files (optionally an `order` file), and if needed a `prototypes.sh` sourcing `proto_check.sh`. `test.sh` picks it up automatically — no registration needed elsewhere.
 
-**Known strictness exceptions**: some libc-comparison tests are intentionally stricter than the real 42 moulinette (e.g. `ft_strchr`/`ft_strrchr` with extended chars, `ft_calloc(SIZE_MAX, SIZE_MAX)`); these print a `[!]` warning rather than failing. See README "Coverage Status" for the current list — don't silently loosen or tighten these without updating both the test and the README.
+**Known strictness exceptions**: some libc-comparison tests are intentionally stricter than the real 42 moulinette (e.g. `ft_strchr`/`ft_strrchr` with extended chars); these print a `[!]` warning rather than failing. See README "Coverage Status" for the current list — don't silently loosen or tighten these without updating both the test and the README.
 
 ## Versioning
 

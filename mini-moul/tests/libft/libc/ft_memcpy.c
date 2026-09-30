@@ -22,6 +22,22 @@ static int	memcpy_case(int i, char *desc, const void *src, size_t n)
 	return (error);
 }
 
+/* ft_memcpy(dst, NULL, 0) must return dst without reading src. */
+static int	memcpy_null_case(int i)
+{
+	unsigned char	a[8];
+	unsigned char	b[8];
+
+	memset(a, 'A', 8);
+	memset(b, 'A', 8);
+	if (ft_memcpy(a, NULL, 0) != (void *)a)
+	{
+		printf("    " RED "[%d] ft_memcpy(dst, NULL, 0) must return dst\n" DEFAULT, i);
+		return (-1);
+	}
+	return (check_mem(i, "ft_memcpy(dst, NULL, 0) returns dst and leaves it untouched", a, b, 8));
+}
+
 int main(void)
 {
 	int				error = 0;
@@ -35,6 +51,7 @@ int main(void)
 	error += memcpy_case(2, "ft_memcpy copies 64 binary bytes", binary, 64);
 	error += memcpy_case(3, "ft_memcpy copies embedded NULs (\"42\\0abc\")", "42\0abc", 7);
 	error += memcpy_case(4, "ft_memcpy with n=0 leaves dst untouched", "ignored", 0);
+	error += memcpy_null_case(5);
 
 	return (error);
 }
