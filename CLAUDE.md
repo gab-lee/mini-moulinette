@@ -14,7 +14,7 @@ There is no build step; everything runs via bash + `cc`.
   ```bash
   ~/mini-moulinette/mini-moul.sh
   ```
-  This copies `mini-moul/` into the current directory, detects the assignment from the directory's basename (must match a folder in `mini-moul/tests/`, and not contain `(archive)`), executes `test.sh <assignment>`, then cleans up. norminette is **not** run — see the note below.
+  This copies `mini-moul/` into the current directory, detects the assignment from the directory's basename (must match a folder in `mini-moul/tests/`), executes `test.sh <assignment>`, then cleans up. norminette is **not** run — see the note below.
 
 - To run directly without the copy/cleanup wrapper (useful while iterating on tests), from inside `mini-moul/`:
   ```bash

@@ -26,6 +26,11 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   variants). It previously built every `../ft_*.c`, so an extra accessory
   file with a `main()` or a duplicate symbol broke every test's link.
 
+### Removed
+- `mini-moul/tests/42Piscine(archive)/` (piscine C00 to C08 tests) and the
+  `(archive)` skip logic in `mini-moul.sh` and `test.sh`. The runner never
+  executed them; piscine tests live in the original k11q/mini-moulinette.
+
 ## [2.1.0] - 2026-09-30
 
 ### Added
