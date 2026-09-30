@@ -9,6 +9,33 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-09-30
+
+### Added
+- `MINI_ASAN=1` opt-in env var (e.g. `MINI_ASAN=1 ./test.sh libft`) compiles
+  and links every student object and test binary with
+  `-fsanitize=address`, in addition to the existing `-Wall -Werror
+  -Wextra`. Off by default so it never changes existing scoring. Pure
+  output/return-value comparison can pass code that still corrupts memory
+  (a 1-byte-short `malloc`, a use-after-free) - this catches that class of
+  bug directly, as long as a test happens to touch the bad byte. Note
+  LeakSanitizer isn't supported on macOS/arm64, so this is
+  AddressSanitizer only; a plain unfreed-but-otherwise-safe allocation
+  still won't be reported.
+
+### Fixed
+- `ft_putnbr_fd` test only checked `0, 42, -42, INT_MAX, INT_MIN` - none
+  of which ever make a recursive digit-printer's `n /= 10` chain pass
+  through exactly `10`, the single value that exposes the common
+  off-by-one `if (n > 10)` (instead of `if (n >= 10)`) recursion guard.
+  Added cases for `10`, `100`, `1000`, `105`, `-10`, and `10000000`.
+- `ft_lstmap` test only exercised the all-succeed path. Added a case
+  where the mapping function fails (returns `NULL`) on the second of
+  three nodes, asserting the call returns `NULL` and that the *original*
+  list survives untouched - the highest-risk branch in this function
+  (freeing the partially-built new list via `del` without disturbing the
+  input).
+
 ## [2.0.2] - 2026-09-28
 
 ### Fixed

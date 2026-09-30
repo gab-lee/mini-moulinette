@@ -68,6 +68,26 @@ mini
 5. That's it — run it in every project directory where tests are provided. Have fun!
 
 
+## Memory Safety (optional)
+
+By default, tests only compare output and return values against what's
+expected — this passes code that still corrupts memory (e.g. a `malloc`
+one byte too short, a use-after-free) as long as the bad byte doesn't
+change the visible result. Set `MINI_ASAN=1` to also compile and link
+everything with [AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer),
+which catches that class of bug directly:
+
+```bash
+MINI_ASAN=1 mini
+```
+
+This is off by default so it never changes your score — a sanitizer trip
+just turns a test that used to silently PASS into a FAIL with a stack
+trace. Note LeakSanitizer isn't supported on macOS/arm64, so this only
+catches out-of-bounds access and use-after-free, not a plain unfreed
+allocation.
+
+
 ## Roadmap
 
 The original project covers the piscine (C00–C08). The goal of this fork is to progressively add test suites for the Common Core, circle by circle:

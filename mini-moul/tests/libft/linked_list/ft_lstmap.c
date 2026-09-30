@@ -15,6 +15,24 @@ static void	*double_it(void *content)
 	return (res);
 }
 
+static int	g_call_count;
+
+/* Fails (returns NULL, like a failed malloc inside f) on the second node,
+   so ft_lstmap has already built one new node before f fails. */
+static void	*fail_on_second(void *content)
+{
+	int	*res;
+
+	g_call_count++;
+	if (g_call_count == 2)
+		return (NULL);
+	res = malloc(sizeof(int));
+	if (!res)
+		return (NULL);
+	*res = *(int *)content * 2;
+	return (res);
+}
+
 static void	free_content(void *content)
 {
 	free(content);
@@ -52,6 +70,8 @@ int main(void)
 	t_list	*lst;
 	t_list	*mapped;
 	t_list	*empty_mapped;
+	t_list	*lst2;
+	t_list	*failed;
 
 	lst = ft_lstnew(&values[0]);
 	lst->next = ft_lstnew(&values[1]);
@@ -92,7 +112,34 @@ int main(void)
 		error -= 1;
 	}
 
+	/* f failing partway through the list (returns NULL on the 2nd of 3
+	   nodes) is the highest-risk path: the partially-built new list must
+	   be freed via del and the ORIGINAL list must survive untouched. */
+	lst2 = ft_lstnew(&values[0]);
+	lst2->next = ft_lstnew(&values[1]);
+	lst2->next->next = ft_lstnew(&values[2]);
+	g_call_count = 0;
+	failed = ft_lstmap(lst2, fail_on_second, free_content);
+	if (failed == NULL)
+		printf("  " GREEN CHECKMARK GREY " [5] ft_lstmap returns NULL when f fails partway through the list\n" DEFAULT);
+	else
+	{
+		printf("    " RED "[5] ft_lstmap should return NULL when f fails partway through the list\n" DEFAULT);
+		error -= 1;
+		free_mapped(failed);
+	}
+	if (ft_lstsize(lst2) == 3 && *(int *)lst2->content == 1
+		&& *(int *)lst2->next->content == 2
+		&& *(int *)lst2->next->next->content == 3)
+		printf("  " GREEN CHECKMARK GREY " [6] ft_lstmap leaves the original list intact when f fails\n" DEFAULT);
+	else
+	{
+		printf("    " RED "[6] ft_lstmap corrupted or freed the original list when f failed\n" DEFAULT);
+		error -= 1;
+	}
+
 	free_nodes(lst);
+	free_nodes(lst2);
 	free_mapped(mapped);
 	return (error);
 }

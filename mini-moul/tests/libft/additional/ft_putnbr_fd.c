@@ -64,6 +64,19 @@ int main(void)
 		INT_MAX, "2147483647");
 	error += putnbr_case(5, "ft_putnbr_fd(INT_MIN, fd) writes \"-2147483648\"",
 		INT_MIN, "-2147483648");
+	/* Recursive digit-printers are commonly off-by-one on the recursion's
+	   stop condition (e.g. `if (n > 10)` instead of `if (n >= 10)`), which
+	   only misbehaves once the value itself, or some n/10^k reached while
+	   descending, is exactly 10. None of the cases above ever hit that -
+	   these do. */
+	error += putnbr_case(6, "ft_putnbr_fd(10, fd) writes \"10\"", 10, "10");
+	error += putnbr_case(7, "ft_putnbr_fd(100, fd) writes \"100\"", 100, "100");
+	error += putnbr_case(8, "ft_putnbr_fd(1000, fd) writes \"1000\"", 1000, "1000");
+	error += putnbr_case(9,
+		"ft_putnbr_fd(105, fd) writes \"105\" (105 / 10 == 10)", 105, "105");
+	error += putnbr_case(10, "ft_putnbr_fd(-10, fd) writes \"-10\"", -10, "-10");
+	error += putnbr_case(11, "ft_putnbr_fd(10000000, fd) writes \"10000000\"",
+		10000000, "10000000");
 
 	unlink(TMP_PATH);
 	return (error);
