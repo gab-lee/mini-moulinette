@@ -21,6 +21,10 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   (`$(NAME)`, `all`, `clean`, `fclean`, `re`; `libft.a` and `all` were
   not checked before) and fails a Makefile that relinks when nothing
   changed, which the subject forbids.
+- `test.sh` now compiles and links only the student sources for functions
+  the subject lists (those with a test file in the suite, plus `_bonus`
+  variants). It previously built every `../ft_*.c`, so an extra accessory
+  file with a `main()` or a duplicate symbol broke every test's link.
 
 ## [2.1.0] - 2026-09-30
 

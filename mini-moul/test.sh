@@ -64,26 +64,33 @@ collect_tests()
     fi
 }
 
-# Compile each of the student's ft_*.c once into an object file. Tests
-# declare prototypes (tests/<suite>/libft_proto.h) and link against these
-# objects, so the student's code is never #include-d into a test. A file
-# that doesn't compile keeps its error in $OBJ_DIR/<name>.err and its test
-# reports it.
+# Compile each of the student's subject functions once into an object
+# file. Only sources named after a test file in the suite (<fn>.c or
+# <fn>_bonus.c) are built, so extra accessory files in the project (other
+# ft_*.c helpers, a main, ...) are ignored. Tests declare prototypes
+# (tests/<suite>/libft_proto.h) and link against these objects, so the
+# student's code is never #include-d into a test. A file that doesn't
+# compile keeps its error in $OBJ_DIR/<name>.err and its test reports it.
 OBJ_DIR=""
 student_objs=()
 build_student_objects()
 {
+    suite_dir=$1
     OBJ_DIR="$SCRIPT_DIR/.student_objs"
     rm -rf "$OBJ_DIR"
     mkdir -p "$OBJ_DIR"
     student_objs=()
-    for src in ../ft_*.c; do
-        [ -f "$src" ] || continue
-        name="$(basename "${src%.c}")"
-        if cc $CC_FLAGS -c "$src" -o "$OBJ_DIR/$name.o" 2> "$OBJ_DIR/$name.err"; then
-            rm -f "$OBJ_DIR/$name.err"
-            student_objs+=("$OBJ_DIR/$name.o")
-        fi
+    for test_src in "$suite_dir"/*/*.c; do
+        [ -f "$test_src" ] || continue
+        fn="$(basename "${test_src%.c}")"
+        for src in "../$fn.c" "../${fn}_bonus.c"; do
+            [ -f "$src" ] || continue
+            name="$(basename "${src%.c}")"
+            if cc $CC_FLAGS -c "$src" -o "$OBJ_DIR/$name.o" 2> "$OBJ_DIR/$name.err"; then
+                rm -f "$OBJ_DIR/$name.err"
+                student_objs+=("$OBJ_DIR/$name.o")
+            fi
+        done
     done
 }
 
@@ -121,7 +128,7 @@ main()
             space
             dirname_found=1
             index=0
-            build_student_objects
+            build_student_objects "$dir"
 
             # Run parts in subject order (setup, libc, additional, bonus),
             # then anything else
