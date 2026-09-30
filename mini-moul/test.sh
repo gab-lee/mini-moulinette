@@ -2,6 +2,20 @@
 
 source config.sh
 
+# Compiler flags shared by every compile/link step. Set MINI_ASAN=1 to also
+# catch memory-safety bugs (heap-buffer-overflow, use-after-free) that pure
+# output/return-value comparison can't see, e.g.:
+#   MINI_ASAN=1 ./test.sh libft
+# LeakSanitizer isn't supported on macOS/arm64, so this is AddressSanitizer
+# only - it won't report a plain unfreed-but-otherwise-safe allocation, but
+# it will catch out-of-bounds access and use-after-free. Off by default:
+# it changes a test's exit code/output on a sanitizer trip, so it stays
+# opt-in rather than silently changing default scoring.
+CC_FLAGS="-Wall -Werror -Wextra"
+if [ -n "$MINI_ASAN" ]; then
+    CC_FLAGS="$CC_FLAGS -fsanitize=address"
+fi
+
 #utils
 index=0
 index2=0
@@ -66,7 +80,7 @@ build_student_objects()
     for src in ../ft_*.c; do
         [ -f "$src" ] || continue
         name="$(basename "${src%.c}")"
-        if cc -Wall -Werror -Wextra -c "$src" -o "$OBJ_DIR/$name.o" 2> "$OBJ_DIR/$name.err"; then
+        if cc $CC_FLAGS -c "$src" -o "$OBJ_DIR/$name.o" 2> "$OBJ_DIR/$name.err"; then
             rm -f "$OBJ_DIR/$name.err"
             student_objs+=("$OBJ_DIR/$name.o")
         fi
@@ -170,7 +184,7 @@ main()
                         [ $part_is_bonus -eq 0 ] && break_score=1
                         score_false=1
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(no ${fn_name}.c found in your project)${DEFAULT}\n"
-                    elif cc -Wall -Werror -Wextra -o "${test%.c}" "$test" "${student_objs[@]}" 2> compile_error.tmp; then
+                    elif cc $CC_FLAGS -o "${test%.c}" "$test" "${student_objs[@]}" 2> compile_error.tmp; then
                         test_output="$("./${test%.c}" 2>&1)"
                         if [ $? -eq 0 ]; then
                             passed=$((passed+1))
