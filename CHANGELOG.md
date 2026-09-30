@@ -35,6 +35,13 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   - `ft_substr`, `ft_strjoin`, `ft_strtrim`, `ft_split`, `ft_strmapi`,
     `ft_lstadd_back` (appending a whole second list): Tripouille's cases.
 - README credits Tripouille/libftTester as a source of the libft cases.
+- Run individual functions: `mini strlen split` (the `ft_` prefix is
+  optional) runs only those tests, skipping the setup checks, and reports
+  `passed/total` instead of a score. `mini -libft strlen` picks the suite
+  explicitly, for a folder not named after it. `mini -h` prints usage.
+- `mini.sh`: sourced from `~/.zshrc` or `~/.bashrc`, it defines the `mini`
+  command with tab completion of suites (`-libft`) and function names, in
+  both bash and zsh. The README setup now uses it instead of an alias.
 
 ### Changed
 - AddressSanitizer is always on (previously opt-in with `MINI_ASAN=1`,

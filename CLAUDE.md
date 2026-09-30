@@ -31,9 +31,11 @@ There is no build step; everything runs via bash + `cc`.
 
 ## Architecture
 
-**`mini-moul.sh`** (repo root) — user-facing entrypoint. Validates the current directory matches a known test suite, stages a throwaway copy of `mini-moul/`, delegates to `test.sh`, and removes the copy afterward (also on `SIGINT`).
+**`mini.sh`** (repo root) — sourced from the user's `~/.zshrc`/`~/.bashrc`. Defines `mini` as a shell function (removing any old `alias mini`) and registers `_mini_complete` via `complete` (zsh through `bashcompinit`): it completes `-<suite>` as the first word and the suite's function names from `mini-moul/tests/<suite>/*/*.c` (bare names like `strlen`, or `ft_`-prefixed once the word starts with `f`).
 
-**`mini-moul/test.sh`** — the actual runner, invoked as `./test.sh <assignment>`:
+**`mini-moul.sh`** (repo root) — user-facing entrypoint: `mini [-<suite>] [function ...]`. Takes the suite from `-<suite>` or else the current directory's basename, validates it matches a known test suite, stages a throwaway copy of `mini-moul/`, delegates to `test.sh <suite> [function ...]`, and removes the copy afterward (also on `SIGINT`).
+
+**`mini-moul/test.sh`** — the actual runner, invoked as `./test.sh <assignment> [function ...]`. Function names (with or without `ft_`) put it in selected mode: `select_functions()` validates them against the suite's test files, only those `.c` tests run (setup `.sh` scripts and parts without a selected function are skipped), and `print_selected_footer()` reports `passed/total` instead of a score. Otherwise:
 - Finds `tests/<assignment>/`, iterates its subdirectories ("parts": conventionally `setup`, `libc`, `additional`, `bonus`, run in that order, then any others) as scoring units. A part literally named `bonus` is graded separately (flat `+25`, only once the mandatory parts hit 100%) — `libft`'s linked-list part is mandatory per the subject, so it's named `linked_list`, not `bonus`, and counts as an ordinary mandatory part.
 - `build_student_objects()` compiles only the student sources named after a test file in the suite (`../<fn>.c` or `../<fn>_bonus.c`, i.e. the subject's function list; extra accessory `ft_*.c` files are ignored) once into `.o` files (capturing compile errors per-file into `.student_objs/*.err`); these objects are linked into each test binary rather than recompiling the student's sources repeatedly.
 - Within a part, `collect_tests()` lists test files, honoring an optional `order` file (one filename per line) so tests run in subject order; anything not listed is appended after.

@@ -41,19 +41,21 @@ The libft suite also integrates the test cases from **[Tripouille/libftTester](h
 git clone https://github.com/gab-lee/mini-moulinette.git ~/mini-moulinette
 ```
 
-2. Create an alias for it.
+2. Load the `mini` command (this also enables tab completion).
 
 - zsh:
 
 ```zsh
-echo "alias mini='~/mini-moulinette/mini-moul.sh'" >> ~/.zshrc && source ~/.zshrc
+echo "source ~/mini-moulinette/mini.sh" >> ~/.zshrc && source ~/.zshrc
 ```
 
 - bash:
 
 ```bash
-echo "alias mini='~/mini-moulinette/mini-moul.sh'" >> ~/.bashrc && source ~/.bashrc
+echo "source ~/mini-moulinette/mini.sh" >> ~/.bashrc && source ~/.bashrc
 ```
+
+If you set mini up with the older `alias mini=...` line, delete that line from your rc file, otherwise the alias overrides the command and tab completion does not work.
 
 3. Go to the project directory you want to test, e.g. `libft`:
 
@@ -68,6 +70,19 @@ mini
 ```
 
 5. That's it — run it in every project directory where tests are provided. Have fun!
+
+### Testing individual functions
+
+Pass function names to run only those tests. The `ft_` prefix is optional, and Tab completes the names:
+
+```bash
+mini strlen            # only ft_strlen
+mini ft_split substr   # several functions
+mini -libft strlen     # pick the suite yourself when your folder has another name
+mini -h                # usage
+```
+
+A run limited to some functions skips the setup checks (Makefile, `libft.h`, prototypes) and shows how many of the chosen functions passed instead of a score. Run `mini` with no names for the full graded suite.
 
 
 ## Memory Safety

@@ -126,6 +126,53 @@ student_src_exists()
     [ -f "../$1.c" ] || [ -f "../$1_bonus.c" ]
 }
 
+# Functions requested on the command line (./test.sh libft ft_strlen split).
+# Empty means the whole suite. Names are normalized to the ft_ prefix.
+selected=()
+selected_mode=0
+selected_passed=0
+selected_total=0
+
+is_selected()
+{
+    local f
+    [ $selected_mode -eq 0 ] && return 0
+    for f in "${selected[@]}"; do
+        [ "$f" = "$1" ] && return 0
+    done
+    return 1
+}
+
+# Fills selected[] from the arguments after the suite name; exits with the
+# list of valid names if one has no test in the suite.
+select_functions()
+{
+    local suite_dir=$1 name bad=0
+    shift
+    [ $# -eq 0 ] && return
+    selected_mode=1
+    for name in "$@"; do
+        case "$name" in
+            ft_*) ;;
+            *) name="ft_$name" ;;
+        esac
+        if ls "$suite_dir"/*/"$name.c" > /dev/null 2>&1; then
+            selected+=("$name")
+        else
+            printf "${RED}No test for '%s' in %s.${DEFAULT}\n" "$name" "$(basename "$suite_dir")"
+            bad=1
+        fi
+    done
+    if [ $bad -eq 1 ]; then
+        printf "Available functions:\n"
+        for name in "$suite_dir"/*/*.c; do
+            basename "${name%.c}"
+        done | sort | tr '\n' ' '
+        printf "\n"
+        exit 1
+    fi
+}
+
 main()
 {
     start_time=$(date +%s)
@@ -136,6 +183,7 @@ main()
         
         if [ -d "$dir" ] && [ "$dirname" == "$1" ]; then
             dirname_found=1
+            select_functions "$dir" "${@:2}"
             print_header
             printf "${GREEN} Generating test for ${1}...\n${DEFAULT}"
             space
@@ -159,6 +207,19 @@ main()
             for assignment in $exercise_dirs; do
                 [ -d "$assignment" ] || continue
                 assignment_name="$(basename "$assignment")"
+                test_files="$(collect_tests "$assignment")"
+                if [ $selected_mode -eq 1 ]; then
+                    # Only the requested functions run; setup scripts and
+                    # parts without a requested function are skipped.
+                    part_tests=""
+                    for test in $test_files; do
+                        case "$test" in
+                            *.c) is_selected "$(basename "${test%.c}")" && part_tests+="$test " ;;
+                        esac
+                    done
+                    [ -z "$part_tests" ] && continue
+                    test_files="$part_tests"
+                fi
                 score_false=0
                 part_is_bonus=0
                 if [ "$assignment_name" = "bonus" ]; then
@@ -168,10 +229,10 @@ main()
                     questions=$((questions+1))
                 fi
                 printf "${PURPLE}${BOLD} ${assignment_name}${DEFAULT}\n"
-                test_files="$(collect_tests "$assignment")"
 
                 for test in $test_files; do
                     checks=$((checks+1))
+                    [ $selected_mode -eq 1 ] && selected_total=$((selected_total+1))
 
                     # Shell check scripts (setup part) run as-is, with the
                     # mini-moul directory as cwd and the project at ../
@@ -208,6 +269,7 @@ main()
                         test_output="$("./${test%.c}" 2>&1)"
                         if [ $? -eq 0 ]; then
                             passed=$((passed+1))
+                            [ $selected_mode -eq 1 ] && selected_passed=$((selected_passed+1))
                             printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
                             # Known-strict cases surface as [!] warnings even on PASS
                             case "$test_output" in
@@ -242,7 +304,11 @@ main()
         exit 1
     fi
     [ -n "$OBJ_DIR" ] && rm -rf "$OBJ_DIR"
-    print_footer
+    if [ $selected_mode -eq 1 ]; then
+        print_selected_footer
+    else
+        print_footer
+    fi
 }
 
 print_header()
@@ -291,6 +357,21 @@ print_test_result()
     elif [ $break_score = 0 ]; then
         marks=$((marks+1))
     fi
+}
+
+# Footer for a run limited to some functions: no score, since the setup
+# checks and the rest of the suite didn't run.
+print_selected_footer()
+{
+    printf "${PURPLE}-----------------------------------${DEFAULT}\n"
+    space
+    if [ $selected_passed -eq $selected_total ]; then
+        printf "Result:        ${GREEN}${selected_passed}/${selected_total} functions passed${DEFAULT}\n"
+    else
+        printf "Result:        ${RED}${selected_passed}/${selected_total} functions passed${DEFAULT}\n"
+    fi
+    printf "${GREY}Run mini with no function names for the full graded suite.${DEFAULT}\n"
+    space
 }
 
 print_footer()
@@ -346,7 +427,7 @@ check_dependency()
 
 #check_dependency
 if [ "${1}" = "" ]; then
-    printf "Please select a project. e.g. './test.sh libft'\n"
+    printf "Please select a project. e.g. './test.sh libft' or './test.sh libft ft_strlen'\n"
     exit 1
 fi
 main "$@"
