@@ -39,7 +39,7 @@ There is no build step; everything runs via bash + `cc`.
 - Within a part, `collect_tests()` lists test files, honoring an optional `order` file (one filename per line) so tests run in subject order; anything not listed is appended after.
 - Each test file is either:
   - a `.c` file: compiled with `cc -Wall -Werror -Wextra`, linked against the precompiled student objects, and run — exit 0 is PASS, and stdout/stderr with a `[!]` marker on an otherwise-passing test is a known-strictness warning (see README);
-  - a `.sh` script (used for `setup` parts like prototype/header checks): run directly with the mini-moul directory as `cwd` and the student project at `../` — exit 0 is PASS.
+  - a `.sh` script (most commonly `setup` parts like prototype/header checks, but usable in any part when a check needs logic a `.c` test can't express - e.g. `libc/ft_memmove_leak.sh`'s malloc-failure/leak probes, or `additional/ft_strcat_strncat.sh`'s skip-if-the-source-file-is-absent guard for a function outside the subject): run directly with the mini-moul directory as `cwd` and the student project at `../` — exit 0 is PASS. Unlike the `.c` path, captured stdout/stderr from a *passing* `.sh` script is discarded, never printed - so a `.sh` check should only report per-case detail on failure.
 - Scoring mirrors 42's own moulinette: if any check in a part fails, that part's score doesn't count (`break_score`), and score is `passed_parts / total_parts * 100`.
 
 **`mini-moul/tests/<assignment>/<part>/`** — one directory per assignment (e.g. `libft`, `ft_printf`, `philo`), each with subdirectories per part. Test files are named after the function/program they test (e.g. `libft/libc/ft_strlen.c` tests `ft_strlen`). Each `.c` test:

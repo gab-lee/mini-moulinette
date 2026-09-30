@@ -82,8 +82,10 @@ passing.
 This means a run can fail here even though it looked fine before — that's
 the point, not a bug in the tool: the code always had the problem, only
 its visibility changed. Note LeakSanitizer isn't supported on macOS/arm64,
-so this only catches out-of-bounds access and use-after-free, not a plain
-unfreed allocation.
+so ASan alone only catches out-of-bounds access and use-after-free, not a
+plain unfreed allocation — `ft_memmove`'s test fills that specific gap on
+macOS with a dedicated check using the built-in `leaks` tool, plus a
+malloc-failure probe for its missing `NULL`-check.
 
 
 ## Roadmap

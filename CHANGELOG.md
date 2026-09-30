@@ -9,24 +9,46 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
-## [3.0.0] - 2026-09-30
+## [2.1.1] - 2026-09-30
+
+### Added
+- New `ft_memmove_leak.sh` check (libc part): pure output/return-value
+  comparison can't see a missing `NULL`-check after `malloc` or a leaked
+  scratch buffer - neither changes the copied bytes or the return value.
+  This checks both directly: (1) calls `ft_memmove` with an `n` far
+  beyond any real allocation, so `malloc` must fail, and treats a crash
+  (unchecked `NULL` deref) as a failure; (2) calls `ft_memmove` 2000
+  times normally and, when the `leaks` tool is available (macOS only),
+  fails if any allocation is still live at exit.
+- New `ft_strcat_strncat.sh` check (additional part): `ft_strcat`/
+  `ft_strncat` aren't part of the libft subject (not declared in the
+  subject's `libft.h`), so this is a silent no-op whenever
+  `../ft_strcat.c` / `../ft_strncat.c` are absent - it never scores
+  against anyone who doesn't happen to have these files, checked
+  independently per function. When present, verifies the file compiles
+  under `-Wall -Werror -Wextra` and that the function returns its
+  original `dest` pointer unchanged, per the real `strcat`/`strncat`
+  contract - a common mistake (walking `dest` to its end and never
+  saving the original) returns a pointer into the middle of the result
+  instead, which content-only comparison can't see since `dest`'s
+  in-place content is still correct either way.
 
 ### Changed
-- **Breaking:** every student object and test binary now always compiles
-  and links with `-fsanitize=address`, in addition to the existing `-Wall
-  -Werror -Wextra`. No flag or env var needed. Pure output/return-value
-  comparison can pass code that still corrupts memory (a 1-byte-short
-  `malloc`, a use-after-free) - it depends on the allocator giving back
-  padding that happens to look right, which it usually does. ASan places
-  a guard region right after every allocation so that same access aborts
-  immediately instead of silently passing, catching that whole class of
-  bug on every run, not just when a test happens to touch the bad byte.
-  This can turn a previously-PASSing run into a FAIL - that's the point,
-  not a regression: the code was always broken, only the visibility
-  changed. This is a scoring-model change, hence the major bump. Note
-  LeakSanitizer isn't supported on macOS/arm64, so this is
+- Every student object and test binary now always compiles and links
+  with `-fsanitize=address`, in addition to the existing `-Wall -Werror
+  -Wextra`. No flag or env var needed - a separate opt-in is easy to
+  forget, which defeats the point. Pure output/return-value comparison
+  can pass code that still corrupts memory (a 1-byte-short `malloc`, a
+  use-after-free) - it depends on the allocator giving back padding
+  that happens to look right, which it usually does. ASan places a
+  guard region right after every allocation so that same access aborts
+  immediately instead of silently passing. This can turn a
+  previously-PASSing run into a FAIL - that's the point, not a
+  regression: the code was always broken, only the visibility changed.
+  Note LeakSanitizer isn't supported on macOS/arm64, so this is
   AddressSanitizer only; a plain unfreed-but-otherwise-safe allocation
-  still won't be reported.
+  still won't be reported (see the new `ft_memmove_leak.sh` above for
+  how that gap is covered instead, on macOS).
 
 ### Fixed
 - `ft_putnbr_fd` test only checked `0, 42, -42, INT_MAX, INT_MIN` - none
