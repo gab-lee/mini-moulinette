@@ -81,11 +81,16 @@ passing.
 
 This means a run can fail here even though it looked fine before — that's
 the point, not a bug in the tool: the code always had the problem, only
-its visibility changed. Note LeakSanitizer isn't supported on macOS/arm64,
-so ASan alone only catches out-of-bounds access and use-after-free, not a
-plain unfreed allocation — `ft_memmove`'s test fills that specific gap on
-macOS with a dedicated check using the built-in `leaks` tool, plus a
-malloc-failure probe for its missing `NULL`-check.
+its visibility changed.
+
+On Linux, ASan also bundles LeakSanitizer and runs a leak check at exit
+by default — `test.sh` sets `ASAN_OPTIONS=detect_leaks=1` explicitly so
+this doesn't depend on that default staying true. LeakSanitizer isn't
+supported on macOS/arm64 at all, so on that platform ASan only catches
+out-of-bounds access and use-after-free, not a plain unfreed allocation
+— and `detect_leaks=1` is left unset there specifically, since asking
+for it explicitly errors out immediately instead of just doing nothing
+(`test.sh` only exports it when `uname` isn't `Darwin`).
 
 
 ## Roadmap

@@ -10,10 +10,19 @@ source config.sh
 # allocator often rounds the request up and the "extra" byte happens to be
 # readable. ASan places a guard region right after every allocation so that
 # same read aborts immediately instead of silently working.
-# LeakSanitizer isn't supported on macOS/arm64, so this is AddressSanitizer
-# only - it won't report a plain unfreed-but-otherwise-safe allocation, but
-# it does catch out-of-bounds access and use-after-free.
+# LeakSanitizer isn't supported on macOS/arm64, so on that platform this is
+# AddressSanitizer's own out-of-bounds/use-after-free detection only.
+# On Linux, LeakSanitizer is bundled into ASan and runs automatically at
+# process exit - detect_leaks=1 is already the default there, this just
+# makes it explicit rather than relying on that default staying true.
+# Do NOT set detect_leaks on Darwin: unlike leaving it unset (a silent
+# no-op), asking for it explicitly is a hard, unconditional error there
+# ("detect_leaks is not supported on this platform"), which would abort
+# every single test.
 CC_FLAGS="-Wall -Werror -Wextra -fsanitize=address"
+if [ "$(uname)" != "Darwin" ]; then
+    export ASAN_OPTIONS="detect_leaks=1${ASAN_OPTIONS:+:$ASAN_OPTIONS}"
+fi
 
 #utils
 index=0

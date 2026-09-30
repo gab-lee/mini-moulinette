@@ -12,14 +12,19 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 ## [2.1.1] - 2026-09-30
 
 ### Added
-- New `ft_memmove_leak.sh` check (libc part): pure output/return-value
-  comparison can't see a missing `NULL`-check after `malloc` or a leaked
-  scratch buffer - neither changes the copied bytes or the return value.
-  This checks both directly: (1) calls `ft_memmove` with an `n` far
-  beyond any real allocation, so `malloc` must fail, and treats a crash
-  (unchecked `NULL` deref) as a failure; (2) calls `ft_memmove` 2000
-  times normally and, when the `leaks` tool is available (macOS only),
-  fails if any allocation is still live at exit.
+- New `ft_memmove_null_check.sh` check (libc part): a missing
+  `NULL`-check after `malloc` changes neither the copied bytes nor the
+  return value, so content comparison can't see it. Calls `ft_memmove`
+  with an `n` far beyond any real allocation (chosen so
+  `n * sizeof(void *)` doesn't integer-overflow back down to something
+  small), so `malloc` must fail; treats a crash as a failure. Its
+  companion leak doesn't need a dedicated check: since `CC_FLAGS` now
+  always includes `-fsanitize=address`, LeakSanitizer is bundled into
+  ASan automatically on Linux (unrelated to macOS, where it isn't
+  available at all) and runs at process exit by default - the existing
+  `ft_memmove.c` content test already calls `ft_memmove` several times,
+  so on Linux, where grading actually happens, that plain test now also
+  fails on the leak with no extra code.
 - New `ft_strcat_strncat.sh` check (additional part): `ft_strcat`/
   `ft_strncat` aren't part of the libft subject (not declared in the
   subject's `libft.h`), so this is a silent no-op whenever
@@ -46,9 +51,17 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   previously-PASSing run into a FAIL - that's the point, not a
   regression: the code was always broken, only the visibility changed.
   Note LeakSanitizer isn't supported on macOS/arm64, so this is
-  AddressSanitizer only; a plain unfreed-but-otherwise-safe allocation
-  still won't be reported (see the new `ft_memmove_leak.sh` above for
-  how that gap is covered instead, on macOS).
+  AddressSanitizer only there; a plain unfreed-but-otherwise-safe
+  allocation still won't be reported on that platform.
+- On Linux (not macOS - see below), `test.sh` now also exports
+  `ASAN_OPTIONS=detect_leaks=1` before running any test, so leak
+  detection stays on even if a distro or environment ever changes that
+  default. Gated to non-Darwin only: explicitly requesting
+  `detect_leaks=1` on macOS is a hard, unconditional runtime error
+  there ("detect_leaks is not supported on this platform"), which
+  would abort every single test - confirmed by testing it directly.
+  Leaving it unset on Darwin (silent no-op) was already safe and stays
+  that way.
 
 ### Fixed
 - `ft_putnbr_fd` test only checked `0, 42, -42, INT_MAX, INT_MIN` - none
