@@ -2,19 +2,18 @@
 
 source config.sh
 
-# Compiler flags shared by every compile/link step. Set MINI_ASAN=1 to also
-# catch memory-safety bugs (heap-buffer-overflow, use-after-free) that pure
-# output/return-value comparison can't see, e.g.:
-#   MINI_ASAN=1 ./test.sh libft
+# Compiler flags shared by every compile/link step. Always includes
+# AddressSanitizer, which catches memory-safety bugs (heap-buffer-overflow,
+# use-after-free) that pure output/return-value comparison can't see - e.g.
+# a malloc() one byte short of what's needed for the null terminator can
+# still print the right string and PASS a content-only check, because the
+# allocator often rounds the request up and the "extra" byte happens to be
+# readable. ASan places a guard region right after every allocation so that
+# same read aborts immediately instead of silently working.
 # LeakSanitizer isn't supported on macOS/arm64, so this is AddressSanitizer
 # only - it won't report a plain unfreed-but-otherwise-safe allocation, but
-# it will catch out-of-bounds access and use-after-free. Off by default:
-# it changes a test's exit code/output on a sanitizer trip, so it stays
-# opt-in rather than silently changing default scoring.
-CC_FLAGS="-Wall -Werror -Wextra"
-if [ -n "$MINI_ASAN" ]; then
-    CC_FLAGS="$CC_FLAGS -fsanitize=address"
-fi
+# it does catch out-of-bounds access and use-after-free.
+CC_FLAGS="-Wall -Werror -Wextra -fsanitize=address"
 
 #utils
 index=0

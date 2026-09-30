@@ -68,24 +68,22 @@ mini
 5. That's it — run it in every project directory where tests are provided. Have fun!
 
 
-## Memory Safety (optional)
+## Memory Safety
 
-By default, tests only compare output and return values against what's
-expected — this passes code that still corrupts memory (e.g. a `malloc`
-one byte too short, a use-after-free) as long as the bad byte doesn't
-change the visible result. Set `MINI_ASAN=1` to also compile and link
-everything with [AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer),
-which catches that class of bug directly:
+Every test compiles and links with [AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer)
+(`-fsanitize=address`), no flag needed. Output comparison alone can pass
+code that still corrupts memory — e.g. a `malloc` one byte too short for
+the null terminator: the allocator usually rounds the request up, the
+"extra" byte happens to already read as `0`, and the string still looks
+right. ASan places a guard region right after every allocation so that
+same read aborts immediately with a stack trace instead of silently
+passing.
 
-```bash
-MINI_ASAN=1 mini
-```
-
-This is off by default so it never changes your score — a sanitizer trip
-just turns a test that used to silently PASS into a FAIL with a stack
-trace. Note LeakSanitizer isn't supported on macOS/arm64, so this only
-catches out-of-bounds access and use-after-free, not a plain unfreed
-allocation.
+This means a run can fail here even though it looked fine before — that's
+the point, not a bug in the tool: the code always had the problem, only
+its visibility changed. Note LeakSanitizer isn't supported on macOS/arm64,
+so this only catches out-of-bounds access and use-after-free, not a plain
+unfreed allocation.
 
 
 ## Roadmap

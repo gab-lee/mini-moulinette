@@ -21,7 +21,7 @@ There is no build step; everything runs via bash + `cc`.
   ./test.sh <assignment>          # e.g. ./test.sh libft
   ```
 
-- Set `MINI_ASAN=1` to compile/link everything (student objects and test binaries) with `-fsanitize=address` in addition to `-Wall -Werror -Wextra` — catches memory-safety bugs (heap-buffer-overflow, use-after-free) that plain output/return-value comparison can't see. Off by default (see README "Memory Safety"). Both compile lines share one `CC_FLAGS` variable set near the top of `test.sh` — extend that, not the individual `cc` invocations, if you add another opt-in flag.
+- Every compile/link step always includes `-fsanitize=address` alongside `-Wall -Werror -Wextra` — catches memory-safety bugs (heap-buffer-overflow, use-after-free) that plain output/return-value comparison can't see (see README "Memory Safety"). Both compile lines share one `CC_FLAGS` variable set near the top of `test.sh` — extend that, not the individual `cc` invocations, if you add another flag.
   Note `test.sh` expects the student project one level up (`../ft_*.c`, `../libft.h`, etc.), so run it from a copy of `mini-moul/` placed inside the student project — mirror what `mini-moul.sh` does, or symlink a test project's sources into a scratch `../` for a quicker loop.
 
 - Run a single test binary directly once compiled, e.g.:

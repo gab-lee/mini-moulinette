@@ -9,16 +9,21 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
-## [2.1.0] - 2026-09-30
+## [3.0.0] - 2026-09-30
 
-### Added
-- `MINI_ASAN=1` opt-in env var (e.g. `MINI_ASAN=1 ./test.sh libft`) compiles
-  and links every student object and test binary with
-  `-fsanitize=address`, in addition to the existing `-Wall -Werror
-  -Wextra`. Off by default so it never changes existing scoring. Pure
-  output/return-value comparison can pass code that still corrupts memory
-  (a 1-byte-short `malloc`, a use-after-free) - this catches that class of
-  bug directly, as long as a test happens to touch the bad byte. Note
+### Changed
+- **Breaking:** every student object and test binary now always compiles
+  and links with `-fsanitize=address`, in addition to the existing `-Wall
+  -Werror -Wextra`. No flag or env var needed. Pure output/return-value
+  comparison can pass code that still corrupts memory (a 1-byte-short
+  `malloc`, a use-after-free) - it depends on the allocator giving back
+  padding that happens to look right, which it usually does. ASan places
+  a guard region right after every allocation so that same access aborts
+  immediately instead of silently passing, catching that whole class of
+  bug on every run, not just when a test happens to touch the bad byte.
+  This can turn a previously-PASSing run into a FAIL - that's the point,
+  not a regression: the code was always broken, only the visibility
+  changed. This is a scoring-model change, hence the major bump. Note
   LeakSanitizer isn't supported on macOS/arm64, so this is
   AddressSanitizer only; a plain unfreed-but-otherwise-safe allocation
   still won't be reported.
