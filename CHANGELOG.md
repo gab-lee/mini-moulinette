@@ -9,6 +9,19 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-09-30
+
+### Fixed
+- `ft_calloc` test now enforces the subject's (v19.3) zero-size rule: if
+  `nmemb` or `size` is 0, calloc must return a unique pointer that can be
+  passed to `free()`. `ft_calloc(0, 8)` previously only had to not crash,
+  so a NULL return passed; it now fails, and `ft_calloc(8, 0)` is checked
+  too.
+- `setup/Makefile.sh` now checks the full rule set the subject requires
+  (`$(NAME)`, `all`, `clean`, `fclean`, `re`; `libft.a` and `all` were
+  not checked before) and fails a Makefile that relinks when nothing
+  changed, which the subject forbids.
+
 ## [2.1.0] - 2026-09-30
 
 ### Added

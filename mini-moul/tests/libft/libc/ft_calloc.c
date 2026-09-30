@@ -28,15 +28,32 @@ int main(void)
 		printf("  " GREEN CHECKMARK GREY " [2] ft_calloc memory is writable\n" DEFAULT);
 		free(p);
 	}
+	/* Subject rule: if nmemb or size is 0, return a unique pointer that
+	** can be passed to free() - NULL is not accepted. */
 	q = ft_calloc(0, 8);
-	printf("  " GREEN CHECKMARK GREY " [3] ft_calloc(0, 8) did not crash\n" DEFAULT);
+	if (q == NULL)
+	{
+		printf("    " RED "[3] ft_calloc(0, 8) returned NULL; the subject requires a unique pointer that can be passed to free()\n" DEFAULT);
+		error -= 1;
+	}
+	else
+		printf("  " GREEN CHECKMARK GREY " [3] ft_calloc(0, 8) returned a freeable pointer\n" DEFAULT);
+	free(q);
+	q = ft_calloc(8, 0);
+	if (q == NULL)
+	{
+		printf("    " RED "[4] ft_calloc(8, 0) returned NULL; the subject requires a unique pointer that can be passed to free()\n" DEFAULT);
+		error -= 1;
+	}
+	else
+		printf("  " GREEN CHECKMARK GREY " [4] ft_calloc(8, 0) returned a freeable pointer\n" DEFAULT);
 	free(q);
 	q = ft_calloc(SIZE_MAX, SIZE_MAX);
 	if (q == NULL)
-		printf("  " GREEN CHECKMARK GREY " [4] ft_calloc(SIZE_MAX, SIZE_MAX) returns NULL (overflow handled)\n" DEFAULT);
+		printf("  " GREEN CHECKMARK GREY " [5] ft_calloc(SIZE_MAX, SIZE_MAX) returns NULL (overflow handled)\n" DEFAULT);
 	else
 	{
-		printf("    " YELLOW "[!] [4] ft_calloc(SIZE_MAX, SIZE_MAX): count * size overflow not handled, real calloc returns NULL\n" DEFAULT);
+		printf("    " YELLOW "[!] [5] ft_calloc(SIZE_MAX, SIZE_MAX): count * size overflow not handled, real calloc returns NULL\n" DEFAULT);
 		free(q);
 	}
 
