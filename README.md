@@ -15,6 +15,8 @@ All credit for the original mini-moulinette goes to **[Khairul Haaziq](https://g
 
 This tool was incredibly useful during my piscine: it saved me countless hours of waiting for evaluations only to fail on silly mistakes. This fork exists because I want the same safety net while going through the Common Core. Thank you, Khairul! 🙏
 
+The libft suite also integrates the test cases from **[Tripouille/libftTester](https://github.com/Tripouille/libftTester)**, including its exact allocation-size checks.
+
 
 ## How Does It Work?
 
@@ -39,19 +41,21 @@ This tool was incredibly useful during my piscine: it saved me countless hours o
 git clone https://github.com/gab-lee/mini-moulinette.git ~/mini-moulinette
 ```
 
-2. Create an alias for it.
+2. Load the `mini` command (this also enables tab completion).
 
 - zsh:
 
 ```zsh
-echo "alias mini='~/mini-moulinette/mini-moul.sh'" >> ~/.zshrc && source ~/.zshrc
+echo "source ~/mini-moulinette/mini.sh" >> ~/.zshrc && source ~/.zshrc
 ```
 
 - bash:
 
 ```bash
-echo "alias mini='~/mini-moulinette/mini-moul.sh'" >> ~/.bashrc && source ~/.bashrc
+echo "source ~/mini-moulinette/mini.sh" >> ~/.bashrc && source ~/.bashrc
 ```
+
+If you set mini up with the older `alias mini=...` line, delete that line from your rc file, otherwise the alias overrides the command and tab completion does not work.
 
 3. Go to the project directory you want to test, e.g. `libft`:
 
@@ -67,25 +71,38 @@ mini
 
 5. That's it — run it in every project directory where tests are provided. Have fun!
 
+### Testing individual functions
 
-## Memory Safety (optional)
-
-By default, tests only compare output and return values against what's
-expected — this passes code that still corrupts memory (e.g. a `malloc`
-one byte too short, a use-after-free) as long as the bad byte doesn't
-change the visible result. Set `MINI_ASAN=1` to also compile and link
-everything with [AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer),
-which catches that class of bug directly:
+Pass function names to run only those tests. The `ft_` prefix is optional, and Tab completes the names:
 
 ```bash
-MINI_ASAN=1 mini
+mini strlen            # only ft_strlen
+mini ft_split substr   # several functions
+mini -libft strlen     # pick the suite yourself when your folder has another name
+mini -h                # usage
 ```
 
-This is off by default so it never changes your score — a sanitizer trip
-just turns a test that used to silently PASS into a FAIL with a stack
-trace. Note LeakSanitizer isn't supported on macOS/arm64, so this only
-catches out-of-bounds access and use-after-free, not a plain unfreed
-allocation.
+A run limited to some functions skips the setup checks (Makefile, `libft.h`, prototypes) and shows how many of the chosen functions passed instead of a score. Run `mini` with no names for the full graded suite.
+
+
+## Memory Safety
+
+Every test is always compiled and linked with
+[AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer),
+so memory bugs that do not change the visible result still
+fail: a `malloc` one byte too short, a heap-buffer-overflow, a
+use-after-free. On Linux, LeakSanitizer also fails any test that leaks
+memory. LeakSanitizer is not supported on macOS/arm64, so there leaks are
+not reported.
+
+Tests that return a newly allocated block (`ft_strdup`, `ft_calloc`,
+`ft_substr`, `ft_strjoin`, `ft_strtrim`, `ft_split`, `ft_itoa`,
+`ft_strmapi`, `ft_lstnew`) also check that it is exactly the size needed,
+e.g. `strlen + 1` for a string.
+
+There is no way to turn it off. If your compiler cannot build with
+`-fsanitize=address`, mini stops with an error instead of grading without
+it.
 
 
 ## Roadmap
@@ -132,7 +149,6 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 > [!NOTE]
 > **Known strictness exceptions.** The libc tests compare against the *real* libc, which is stricter than 42's moulinette in a few corners. These cases print a yellow `[!]` warning instead of failing the function:
 > - `ft_strchr` / `ft_strrchr` searching for an extended character (e.g. 233): implementations that compare as `unsigned char` return NULL where libc finds the byte.
-> - `ft_calloc(SIZE_MAX, SIZE_MAX)`: the real calloc returns NULL on `count * size` overflow, but passing this is not required.
 
 
 ## Updating

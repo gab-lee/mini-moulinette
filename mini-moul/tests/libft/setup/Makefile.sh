@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Checks the project's Makefile against the subject: it must exist, build
-# libft.a with the mandatory flags, and provide clean/fclean/re rules.
+# libft.a with the mandatory flags without relinking, and provide the
+# $(NAME) (libft.a), all, clean, fclean and re rules.
 # Run by test.sh with the mini-moul directory as cwd; the student's
 # project is at ../
 
@@ -38,8 +39,19 @@ else
 	error=1
 fi
 
-i=5
-for rule in clean fclean re; do
+if [ -f ../libft.a ]; then
+	if make -C .. -n 2>/dev/null | grep -Eq '(^|[[:space:]/])(ar|cc|gcc|clang)[[:space:]]'; then
+		printf "    ${RED}[5] make relinks: a second make with nothing changed still runs:${DEFAULT}\n"
+		make -C .. -n 2>/dev/null | grep -E '(^|[[:space:]/])(ar|cc|gcc|clang)[[:space:]]' \
+			| sed 's/^/    /' | head -5
+		error=1
+	else
+		printf "  ${GREEN}${CHECKMARK}${GREY} [5] make does not relink when nothing changed${DEFAULT}\n"
+	fi
+fi
+
+i=6
+for rule in libft.a all clean fclean re; do
 	if make -C .. -n "$rule" > /dev/null 2>&1; then
 		printf "  ${GREEN}${CHECKMARK}${GREY} [$i] rule '$rule' exists${DEFAULT}\n"
 	else

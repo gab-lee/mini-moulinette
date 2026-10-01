@@ -22,6 +22,10 @@ int main(void)
 		ft_memchr(s, 'h', 0), memchr(s, 'h', 0));
 	error += check_ptr(6, "ft_memchr finds byte 200 (unsigned compare)", ext,
 		ft_memchr(ext, 200, 4), memchr(ext, 200, 4));
+	error += check_ptr(7, "ft_memchr(s, 'l' + 256, 11) converts c to unsigned char", s,
+		ft_memchr(s, 'l' + 256, 11), memchr(s, 'l' + 256, 11));
+	error += check_ptr(8, "ft_memchr returns NULL when the byte is absent within n", s,
+		ft_memchr(s, 'z', 11), memchr(s, 'z', 11));
 
 	return (error);
 }

@@ -22,6 +22,12 @@ int main(void)
 		ft_strrchr(s, '\0'), strrchr(s, '\0'));
 	error += check_ptr(6, "ft_strrchr on empty string for '\\0'", "",
 		ft_strrchr("", '\0'), strrchr("", '\0'));
+	error += check_ptr(8, "ft_strrchr(s, 'l' + 256) converts c to char", s,
+		ft_strrchr(s, 'l' + 256), strrchr(s, 'l' + 256));
+	error += check_ptr(9, "ft_strrchr finds 'l' as the very last char of \"ltripouiel\"", "ltripouiel",
+		ft_strrchr("ltripouiel", 'l'), strrchr("ltripouiel", 'l'));
+	error += check_ptr(10, "ft_strrchr(\"\", 'V') returns NULL", "",
+		ft_strrchr("", 'V'), strrchr("", 'V'));
 	error += warn_ptr(7, "ft_strrchr finds the last extended char 233", ext,
 		ft_strrchr(ext, 233), strrchr(ext, 233));
 

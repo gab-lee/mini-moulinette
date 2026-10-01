@@ -20,12 +20,13 @@ static int	lcpy_case(int i, char *desc, char *src, size_t size,
 	ret = (long)ft_strlcpy(dst, src, size);
 	if (ret == exp_ret
 		&& ((exp_dst == NULL && dst[0] == 'X')
-			|| (exp_dst != NULL && strcmp(dst, exp_dst) == 0)))
+			|| (exp_dst != NULL && strcmp(dst, exp_dst) == 0
+				&& dst[strlen(exp_dst) + 1] == 'X')))
 	{
 		printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
 		return (0);
 	}
-	printf("    " RED "[%d] %s: expected ret %ld dst \"%s\", got ret %ld dst \"%.31s\"\n" DEFAULT,
+	printf("    " RED "[%d] %s: expected ret %ld dst \"%s\" (nothing written past its NUL), got ret %ld dst \"%.31s\"\n" DEFAULT,
 		i, desc, exp_ret, exp_dst ? exp_dst : "(untouched)", ret, dst);
 	return (-1);
 }
@@ -44,6 +45,18 @@ int main(void)
 		"hello", 0, 5, NULL);
 	error += lcpy_case(5, "ft_strlcpy(\"\", size 32) returns 0",
 		"", 32, 0, "");
+	error += lcpy_case(6, "ft_strlcpy(\"coucou\", size 2) copies \"c\", returns 6",
+		"coucou", 2, 6, "c");
+	error += lcpy_case(7, "ft_strlcpy(\"coucou\", size 6) copies \"couco\", returns 6",
+		"coucou", 6, 6, "couco");
+	error += lcpy_case(8, "ft_strlcpy(\"coucou\", size 7) copies fully, returns 6",
+		"coucou", 7, 6, "coucou");
+	error += lcpy_case(9, "ft_strlcpy(\"coucou\", size 8) copies fully, returns 6",
+		"coucou", 8, 6, "coucou");
+	error += lcpy_case(10, "ft_strlcpy(\"coucou\", size -1 (SIZE_MAX)) copies fully, returns 6",
+		"coucou", (size_t)-1, 6, "coucou");
+	error += lcpy_case(11, "ft_strlcpy(\"1\", size 0) touches nothing, returns 1",
+		"1", 0, 1, NULL);
 
 	return (error);
 }

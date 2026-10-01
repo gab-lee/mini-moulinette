@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
+#include "../../../utils/alloc_check.h"
 
 static char	upper_odd_index(unsigned int i, char c)
 {
@@ -18,10 +19,16 @@ static char	replace_with_index(unsigned int i, char c)
 	return ('0' + (i % 10));
 }
 
+static char	add_index(unsigned int i, char c)
+{
+	return ((char)(c + i));
+}
+
 static int	strmapi_case(int i, char *desc, char const *s,
 			char (*f)(unsigned int, char), char *expected)
 {
 	char	*res;
+	int		ret;
 
 	res = ft_strmapi(s, f);
 	if (res == NULL)
@@ -32,8 +39,9 @@ static int	strmapi_case(int i, char *desc, char const *s,
 	if (strcmp(res, expected) == 0)
 	{
 		printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
+		ret = check_alloc_size(i, desc, res, strlen(expected) + 1);
 		free(res);
-		return (0);
+		return (ret);
 	}
 	printf("    " RED "[%d] %s: expected \"%s\", got \"%s\"\n" DEFAULT,
 		i, desc, expected, res);
@@ -53,6 +61,8 @@ int main(void)
 		"", upper_odd_index, "");
 	error += strmapi_case(3, "ft_strmapi(\"abcdefghijk\", replace_with_index) uses the index",
 		"abcdefghijk", replace_with_index, "01234567890");
+	error += strmapi_case(5, "ft_strmapi(\"1234\", add_index) returns \"1357\"",
+		"1234", add_index, "1357");
 
 	res = ft_strmapi(orig, upper_odd_index);
 	if (res != NULL)

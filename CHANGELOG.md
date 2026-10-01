@@ -9,6 +9,71 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-30
+
+### Added
+- Test cases from [Tripouille/libftTester](https://github.com/Tripouille/libftTester)
+  integrated into the libft suite:
+  - `utils/alloc_check.h` (`check_alloc_size`, ported from its `mcheck`):
+    `ft_strdup`, `ft_calloc`, `ft_substr`, `ft_strjoin`, `ft_strtrim`,
+    `ft_itoa`, `ft_strmapi`, `ft_lstnew` and `ft_split` (array and every
+    word) must allocate exactly the size needed.
+  - `ft_calloc`: `(0, 0)`, `(0, -5)`, `(-5, 0)` must return a pointer;
+    `(INT_MAX, INT_MAX)`, `(INT_MIN, INT_MIN)`, `(-5, -5)`, `(3, -5)`,
+    `(-5, 3)` must return NULL.
+  - `ft_memcpy(dst, NULL, 0)` must return `dst`.
+  - `ft_memchr` / `ft_strchr` / `ft_strrchr` with `c + 256` (cast check),
+    plus `ft_strrchr("", 'V')` and a last-character match.
+  - `ft_strlcpy`: sizes 2, 6, 7, 8 and `-1`, and no write past the NUL.
+  - `ft_strlcat`: 16 cases including size `-1`, sizes below the dst
+    length, and an empty dst with sizes 0 to 4.
+  - `ft_strncmp`: 18 cases including `n = -1` and negative bytes.
+  - `ft_strnstr`: 16 cases including `len = -1`, empty haystack/needle,
+    and matches that end exactly at or past `len`.
+  - `ft_atoi`: whitespace after the sign returns 0, whitespace after a
+    digit stops parsing, `--1` / `++1` return 0.
+  - `ft_substr`, `ft_strjoin`, `ft_strtrim`, `ft_split`, `ft_strmapi`,
+    `ft_lstadd_back` (appending a whole second list): Tripouille's cases.
+- README credits Tripouille/libftTester as a source of the libft cases.
+- Run individual functions: `mini strlen split` (the `ft_` prefix is
+  optional) runs only those tests, skipping the setup checks, and reports
+  `passed/total` instead of a score. `mini -libft strlen` picks the suite
+  explicitly, for a folder not named after it. `mini -h` prints usage.
+- `mini.sh`: sourced from `~/.zshrc` or `~/.bashrc`, it defines the `mini`
+  command with tab completion of suites (`-libft`) and function names, in
+  both bash and zsh. The README setup now uses it instead of an alias.
+
+### Changed
+- AddressSanitizer is always on (previously opt-in with `MINI_ASAN=1`,
+  which is removed). On Linux LeakSanitizer now fails any test that leaks.
+  There is no opt-out: if the compiler cannot build with
+  `-fsanitize=address`, the run stops with an error. `test.sh` appends
+  `allocator_may_return_null=1` (and `detect_leaks=1` on Linux) after any
+  user `ASAN_OPTIONS`, so oversized requests return NULL like the real
+  allocator and leak checks can't be switched off.
+- `ft_calloc(SIZE_MAX, SIZE_MAX)` returning a pointer is now a failure,
+  not a `[!]` warning; removed from the README strictness exceptions.
+
+### Fixed
+- `ft_calloc` test now enforces the subject's (v19.3) zero-size rule: if
+  `nmemb` or `size` is 0, calloc must return a unique pointer that can be
+  passed to `free()`. `ft_calloc(0, 8)` previously only had to not crash,
+  so a NULL return passed; it now fails, and `ft_calloc(8, 0)` is checked
+  too.
+- `setup/Makefile.sh` now checks the full rule set the subject requires
+  (`$(NAME)`, `all`, `clean`, `fclean`, `re`; `libft.a` and `all` were
+  not checked before) and fails a Makefile that relinks when nothing
+  changed, which the subject forbids.
+- `test.sh` now compiles and links only the student sources for functions
+  the subject lists (those with a test file in the suite, plus `_bonus`
+  variants). It previously built every `../ft_*.c`, so an extra accessory
+  file with a `main()` or a duplicate symbol broke every test's link.
+
+### Removed
+- `mini-moul/tests/42Piscine(archive)/` (piscine C00 to C08 tests) and the
+  `(archive)` skip logic in `mini-moul.sh` and `test.sh`. The runner never
+  executed them; piscine tests live in the original k11q/mini-moulinette.
+
 ## [2.1.0] - 2026-09-30
 
 ### Added

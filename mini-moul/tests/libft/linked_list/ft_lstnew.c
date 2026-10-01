@@ -3,6 +3,7 @@
 #include <string.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
+#include "../../../utils/alloc_check.h"
 
 int main(void)
 {
@@ -31,6 +32,7 @@ int main(void)
 		printf("    " RED "[3] ft_lstnew must initialize next to NULL\n" DEFAULT);
 		error -= 1;
 	}
+	error += check_alloc_size(5, "ft_lstnew", node, sizeof(t_list));
 	free(node);
 
 	node = ft_lstnew(NULL);

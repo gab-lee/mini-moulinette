@@ -63,14 +63,30 @@ check_for_updates() {
   esac
 }
 
-# Current directory must match a test suite under mini-moul/tests (archives excluded)
+# Current directory must match a test suite under mini-moul/tests, unless
+# the suite is given explicitly as -<suite> (e.g. -libft)
 detect_assignment() {
-  assignment=$(basename "$(pwd)")
-  case "$assignment" in
-    *"(archive)"*) return 1 ;;
-  esac
+  if [ -z "$assignment_flag" ]; then
+    assignment=$(basename "$(pwd)")
+  else
+    assignment="$assignment_flag"
+  fi
   [ -d ~/mini-moulinette/mini-moul/tests/"$assignment" ]
 }
+
+print_usage() {
+  printf "Usage: mini [-<suite>] [function ...]\n"
+  printf "  mini                     run every test for the suite named after this folder\n"
+  printf "  mini ft_strlen ft_split  run only these functions (the ft_ prefix is optional)\n"
+  printf "  mini -libft strlen       pick the suite explicitly, for a folder with another name\n"
+}
+
+# Optional -<suite> first, then any number of function names
+assignment_flag=""
+case "$1" in
+  -h|--help) print_usage; exit 0 ;;
+  -*) assignment_flag="${1#-}"; shift ;;
+esac
 
 check_for_updates
 
@@ -78,13 +94,17 @@ if detect_assignment; then
   cp -R ~/mini-moulinette/mini-moul mini-moul
   trap handle_sigint SIGINT
   cd mini-moul
-  ./test.sh "$assignment"
+  ./test.sh "$assignment" "$@"
   rm -R ../mini-moul
 else
-  printf "${RED}No test suite found for directory '$(basename "$(pwd)")'.${DEFAULT}\n"
-  printf "${RED}Navigate to a project directory named after its test suite (e.g. libft) to run tests.${DEFAULT}\n"
+  if [ -n "$assignment_flag" ]; then
+    printf "${RED}No test suite named '$assignment_flag'.${DEFAULT}\n"
+  else
+    printf "${RED}No test suite found for directory '$(basename "$(pwd)")'.${DEFAULT}\n"
+    printf "${RED}Navigate to a project directory named after its test suite (e.g. libft), or pass it as mini -libft.${DEFAULT}\n"
+  fi
   printf "${RED}Available test suites:${DEFAULT}\n"
-  ls ~/mini-moulinette/mini-moul/tests | grep -v "(archive)"
+  ls ~/mini-moulinette/mini-moul/tests
 fi
 
 exit 1
