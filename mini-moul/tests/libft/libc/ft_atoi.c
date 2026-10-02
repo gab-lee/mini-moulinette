@@ -29,6 +29,16 @@ int main(void)
 	    {.desc = "ft_atoi(\"2147483647\") (INT_MAX)", .s = "2147483647"},
 	    {.desc = "ft_atoi(\"-2147483648\") (INT_MIN)", .s = "-2147483648"},
 	    {.desc = "ft_atoi(\"   \") (only whitespace)", .s = "   "},
+	    {.desc = "ft_atoi(\"\\t\\n\\v\\f\\ra1\") (letter before digits)", .s = "\t\n\v\f\ra1"},
+	    {.desc = "ft_atoi(\"\\t\\n\\v\\f\\r--1\") (double minus)", .s = "\t\n\v\f\r--1"},
+	    {.desc = "ft_atoi(\"\\t\\n\\v\\f\\r++1\") (double plus)", .s = "\t\n\v\f\r++1"},
+	    {.desc = "ft_atoi(\"\\t\\n\\v\\f\\r+42lyon\")", .s = "\t\n\v\f\r+42lyon"},
+	    {.desc = "ft_atoi(\"\\t\\n\\v\\f\\r+101\")", .s = "\t\n\v\f\r+101"},
+	    {.desc = "ft_atoi(\"+-42\") (double sign)", .s = "+-42"},
+	    {.desc = "ft_atoi(\"+\\t\\n\\v\\f\\r42\") (whitespace after sign)", .s = "+\t\n\v\f\r42"},
+	    {.desc = "ft_atoi(\"-\\t\\n\\v\\f\\r42\") (whitespace after sign)", .s = "-\t\n\v\f\r42"},
+	    {.desc = "ft_atoi(\"1\\t\\n\\v\\f\\r42\") (whitespace stops parsing)", .s = "1\t\n\v\f\r42"},
+	    {.desc = "ft_atoi(\"-1\\t\\n\\v\\f\\r42\") (whitespace stops parsing)", .s = "-1\t\n\v\f\r42"},
 	};
 	int count = sizeof(tests) / sizeof(tests[0]);
 	int error = 0;

@@ -3,6 +3,7 @@
 #include <string.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
+#include "../../../utils/alloc_check.h"
 
 static void	free_split(char **arr)
 {
@@ -41,6 +42,41 @@ static void	print_escaped(char const *s)
 		s++;
 	}
 	printf("\"");
+}
+
+/* The array must hold exactly expected_count + 1 pointers and each word
+** exactly strlen + 1 bytes. Reports the first mismatch only. */
+static int	split_sizes_ok(int i, char *desc, char **res, char **expected,
+			int expected_count)
+{
+	int		k;
+	size_t	got;
+	size_t	want;
+
+	got = ALLOC_USABLE_SIZE(res);
+	want = alloc_expected_size(sizeof(char *) * (expected_count + 1));
+	if (got != want)
+	{
+		printf("    " RED "[%d] %s: array allocated %zu bytes, expected %zu (%d pointer(s) incl. the NULL)\n" DEFAULT,
+			i, desc, got, want, expected_count + 1);
+		return (-1);
+	}
+	k = 0;
+	while (k < expected_count)
+	{
+		got = ALLOC_USABLE_SIZE(res[k]);
+		want = alloc_expected_size(strlen(expected[k]) + 1);
+		if (got != want)
+		{
+			printf("    " RED "[%d] %s: element %d allocated %zu bytes, expected %zu\n" DEFAULT,
+				i, desc, k, got, want);
+			return (-1);
+		}
+		k++;
+	}
+	printf("  " GREEN CHECKMARK GREY " [%d] %s allocates the exact array and word sizes\n" DEFAULT,
+		i, desc);
+	return (0);
 }
 
 static int	split_case(int i, char *desc, char const *s, char c,
@@ -82,8 +118,9 @@ static int	split_case(int i, char *desc, char const *s, char c,
 		return (-1);
 	}
 	printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
+	k = split_sizes_ok(i, desc, res, expected, expected_count);
 	free_split(res);
-	return (0);
+	return (k);
 }
 
 int main(void)
@@ -107,6 +144,11 @@ int main(void)
 	char	*many[] = {"w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8",
 		"w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18",
 		"w19"};
+	char	*trip42[] = {"tripouille", "42"};
+	char	*trip[] = {"tripouille"};
+	char	*chini[] = {"chinimala"};
+	char	*tripcap[] = {"Tripouille"};
+	char	*dashes[] = {"1", "2", "3", "4", "5", "42"};
 
 	error += split_case(1, "ft_split(\"hello world\", ' ') splits on a single space",
 		"hello world", ' ', words, 2);
@@ -154,6 +196,22 @@ int main(void)
 	error += split_case(22, "ft_split on a twenty-word string returns every word",
 		"w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19",
 		' ', many, 20);
+	error += split_case(23, "ft_split(\"  tripouille  42  \", ' ')",
+		"  tripouille  42  ", ' ', trip42, 2);
+	error += split_case(24, "ft_split(\"tripouille\", '\\0') returns one element",
+		"tripouille", '\0', trip, 1);
+	error += split_case(25, "ft_split(\"\", '\\0') returns an empty array",
+		"", '\0', none, 0);
+	error += split_case(26, "ft_split(\"chinimala\", ' ') returns one element",
+		"chinimala", ' ', chini, 1);
+	error += split_case(27, "ft_split(\"Tripouille \", ' ') trailing separator",
+		"Tripouille ", ' ', tripcap, 1);
+	error += split_case(28, "ft_split(\" Tripouille\", ' ') leading separator",
+		" Tripouille", ' ', tripcap, 1);
+	error += split_case(29, "ft_split(\" Tripouille \", ' ') separators on both sides",
+		" Tripouille ", ' ', tripcap, 1);
+	error += split_case(30, "ft_split(\"--1-2--3---4----5-----42\", '-')",
+		"--1-2--3---4----5-----42", '-', dashes, 6);
 
 	return (error);
 }

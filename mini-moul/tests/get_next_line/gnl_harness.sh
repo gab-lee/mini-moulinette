@@ -12,6 +12,10 @@ GNL_SIZES="default 1 2 5 42 9999 10000000"
 GNL_BUILD=".gnl_build"
 GNL_DRIVER="tests/get_next_line/gnl_driver.c"
 GNL_INSTR="-Dmalloc=gnl_test_malloc -Dfree=gnl_test_free -Dread=gnl_test_read"
+# Like every mini test, the runnable builds use AddressSanitizer. Plain
+# objects (compile errors, nm checks, fallback link) are built without it,
+# since its instrumentation adds symbols the nm checks would misread.
+GNL_ASAN="-fsanitize=address -g"
 
 gnl_sources()
 {
@@ -67,10 +71,11 @@ gnl_check_files()
 # gnl_build <mandatory|bonus>
 # Compiles the student's files once per size in GNL_SIZES and links each
 # build with the driver. Objects are built twice: plainly (to report real
-# compile errors and to inspect symbols) and with GNL_INSTR, which reroutes
-# malloc/free/read to the driver's counters. If only the instrumented build
-# fails, the plain one is used and a <binary>.plain marker disables the leak
-# and read() checks. Prints one numbered line per size.
+# compile errors and to inspect symbols) and with GNL_INSTR and GNL_ASAN,
+# which reroute malloc/free/read to the driver's counters under
+# AddressSanitizer. If only the instrumented build fails, the plain one is
+# used and a <binary>.plain marker disables the leak and read() checks.
+# Prints one numbered line per size.
 gnl_build()
 {
 	local variant=$1 dir="$GNL_BUILD/$1" i=1 error=0
@@ -78,7 +83,7 @@ gnl_build()
 
 	rm -rf "$dir"
 	mkdir -p "$dir"
-	if ! cc -Wall -Wextra -Werror -c "$GNL_DRIVER" -o "$dir/driver.o" 2> "$dir/error.txt"; then
+	if ! cc -Wall -Wextra -Werror $GNL_ASAN -c "$GNL_DRIVER" -o "$dir/driver.o" 2> "$dir/error.txt"; then
 		printf "    ${RED}[1] mini-moulinette's own test driver does not compile here:${DEFAULT}\n"
 		sed 's/^/    /' "$dir/error.txt" | head -15
 		return 1
@@ -102,16 +107,16 @@ gnl_build()
 				break
 			fi
 			plain+=("$dir/$name.$bs.o")
-			if cc -Wall -Wextra -Werror $flag $GNL_INSTR -c "$src" -o "$dir/$name.$bs.instr.o" 2> /dev/null; then
+			if cc -Wall -Wextra -Werror $flag $GNL_INSTR $GNL_ASAN -c "$src" -o "$dir/$name.$bs.instr.o" 2> /dev/null; then
 				instr+=("$dir/$name.$bs.instr.o")
 			else
 				instr_ok=0
 			fi
 		done
 		if [ $ok -eq 1 ]; then
-			if [ $instr_ok -eq 1 ] && cc -o "$dir/gnl_$bs" "$dir/driver.o" "${instr[@]}" 2> /dev/null; then
+			if [ $instr_ok -eq 1 ] && cc $GNL_ASAN -o "$dir/gnl_$bs" "$dir/driver.o" "${instr[@]}" 2> /dev/null; then
 				:
-			elif cc -o "$dir/gnl_$bs" "$dir/driver.o" "${plain[@]}" 2> "$dir/error.txt"; then
+			elif cc $GNL_ASAN -o "$dir/gnl_$bs" "$dir/driver.o" "${plain[@]}" 2> "$dir/error.txt"; then
 				touch "$dir/gnl_$bs.plain"
 			else
 				ok=0

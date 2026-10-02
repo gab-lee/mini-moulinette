@@ -33,6 +33,8 @@
 #define MAX_TRACKED_FD 1024
 #define DETAIL_MAX 16384
 #define MAX_SHOWN 3
+/* test.sh sets ASAN_OPTIONS exitcode=86 */
+#define ASAN_EXIT 86
 
 typedef struct s_case
 {
@@ -83,6 +85,9 @@ void	*gnl_test_malloc(size_t size)
 	return (block + 2);
 }
 
+/* Not sanitized: reading the header of a pointer that is not the start of
+** a block is exactly what this check is for. */
+__attribute__((no_sanitize_address))
 void	gnl_test_free(void *ptr)
 {
 	size_t	*block;
@@ -656,7 +661,7 @@ static const t_case	g_multi_cases[] = {
 };
 
 /* Runs c in a child; its output lands in details. Returns 0 pass, 1 fail,
-** 2 crash (signal in *sig), 3 timeout. */
+** 2 crash (signal in *sig), 3 timeout, 4 AddressSanitizer report. */
 static int	run_case(const t_case *c, char *details, int *sig)
 {
 	int		fds[2];
@@ -698,6 +703,8 @@ static int	run_case(const t_case *c, char *details, int *sig)
 		*sig = WTERMSIG(status);
 		return (*sig == SIGALRM ? 3 : 2);
 	}
+	if (WEXITSTATUS(status) == ASAN_EXIT)
+		return (4);
 	return (WEXITSTATUS(status) != 0);
 }
 
@@ -718,6 +725,15 @@ static void	report(const t_case *c, int i, const char *label, int result,
 		printf(RED "        timed out after %ds: %s\n" DEFAULT, GNL_TIMEOUT,
 			c->timeout_hint ? c->timeout_hint
 			: "infinite loop, or a read() waiting for input that never comes");
+	else if (result == 4)
+	{
+		printf(RED "        memory error found by AddressSanitizer (see the "
+			"Memory fail line)");
+		if (g_bs >= 1000000)
+			printf(" (an array of BUFFER_SIZE bytes on the stack is too big "
+				"for it; allocate the buffer with malloc)");
+		printf("\n" DEFAULT);
+	}
 }
 
 int	main(int argc, char **argv)
@@ -766,10 +782,11 @@ int	main(int argc, char **argv)
 	{
 		sig = 0;
 		result = run_case(&cases[i], details, &sig);
-		if (result == 0 && details[0] != '\0' && !warned)
+		if (result == 0)
 		{
-			printf("%s", details);
-			warned = 1;
+			if (details[0] != '\0' && !warned)
+				printf("%s", details);
+			warned |= details[0] != '\0';
 		}
 		else
 		{

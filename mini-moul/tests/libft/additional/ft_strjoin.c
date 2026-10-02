@@ -3,11 +3,13 @@
 #include <string.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
+#include "../../../utils/alloc_check.h"
 
 static int	strjoin_case(int i, char *desc, char const *s1, char const *s2,
 			char *expected)
 {
 	char	*res;
+	int		ret;
 
 	res = ft_strjoin(s1, s2);
 	if (res == NULL)
@@ -18,8 +20,9 @@ static int	strjoin_case(int i, char *desc, char const *s1, char const *s2,
 	if (strcmp(res, expected) == 0)
 	{
 		printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
+		ret = check_alloc_size(i, desc, res, strlen(expected) + 1);
 		free(res);
-		return (0);
+		return (ret);
 	}
 	printf("    " RED "[%d] %s: expected \"%s\", got \"%s\"\n" DEFAULT,
 		i, desc, expected, res);
@@ -42,6 +45,8 @@ int main(void)
 		"hello", "", "hello");
 	error += strjoin_case(4, "ft_strjoin(\"\", \"\") returns \"\"",
 		"", "", "");
+	error += strjoin_case(6, "ft_strjoin(\"tripouille\", \"42\") returns \"tripouille42\"",
+		"tripouille", "42", "tripouille42");
 
 	res = ft_strjoin(s1, s2);
 	if (res != NULL)

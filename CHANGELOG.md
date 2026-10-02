@@ -9,7 +9,7 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
-## [2.1.0] - 2026-09-28
+## [2.4.0] - 2026-10-02
 
 ### Added
 - First-cut `ft_printf` suite. `setup`: the Makefile builds
@@ -22,8 +22,10 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   `ft_printf`'s output and return value byte-for-byte against the real
   `printf` given the same format and arguments.
 - `utils/printf_compare.h`: runs each `ft_printf` call in a forked child
-  with fd 1 captured and a 3-second timeout, so a crash or infinite loop
-  is reported against its case instead of ending the test file.
+  with fd 1 captured and a 3-second timeout, so a crash, infinite loop or
+  sanitizer error is reported against its case instead of ending the test
+  file. The child exits through `exit()`, so LeakSanitizer reports memory
+  `ft_printf` leaked as a Memory fail.
 - First-cut `get_next_line` suite. `setup`: the three required files,
   header include guard, prototype, builds with every tested
   `BUFFER_SIZE` (1, 2, 5, 42, 9999, 10000000) and without
@@ -35,28 +37,36 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   an implementation that reads ahead past the first line), and invalid
   fds and `read()` errors. `bonus`: the same file checks on the `_bonus`
   files, at most one static variable, and five interleaved multiple-fd
-  cases. Every case runs in a forked child with a 5-second limit. Leaks,
-  unfreeable lines and reading the whole input on the first call fail;
-  they are caught by recompiling the student's files with
-  `malloc`/`free`/`read` rerouted to counters in the test driver.
-  Smaller over-reads, and calls to `memset`/`memcpy`/`memmove`/`bzero`
-  (which the compiler can generate), only print a `[!]` warning.
+  cases. Every case runs in a forked child with a 5-second limit, built
+  with AddressSanitizer like every other mini test. Leaks, unfreeable
+  lines and reading the whole input on the first call fail; they are
+  caught by recompiling the student's files with `malloc`/`free`/`read`
+  rerouted to counters in the test driver. Smaller over-reads, and calls
+  to `memset`/`memcpy`/`memmove`/`bzero` (which the compiler can
+  generate), only print a `[!]` warning.
 - Runner library mode: a `tests/<assignment>/library` file (ft_printf:
   `libftprintf.a`) makes every `.c` test link against the library the
-  student's Makefile builds instead of compiling `../ft_*.c`. Only a
-  library built by this run's `make` is tested, never a stale one. The
-  runner runs `make bonus` before the `bonus` part and fails the part if
-  it fails.
-- Runner timeout: every test file runs in its own process group and is
-  killed after `TEST_TIMEOUT` seconds (60, in `config.sh`) or on Ctrl-C;
-  the FAIL line says `(timed out after 60s)` or names the crash signal,
-  e.g. `(crashed: SIGSEGV)`, for `.c` and `.sh` tests alike.
+  student's Makefile builds instead of compiling the student's sources.
+  Only a library built by this run's `make` is tested, never a stale one.
+  The runner runs `make bonus` before the `bonus` part and fails the part
+  if it fails.
+- Runner timeout: every test file (`.c` and `.sh`) runs in its own
+  process group and is killed after `TEST_TIMEOUT` seconds (60, in
+  `config.sh`) or on Ctrl-C; the FAIL line says `(timed out after 60s)`
+  or names the crash signal, e.g. `(crashed: SIGSEGV)`. Sanitizer reports
+  from `.sh` tests are now a Memory fail too.
 - `README.md`: a one-line description of every Common Core project, one
   row per project instead of grouping alternatives, plus libasm; notes on
-  how the ft_printf and get_next_line suites work; the two new
-  get_next_line `[!]` warnings listed under Known strictness exceptions.
+  how the ft_printf and get_next_line suites work; the two get_next_line
+  `[!]` warnings listed under Known strictness exceptions.
 
 ### Changed
+- `test.sh` adds `exitcode=86` to `ASAN_OPTIONS`, so the ft_printf and
+  get_next_line harnesses can tell a sanitizer report in a forked case
+  from an ordinary failure. libft is unaffected: memory errors are still
+  detected from the report on stderr.
+- The `AddressSanitizer:DEADLYSIGNAL` line printed before a crash report
+  no longer leaks into a failing test's output.
 - The `bonus` part now always runs last, after any custom-named
   mandatory part.
 - `[!]` warnings from a passing `.sh` test are now shown, as they already
@@ -69,13 +79,111 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   lines; the "Credits" section is merged into "Authors".
 
 ### Removed
-- The archived piscine suites (`tests/42Piscine(archive)/`, C00–C08). The
-  runner already skipped any folder named `(archive)`, so they could never
-  run. The now-unused `(archive)` filters in `mini-moul.sh` and `test.sh`
-  are gone too.
 - `README.md`: the "Cross-tested against 42 submissions" column, the
   "Looking for piscine tests?" note, and the roadmap disclaimer about not
   having started the Cursus.
+
+## [2.3.0] - 2026-10-02
+
+### Changed
+- A test that hits an AddressSanitizer or LeakSanitizer error now shows a
+  red `FAIL <function> Memory fail (<kind>)` with its case lines and one
+  `Memory fail:` line (leak size or error kind, plus the student source
+  lines involved) instead of the raw sanitizer report.
+- Test binaries link `utils/unbuffered_stdout.c`, so case lines printed
+  before a sanitizer abort are no longer lost.
+
+## [2.2.0] - 2026-09-30
+
+### Added
+- Test cases from [Tripouille/libftTester](https://github.com/Tripouille/libftTester)
+  integrated into the libft suite:
+  - `utils/alloc_check.h` (`check_alloc_size`, ported from its `mcheck`):
+    `ft_strdup`, `ft_calloc`, `ft_substr`, `ft_strjoin`, `ft_strtrim`,
+    `ft_itoa`, `ft_strmapi`, `ft_lstnew` and `ft_split` (array and every
+    word) must allocate exactly the size needed.
+  - `ft_calloc`: `(0, 0)`, `(0, -5)`, `(-5, 0)` must return a pointer;
+    `(INT_MAX, INT_MAX)`, `(INT_MIN, INT_MIN)`, `(-5, -5)`, `(3, -5)`,
+    `(-5, 3)` must return NULL.
+  - `ft_memcpy(dst, NULL, 0)` must return `dst`.
+  - `ft_memchr` / `ft_strchr` / `ft_strrchr` with `c + 256` (cast check),
+    plus `ft_strrchr("", 'V')` and a last-character match.
+  - `ft_strlcpy`: sizes 2, 6, 7, 8 and `-1`, and no write past the NUL.
+  - `ft_strlcat`: 16 cases including size `-1`, sizes below the dst
+    length, and an empty dst with sizes 0 to 4.
+  - `ft_strncmp`: 18 cases including `n = -1` and negative bytes.
+  - `ft_strnstr`: 16 cases including `len = -1`, empty haystack/needle,
+    and matches that end exactly at or past `len`.
+  - `ft_atoi`: whitespace after the sign returns 0, whitespace after a
+    digit stops parsing, `--1` / `++1` return 0.
+  - `ft_substr`, `ft_strjoin`, `ft_strtrim`, `ft_split`, `ft_strmapi`,
+    `ft_lstadd_back` (appending a whole second list): Tripouille's cases.
+- README credits Tripouille/libftTester as a source of the libft cases.
+- Run individual functions: `mini strlen split` (the `ft_` prefix is
+  optional) runs only those tests, skipping the setup checks, and reports
+  `passed/total` instead of a score. `mini -libft strlen` picks the suite
+  explicitly, for a folder not named after it. `mini -h` prints usage.
+- `mini.sh`: sourced from `~/.zshrc` or `~/.bashrc`, it defines the `mini`
+  command with tab completion of suites (`-libft`) and function names, in
+  both bash and zsh. The README setup now uses it instead of an alias.
+
+### Changed
+- AddressSanitizer is always on (previously opt-in with `MINI_ASAN=1`,
+  which is removed). On Linux LeakSanitizer now fails any test that leaks.
+  There is no opt-out: if the compiler cannot build with
+  `-fsanitize=address`, the run stops with an error. `test.sh` appends
+  `allocator_may_return_null=1` (and `detect_leaks=1` on Linux) after any
+  user `ASAN_OPTIONS`, so oversized requests return NULL like the real
+  allocator and leak checks can't be switched off.
+- `ft_calloc(SIZE_MAX, SIZE_MAX)` returning a pointer is now a failure,
+  not a `[!]` warning; removed from the README strictness exceptions.
+
+### Fixed
+- `ft_calloc` test now enforces the subject's (v19.3) zero-size rule: if
+  `nmemb` or `size` is 0, calloc must return a unique pointer that can be
+  passed to `free()`. `ft_calloc(0, 8)` previously only had to not crash,
+  so a NULL return passed; it now fails, and `ft_calloc(8, 0)` is checked
+  too.
+- `setup/Makefile.sh` now checks the full rule set the subject requires
+  (`$(NAME)`, `all`, `clean`, `fclean`, `re`; `libft.a` and `all` were
+  not checked before) and fails a Makefile that relinks when nothing
+  changed, which the subject forbids.
+- `test.sh` now compiles and links only the student sources for functions
+  the subject lists (those with a test file in the suite, plus `_bonus`
+  variants). It previously built every `../ft_*.c`, so an extra accessory
+  file with a `main()` or a duplicate symbol broke every test's link.
+
+### Removed
+- `mini-moul/tests/42Piscine(archive)/` (piscine C00 to C08 tests) and the
+  `(archive)` skip logic in `mini-moul.sh` and `test.sh`. The runner never
+  executed them; piscine tests live in the original k11q/mini-moulinette.
+
+## [2.1.0] - 2026-09-30
+
+### Added
+- `MINI_ASAN=1` opt-in env var (e.g. `MINI_ASAN=1 ./test.sh libft`) compiles
+  and links every student object and test binary with
+  `-fsanitize=address`, in addition to the existing `-Wall -Werror
+  -Wextra`. Off by default so it never changes existing scoring. Pure
+  output/return-value comparison can pass code that still corrupts memory
+  (a 1-byte-short `malloc`, a use-after-free) - this catches that class of
+  bug directly, as long as a test happens to touch the bad byte. Note
+  LeakSanitizer isn't supported on macOS/arm64, so this is
+  AddressSanitizer only; a plain unfreed-but-otherwise-safe allocation
+  still won't be reported.
+
+### Fixed
+- `ft_putnbr_fd` test only checked `0, 42, -42, INT_MAX, INT_MIN` - none
+  of which ever make a recursive digit-printer's `n /= 10` chain pass
+  through exactly `10`, the single value that exposes the common
+  off-by-one `if (n > 10)` (instead of `if (n >= 10)`) recursion guard.
+  Added cases for `10`, `100`, `1000`, `105`, `-10`, and `10000000`.
+- `ft_lstmap` test only exercised the all-succeed path. Added a case
+  where the mapping function fails (returns `NULL`) on the second of
+  three nodes, asserting the call returns `NULL` and that the *original*
+  list survives untouched - the highest-risk branch in this function
+  (freeing the partially-built new list via `del` without disturbing the
+  input).
 
 ## [2.0.2] - 2026-09-28
 

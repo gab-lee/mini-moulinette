@@ -19,10 +19,13 @@ static void	free_list(t_list *lst)
 int main(void)
 {
 	int		error = 0;
-	int		values[3] = {1, 2, 3};
+	int		values[5] = {1, 2, 3, 4, 5};
 	t_list	*lst;
 	t_list	*a;
 	t_list	*b;
+	t_list	*other;
+	t_list	*cur;
+	int		k;
 
 	lst = NULL;
 	a = ft_lstnew(&values[0]);
@@ -51,6 +54,25 @@ int main(void)
 	else
 	{
 		printf("    " RED "[3] ft_lstadd_back broke the list on a third insert\n" DEFAULT);
+		error -= 1;
+	}
+
+	other = NULL;
+	ft_lstadd_back(&other, ft_lstnew(&values[3]));
+	ft_lstadd_back(&other, ft_lstnew(&values[4]));
+	ft_lstadd_back(&lst, other);
+	cur = lst;
+	k = 0;
+	while (cur && k < 5 && cur->content == &values[k])
+	{
+		cur = cur->next;
+		k++;
+	}
+	if (k == 5 && cur == NULL)
+		printf("  " GREEN CHECKMARK GREY " [4] ft_lstadd_back appends a whole second list, keeping its nodes\n" DEFAULT);
+	else
+	{
+		printf("    " RED "[4] ft_lstadd_back of a two-node list: expected contents 1,2,3,4,5 then NULL\n" DEFAULT);
 		error -= 1;
 	}
 

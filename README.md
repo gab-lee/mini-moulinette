@@ -32,19 +32,21 @@ This repository is a fork that extends mini-moulinette to the **New Common Core*
 git clone https://github.com/gab-lee/mini-moulinette.git ~/mini-moulinette
 ```
 
-2. Create an alias for it.
+2. Load the `mini` command (this also enables tab completion).
 
 - zsh:
 
 ```zsh
-echo "alias mini='~/mini-moulinette/mini-moul.sh'" >> ~/.zshrc && source ~/.zshrc
+echo "source ~/mini-moulinette/mini.sh" >> ~/.zshrc && source ~/.zshrc
 ```
 
 - bash:
 
 ```bash
-echo "alias mini='~/mini-moulinette/mini-moul.sh'" >> ~/.bashrc && source ~/.bashrc
+echo "source ~/mini-moulinette/mini.sh" >> ~/.bashrc && source ~/.bashrc
 ```
+
+If you set mini up with the older `alias mini=...` line, delete that line from your rc file, otherwise the alias overrides the command and tab completion does not work.
 
 3. Go to the project directory you want to test, e.g. `libft`:
 
@@ -59,6 +61,50 @@ mini
 ```
 
 5. That's it — run it in every project directory where tests are provided. Have fun!
+
+### Testing individual functions
+
+Pass function names to run only those tests. The `ft_` prefix is optional, and Tab completes the names:
+
+```bash
+mini strlen            # only ft_strlen
+mini ft_split substr   # several functions
+mini -libft strlen     # pick the suite yourself when your folder has another name
+mini -h                # usage
+```
+
+A run limited to some functions skips the setup checks (Makefile, `libft.h`, prototypes) and shows how many of the chosen functions passed instead of a score. Run `mini` with no names for the full graded suite.
+
+
+## Memory Safety
+
+Every test is always compiled and linked with
+[AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer),
+so memory bugs that do not change the visible result still
+fail: a `malloc` one byte too short, a heap-buffer-overflow, a
+use-after-free. On Linux, LeakSanitizer also fails any test that leaks
+memory. LeakSanitizer is not supported on macOS/arm64, so there leaks are
+not reported.
+
+A memory error fails the function with a red `Memory fail` instead of the
+raw sanitizer report: the test's case lines are shown, followed by one
+line naming the error and where it happened in your code, e.g.
+`Memory fail: 24 byte(s) leaked in 6 allocation(s), at ft_strjoin.c:3`.
+
+get_next_line is built with AddressSanitizer at every `BUFFER_SIZE`, and
+each failing case says it hit a memory error. ft_printf is built by your
+own Makefile, so AddressSanitizer cannot see a buffer overflow inside
+your `ft_printf` code; on Linux it still reports memory your `ft_printf`
+leaks, and a crash is shown against its case.
+
+Tests that return a newly allocated block (`ft_strdup`, `ft_calloc`,
+`ft_substr`, `ft_strjoin`, `ft_strtrim`, `ft_split`, `ft_itoa`,
+`ft_strmapi`, `ft_lstnew`) also check that it is exactly the size needed,
+e.g. `strlen + 1` for a string.
+
+There is no way to turn it off. If your compiler cannot build with
+`-fsanitize=address`, mini stops with an error instead of grading without
+it.
 
 
 ## Roadmap
@@ -118,7 +164,6 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 > [!NOTE]
 > **Known strictness exceptions.** Some checks are stricter than 42's moulinette, or cannot tell a real mistake from something the compiler did. These cases print a yellow `[!]` warning instead of failing:
 > - `ft_strchr` / `ft_strrchr` searching for an extended character (e.g. 233): implementations that compare as `unsigned char` return NULL where libc finds the byte.
-> - `ft_calloc(SIZE_MAX, SIZE_MAX)`: the real calloc returns NULL on `count * size` overflow, but passing this is not required.
 > - get_next_line reading further ahead than it needs to (for example one extra `read()` per call): the subject says to read as little as possible, but only reading the whole file on the first call fails.
 > - get_next_line calling `memset`, `memcpy`, `memmove` or `bzero`: the compiler can generate these calls on its own (for example to zero an array), so they are not failed, but calling them yourself is forbidden.
 
@@ -203,6 +248,8 @@ Contributions are very welcome — especially new test cases for Common Core pro
 All credit for the original mini-moulinette goes to **[Khairul Haaziq](https://github.com/k11q)** — the original project lives at [k11q/mini-moulinette](https://github.com/k11q/mini-moulinette).
 
 This tool was incredibly useful during my piscine: it saved me countless hours of waiting for evaluations only to fail on silly mistakes. This fork exists because I want the same safety net while going through the Common Core. Thank you, Khairul! 🙏
+
+The libft suite also integrates the test cases from **[Tripouille/libftTester](https://github.com/Tripouille/libftTester)**, including its exact allocation-size checks.
 
 
 ## Contributors

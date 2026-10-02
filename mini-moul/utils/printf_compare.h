@@ -26,7 +26,10 @@
 **   free(out_ref);
 **
 ** If the call crashed, out_var is NULL and len_var holds the signal number
-** (0 if the child exited without returning); check_printf reports it.
+** (-1 for an AddressSanitizer report, 0 if the child exited without
+** returning); check_printf reports it.
+** Under AddressSanitizer (test.sh always uses it) a leak in ft_printf is
+** reported by LeakSanitizer when the child exits.
 **
 ** Reference calls must go through real_printf, not printf() directly:
 ** some of the most useful cases here are deliberately unusual (conflicting
@@ -47,6 +50,8 @@
 # include "constants.h"
 
 # define PF_TIMEOUT 3
+/* test.sh sets ASAN_OPTIONS exitcode=86 */
+# define PF_ASAN_EXIT 86
 
 static int (* const real_printf)(const char *, ...) = printf;
 
@@ -91,18 +96,22 @@ static inline void pf_child_start(char *tmp_path, int *fds)
 	alarm(PF_TIMEOUT);
 }
 
+/* exit(), not _exit(): LeakSanitizer runs at exit, so memory ft_printf
+** leaked in this call is reported (as a Memory fail by test.sh). */
 static inline void pf_child_end(int *fds, int ret)
 {
 	fflush(stdout);
 	if (write(fds[1], &ret, sizeof(ret)) != sizeof(ret))
 		_exit(1);
-	_exit(0);
+	exit(0);
 }
 
 /* In the parent: waits for the child and returns the captured bytes as a
 ** malloc'd buffer (NUL-terminated for convenience, but *len is the real
 ** byte count and is what comparisons must use), or NULL if the child
-** crashed, timed out or never returned. Caller must free() it. */
+** crashed, timed out or never returned. A child that returned and then
+** exited non-zero only had a LeakSanitizer report at exit; its result
+** still counts. Caller must free() it. */
 static inline char *pf_collect(pid_t pid, char *tmp_path, int *fds,
 	int *ret, long *len)
 {
@@ -116,11 +125,13 @@ static inline char *pf_collect(pid_t pid, char *tmp_path, int *fds,
 	waitpid(pid, &status, 0);
 	got = read(fds[0], ret, sizeof(*ret));
 	close(fds[0]);
-	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0
-		|| got != (long)sizeof(*ret))
+	if (!WIFEXITED(status) || got != (long)sizeof(*ret))
 	{
 		unlink(tmp_path);
-		*len = WIFSIGNALED(status) ? WTERMSIG(status) : 0;
+		if (WIFSIGNALED(status))
+			*len = WTERMSIG(status);
+		else
+			*len = (WEXITSTATUS(status) == PF_ASAN_EXIT) ? -1 : 0;
 		return (NULL);
 	}
 	fd = open(tmp_path, O_RDONLY);
@@ -181,7 +192,10 @@ static inline int check_printf(int i, char *desc,
 	if (mine_out == NULL)
 	{
 		printf("    " RED "[%d] %s\n" DEFAULT, i, desc);
-		if (mine_len == SIGALRM)
+		if (mine_len == -1)
+			printf("    " RED "    memory error found by AddressSanitizer "
+				"(see the Memory fail line)\n" DEFAULT);
+		else if (mine_len == SIGALRM)
 			printf("    " RED "    timed out after %ds (infinite loop?)\n" DEFAULT,
 				PF_TIMEOUT);
 		else if (mine_len > 0)

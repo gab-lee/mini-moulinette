@@ -3,7 +3,7 @@
 # Single source of truth for the version banner in test.sh. Follows SemVer
 # (MAJOR.MINOR.PATCH); bump it on every PR merge to main — see CLAUDE.md
 # "Versioning".
-readonly VERSION="2.1.0"
+readonly VERSION="2.4.0"
 
 # Seconds a single test file may run before test.sh kills it
 readonly TEST_TIMEOUT=60

@@ -2,6 +2,39 @@
 
 source config.sh
 
+# Compiler flags shared by every compile/link step. AddressSanitizer is
+# always on: it catches memory-safety bugs (heap-buffer-overflow,
+# use-after-free) that pure output/return-value comparison can't see, and
+# on Linux its LeakSanitizer also fails a test that leaks. LeakSanitizer
+# isn't supported on macOS/arm64, so there only memory-safety bugs are
+# caught. There is no opt-out: if the compiler can't build with
+# -fsanitize=address, the run stops instead of grading without it.
+CC_FLAGS="-Wall -Werror -Wextra -fsanitize=address -g"
+asan_probe()
+{
+    probe_dir="$(mktemp -d)"
+    printf 'int main(void)\n{\n\treturn (0);\n}\n' > "$probe_dir/p.c"
+    cc -fsanitize=address -o "$probe_dir/p" "$probe_dir/p.c" > /dev/null 2>&1 \
+        && "$probe_dir/p" > /dev/null 2>&1
+    status=$?
+    rm -rf "$probe_dir"
+    return $status
+}
+if ! asan_probe; then
+    printf "${RED}AddressSanitizer is unavailable: cc cannot build and run a program with -fsanitize=address.${DEFAULT}\n"
+    printf "${RED}Mini always tests with AddressSanitizer; install a compiler that supports it and run again.${DEFAULT}\n"
+    exit 1
+fi
+# Oversized requests (e.g. ft_calloc(INT_MAX, INT_MAX)) must return NULL
+# like the real allocator instead of aborting the test. A sanitizer report
+# exits with 86, so harnesses that fork per case (ft_printf,
+# get_next_line) can tell it from an ordinary failure; test.sh itself
+# detects reports from stderr. Appended after any user ASAN_OPTIONS so
+# they can't switch these off (later options win).
+asan_opts="allocator_may_return_null=1:exitcode=86"
+[ "$(uname -s)" = "Linux" ] && asan_opts="$asan_opts:detect_leaks=1"
+export ASAN_OPTIONS="${ASAN_OPTIONS:+$ASAN_OPTIONS:}${asan_opts}"
+
 #utils
 index=0
 index2=0
@@ -50,26 +83,33 @@ collect_tests()
     fi
 }
 
-# Compile each of the student's ft_*.c once into an object file. Tests
-# declare prototypes (tests/<suite>/libft_proto.h) and link against these
-# objects, so the student's code is never #include-d into a test. A file
-# that doesn't compile keeps its error in $OBJ_DIR/<name>.err and its test
-# reports it.
+# Compile each of the student's subject functions once into an object
+# file. Only sources named after a test file in the suite (<fn>.c or
+# <fn>_bonus.c) are built, so extra accessory files in the project (other
+# ft_*.c helpers, a main, ...) are ignored. Tests declare prototypes
+# (tests/<suite>/libft_proto.h) and link against these objects, so the
+# student's code is never #include-d into a test. A file that doesn't
+# compile keeps its error in $OBJ_DIR/<name>.err and its test reports it.
 OBJ_DIR=""
 student_objs=()
 build_student_objects()
 {
+    suite_dir=$1
     OBJ_DIR="$SCRIPT_DIR/.student_objs"
     rm -rf "$OBJ_DIR"
     mkdir -p "$OBJ_DIR"
     student_objs=()
-    for src in ../ft_*.c; do
-        [ -f "$src" ] || continue
-        name="$(basename "${src%.c}")"
-        if cc -Wall -Werror -Wextra -c "$src" -o "$OBJ_DIR/$name.o" 2> "$OBJ_DIR/$name.err"; then
-            rm -f "$OBJ_DIR/$name.err"
-            student_objs+=("$OBJ_DIR/$name.o")
-        fi
+    for test_src in "$suite_dir"/*/*.c; do
+        [ -f "$test_src" ] || continue
+        fn="$(basename "${test_src%.c}")"
+        for src in "../$fn.c" "../${fn}_bonus.c"; do
+            [ -f "$src" ] || continue
+            name="$(basename "${src%.c}")"
+            if cc $CC_FLAGS -c "$src" -o "$OBJ_DIR/$name.o" 2> "$OBJ_DIR/$name.err"; then
+                rm -f "$OBJ_DIR/$name.err"
+                student_objs+=("$OBJ_DIR/$name.o")
+            fi
+        done
     done
 }
 
@@ -89,11 +129,42 @@ student_src_exists()
     [ -f "../$1.c" ] || [ -f "../$1_bonus.c" ]
 }
 
+# Kind of AddressSanitizer/LeakSanitizer error in a test's stderr ("memory
+# leak", "heap-buffer-overflow", ...), or nothing if there is none.
+memory_error_kind()
+{
+    if grep -q 'ERROR: LeakSanitizer' "$1"; then
+        printf 'memory leak'
+    else
+        sed -n 's/.*ERROR: AddressSanitizer: \([A-Za-z-]*\).*/\1/p' "$1" | head -1
+    fi
+}
+
+# One-line description of a sanitizer report: the SUMMARY text plus the
+# student source lines (frames in ../*.c) involved, e.g.
+# "24 byte(s) leaked in 6 allocation(s), at ft_strjoin.c:3".
+memory_error_detail()
+{
+    local summary sites
+    summary="$(sed -n 's/^SUMMARY: AddressSanitizer: //p' "$1" | head -1)"
+    case "$summary" in
+        *leaked*) summary="${summary%.}" ;;
+        *) summary="$(memory_error_kind "$1")" ;;
+    esac
+    sites="$(sed -n 's/^ *#[0-9]* 0x[0-9a-f]* in [^ ]* \.\.\/\([^ /]*\.c:[0-9]*\).*/\1/p' "$1" \
+        | awk '!seen[$0]++' | paste -sd ',' - | sed 's/,/, /g')"
+    if [ -n "$sites" ]; then
+        printf '%s, at %s' "$summary" "$sites"
+    else
+        printf '%s' "$summary"
+    fi
+}
+
 # run_limited <status-file> <command...>
 # Runs the command in its own process group and kills the whole group
-# after $TEST_TIMEOUT seconds, so a hanging test (or anything it forked)
-# can't stall the run. Writes "timeout" or the killing signal's name to
-# <status-file> when the command didn't exit normally. perl, not
+# after $TEST_TIMEOUT seconds or on Ctrl-C, so a hanging test (or anything
+# it forked) can't stall the run. Writes "timeout" or the killing signal's
+# name to <status-file> when the command didn't exit normally. perl, not
 # timeout(1), because macOS has no timeout(1).
 run_limited()
 {
@@ -125,18 +196,20 @@ run_limited()
 }
 
 # run_test <name> <command...>
-# Runs one test under run_limited and prints its PASS/FAIL line. Exit 0 is
-# a PASS; [!] lines in a passing test's output are known-strictness
-# warnings and are still shown.
+# Runs one test (a .c test binary or a .sh check script) under run_limited
+# and prints its PASS/FAIL line. Exit 0 is a PASS; [!] lines in a passing
+# test's output are known-strictness warnings and are still shown. An
+# AddressSanitizer/LeakSanitizer report on stderr is a Memory fail, and a
+# timeout or crash signal is named on the FAIL line.
 run_test()
 {
     local name=$1
     shift
     local status_file=.test_status
-    local output code note=""
+    local output code note="" memory_error test_err
 
     rm -f "$status_file"
-    output="$(run_limited "$status_file" "$@" 2>&1 < /dev/null)"
+    output="$(run_limited "$status_file" "$@" 2> asan_report.tmp < /dev/null)"
     code=$?
     if [ -f "$status_file" ]; then
         case "$(cat "$status_file")" in
@@ -145,8 +218,21 @@ run_test()
         esac
         rm -f "$status_file"
     fi
-    if [ $code -eq 0 ]; then
+    memory_error="$(memory_error_kind asan_report.tmp)"
+    # Keep the test's own stderr, minus the sanitizer report
+    test_err="$(sed -e '/^=================================================================$/,$d' \
+        -e '/^AddressSanitizer:DEADLYSIGNAL$/d' asan_report.tmp)"
+    [ -n "$test_err" ] && output="${output:+$output
+}$test_err"
+    if [ -n "$memory_error" ]; then
+        [ $part_is_bonus -eq 0 ] && break_score=1
+        score_false=1
+        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name} ${RED}Memory fail (%s)${DEFAULT}\n" "$memory_error"
+        [ -n "$output" ] && printf '%s\n' "$output"
+        printf "    ${RED}Memory fail: %s${DEFAULT}\n" "$(memory_error_detail asan_report.tmp)"
+    elif [ $code -eq 0 ]; then
         passed=$((passed+1))
+        [ $selected_mode -eq 1 ] && selected_passed=$((selected_passed+1))
         printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${name}\n"
         case "$output" in
             *"[!]"*) printf '%s\n' "$output" | grep -F '[!]' ;;
@@ -156,6 +242,54 @@ run_test()
         score_false=1
         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name}${RED}${note}${DEFAULT}\n"
         [ -n "$output" ] && printf '%s\n' "$output"
+    fi
+    rm -f asan_report.tmp
+}
+
+# Functions requested on the command line (./test.sh libft ft_strlen split).
+# Empty means the whole suite. Names are normalized to the ft_ prefix.
+selected=()
+selected_mode=0
+selected_passed=0
+selected_total=0
+
+is_selected()
+{
+    local f
+    [ $selected_mode -eq 0 ] && return 0
+    for f in "${selected[@]}"; do
+        [ "$f" = "$1" ] && return 0
+    done
+    return 1
+}
+
+# Fills selected[] from the arguments after the suite name; exits with the
+# list of valid names if one has no test in the suite.
+select_functions()
+{
+    local suite_dir=$1 name bad=0
+    shift
+    [ $# -eq 0 ] && return
+    selected_mode=1
+    for name in "$@"; do
+        case "$name" in
+            ft_*) ;;
+            *) name="ft_$name" ;;
+        esac
+        if ls "$suite_dir"/*/"$name.c" > /dev/null 2>&1; then
+            selected+=("$name")
+        else
+            printf "${RED}No test for '%s' in %s.${DEFAULT}\n" "$name" "$(basename "$suite_dir")"
+            bad=1
+        fi
+    done
+    if [ $bad -eq 1 ]; then
+        printf "Available functions:\n"
+        for name in "$suite_dir"/*/*.c; do
+            basename "${name%.c}"
+        done | sort | tr '\n' ' '
+        printf "\n"
+        exit 1
     fi
 }
 
@@ -169,6 +303,7 @@ main()
         
         if [ -d "$dir" ] && [ "$dirname" == "$1" ]; then
             dirname_found=1
+            select_functions "$dir" "${@:2}"
             print_header
             printf "${GREEN} Generating test for ${1}...\n${DEFAULT}"
             space
@@ -177,10 +312,10 @@ main()
             # An assignment whose subject has the student's Makefile build a
             # library (tests/<assignment>/library names it, e.g.
             # libftprintf.a) links its tests against that library, built by
-            # the setup part, instead of compiling ../ft_*.c.
+            # the setup part, instead of compiling the student's sources.
             library=""
             [ -f "$dir/library" ] && library="$(cat "$dir/library")"
-            [ -z "$library" ] && build_student_objects
+            [ -z "$library" ] && build_student_objects "$dir"
             # Written by the setup part only when this run's make succeeded,
             # so a stale library from an earlier build is never tested
             rm -f .library_built
@@ -202,6 +337,19 @@ main()
             for assignment in $exercise_dirs; do
                 [ -d "$assignment" ] || continue
                 assignment_name="$(basename "$assignment")"
+                test_files="$(collect_tests "$assignment")"
+                if [ $selected_mode -eq 1 ]; then
+                    # Only the requested functions run; setup scripts and
+                    # parts without a requested function are skipped.
+                    part_tests=""
+                    for test in $test_files; do
+                        case "$test" in
+                            *.c) is_selected "$(basename "${test%.c}")" && part_tests+="$test " ;;
+                        esac
+                    done
+                    [ -z "$part_tests" ] && continue
+                    test_files="$part_tests"
+                fi
                 score_false=0
                 part_is_bonus=0
                 if [ "$assignment_name" = "bonus" ]; then
@@ -211,7 +359,6 @@ main()
                     questions=$((questions+1))
                 fi
                 printf "${PURPLE}${BOLD} ${assignment_name}${DEFAULT}\n"
-                test_files="$(collect_tests "$assignment")"
 
                 bonus_build_failed=0
                 if [ -n "$library" ] && [ $part_is_bonus -eq 1 ]; then
@@ -225,6 +372,7 @@ main()
 
                 for test in $test_files; do
                     checks=$((checks+1))
+                    [ $selected_mode -eq 1 ] && selected_total=$((selected_total+1))
 
                     # Shell check scripts (setup part) run as-is, with the
                     # mini-moul directory as cwd and the project at ../
@@ -260,7 +408,7 @@ main()
                         score_false=1
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(${fail_reason})${DEFAULT}\n"
                         [ -n "$fail_detail" ] && sed 's/^/    /' "$fail_detail" | head -15
-                    elif cc -Wall -Werror -Wextra -o "${test%.c}" "$test" "${link_inputs[@]}" 2> compile_error.tmp; then
+                    elif cc $CC_FLAGS -o "${test%.c}" "$test" "$SCRIPT_DIR/utils/unbuffered_stdout.c" "${link_inputs[@]}" 2> compile_error.tmp; then
                         run_test "$fn_name" "./${test%.c}"
                         rm -f "${test%.c}"
                     else
@@ -269,7 +417,7 @@ main()
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(cannot compile)${DEFAULT}\n"
                         sed 's/^/    /' compile_error.tmp | head -15
                     fi
-                    rm -f compile_error.tmp
+                    rm -f compile_error.tmp asan_report.tmp
                 done
                 print_test_result
                 space
@@ -285,7 +433,11 @@ main()
         exit 1
     fi
     [ -n "$OBJ_DIR" ] && rm -rf "$OBJ_DIR"
-    print_footer
+    if [ $selected_mode -eq 1 ]; then
+        print_selected_footer
+    else
+        print_footer
+    fi
 }
 
 print_header()
@@ -304,6 +456,7 @@ print_header()
     printf "${DEFAULT}"
     printf "${BLUE}Mini moulinette ${DEFAULT}version ${VERSION}.\n"
     printf "${BLUE}Written by ${DEFAULT}gab-lee.\n"
+    printf "${BLUE}AddressSanitizer ${DEFAULT}on.\n"
     space
 }
 
@@ -333,6 +486,21 @@ print_test_result()
     elif [ $break_score = 0 ]; then
         marks=$((marks+1))
     fi
+}
+
+# Footer for a run limited to some functions: no score, since the setup
+# checks and the rest of the suite didn't run.
+print_selected_footer()
+{
+    printf "${PURPLE}-----------------------------------${DEFAULT}\n"
+    space
+    if [ $selected_passed -eq $selected_total ]; then
+        printf "Result:        ${GREEN}${selected_passed}/${selected_total} functions passed${DEFAULT}\n"
+    else
+        printf "Result:        ${RED}${selected_passed}/${selected_total} functions passed${DEFAULT}\n"
+    fi
+    printf "${GREY}Run mini with no function names for the full graded suite.${DEFAULT}\n"
+    space
 }
 
 print_footer()
@@ -388,7 +556,7 @@ check_dependency()
 
 #check_dependency
 if [ "${1}" = "" ]; then
-    printf "Please select a project. e.g. './test.sh libft'\n"
+    printf "Please select a project. e.g. './test.sh libft' or './test.sh libft ft_strlen'\n"
     exit 1
 fi
 main "$@"

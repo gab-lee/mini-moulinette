@@ -4,10 +4,12 @@
 #include <limits.h>
 #include "../libft_proto.h"
 #include "../../../utils/constants.h"
+#include "../../../utils/alloc_check.h"
 
 static int	itoa_case(int i, char *desc, int n, char *expected)
 {
 	char	*res;
+	int		ret;
 
 	res = ft_itoa(n);
 	if (res == NULL)
@@ -18,8 +20,9 @@ static int	itoa_case(int i, char *desc, int n, char *expected)
 	if (strcmp(res, expected) == 0)
 	{
 		printf("  " GREEN CHECKMARK GREY " [%d] %s\n" DEFAULT, i, desc);
+		ret = check_alloc_size(i, desc, res, strlen(expected) + 1);
 		free(res);
-		return (0);
+		return (ret);
 	}
 	printf("    " RED "[%d] %s: expected \"%s\", got \"%s\"\n" DEFAULT,
 		i, desc, expected, res);
