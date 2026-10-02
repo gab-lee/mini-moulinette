@@ -9,6 +9,80 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-02
+
+### Added
+- First-cut `ft_printf` suite. `setup`: the Makefile builds
+  `libftprintf.a` with `-Wall -Wextra -Werror`, does not relink, and has
+  `clean`/`fclean`/`re` rules; `ft_printf` is prototyped as the subject
+  defines. `libc`: all nine mandatory conversions `cspdiuxX%` (including
+  a NUL `%c`, `NULL` `%s` and `%p`, `INT_MIN`/`INT_MAX`, extreme `%p`
+  values) plus a combined-conversions test. `bonus`: `-`, `0`, `.`,
+  width, `#`, `+`, space, and stacked combinations. Every case compares
+  `ft_printf`'s output and return value byte-for-byte against the real
+  `printf` given the same format and arguments.
+- `utils/printf_compare.h`: runs each `ft_printf` call in a forked child
+  with fd 1 captured and a 3-second timeout, so a crash, infinite loop or
+  sanitizer error is reported against its case instead of ending the test
+  file. The child exits through `exit()`, so LeakSanitizer reports memory
+  `ft_printf` leaked as a Memory fail.
+- First-cut `get_next_line` suite. `setup`: the three required files,
+  header include guard, prototype, builds with every tested
+  `BUFFER_SIZE` (1, 2, 5, 42, 9999, 10000000) and without
+  `-D BUFFER_SIZE`, no global variables (a file-scope `static` counts),
+  no functions beyond `read`/`malloc`/`free`. `mandatory`: 13
+  regular-file cases (empty file, missing final `'\n'`, only newlines,
+  10000-character lines, 100 lines, every line length from 1 to 60),
+  standard input and pipes (including a pipe that stays open, which fails
+  an implementation that reads ahead past the first line), and invalid
+  fds and `read()` errors. `bonus`: the same file checks on the `_bonus`
+  files, at most one static variable, and five interleaved multiple-fd
+  cases. Every case runs in a forked child with a 5-second limit, built
+  with AddressSanitizer like every other mini test. Leaks, unfreeable
+  lines and reading the whole input on the first call fail; they are
+  caught by recompiling the student's files with `malloc`/`free`/`read`
+  rerouted to counters in the test driver. Smaller over-reads, and calls
+  to `memset`/`memcpy`/`memmove`/`bzero` (which the compiler can
+  generate), only print a `[!]` warning.
+- Runner library mode: a `tests/<assignment>/library` file (ft_printf:
+  `libftprintf.a`) makes every `.c` test link against the library the
+  student's Makefile builds instead of compiling the student's sources.
+  Only a library built by this run's `make` is tested, never a stale one.
+  The runner runs `make bonus` before the `bonus` part and fails the part
+  if it fails.
+- Runner timeout: every test file (`.c` and `.sh`) runs in its own
+  process group and is killed after `TEST_TIMEOUT` seconds (60, in
+  `config.sh`) or on Ctrl-C; the FAIL line says `(timed out after 60s)`
+  or names the crash signal, e.g. `(crashed: SIGSEGV)`. Sanitizer reports
+  from `.sh` tests are now a Memory fail too.
+- `README.md`: a one-line description of every Common Core project, one
+  row per project instead of grouping alternatives, plus libasm; notes on
+  how the ft_printf and get_next_line suites work; the two get_next_line
+  `[!]` warnings listed under Known strictness exceptions.
+
+### Changed
+- `test.sh` adds `exitcode=86` to `ASAN_OPTIONS`, so the ft_printf and
+  get_next_line harnesses can tell a sanitizer report in a forked case
+  from an ordinary failure. libft is unaffected: memory errors are still
+  detected from the report on stderr.
+- The `AddressSanitizer:DEADLYSIGNAL` line printed before a crash report
+  no longer leaks into a failing test's output.
+- The `bonus` part now always runs last, after any custom-named
+  mandatory part.
+- `[!]` warnings from a passing `.sh` test are now shown, as they already
+  were for `.c` tests.
+- `check_prototypes` (in `utils/proto_check.sh`) now takes the student's
+  header filename as its first argument instead of hardcoding `libft.h`.
+  The libft call sites pass `"libft.h"`; behavior unchanged.
+- `README.md`: push_swap moved to Circle 1 and Born2beroot to Circle 2;
+  the roadmap lists ft_printf, get_next_line and push_swap on separate
+  lines; the "Credits" section is merged into "Authors".
+
+### Removed
+- `README.md`: the "Cross-tested against 42 submissions" column, the
+  "Looking for piscine tests?" note, and the roadmap disclaimer about not
+  having started the Cursus.
+
 ## [2.3.0] - 2026-10-02
 
 ### Changed
