@@ -126,6 +126,37 @@ student_src_exists()
     [ -f "../$1.c" ] || [ -f "../$1_bonus.c" ]
 }
 
+# Kind of AddressSanitizer/LeakSanitizer error in a test's stderr ("memory
+# leak", "heap-buffer-overflow", ...), or nothing if there is none.
+memory_error_kind()
+{
+    if grep -q 'ERROR: LeakSanitizer' "$1"; then
+        printf 'memory leak'
+    else
+        sed -n 's/.*ERROR: AddressSanitizer: \([A-Za-z-]*\).*/\1/p' "$1" | head -1
+    fi
+}
+
+# One-line description of a sanitizer report: the SUMMARY text plus the
+# student source lines (frames in ../*.c) involved, e.g.
+# "24 byte(s) leaked in 6 allocation(s), at ft_strjoin.c:3".
+memory_error_detail()
+{
+    local summary sites
+    summary="$(sed -n 's/^SUMMARY: AddressSanitizer: //p' "$1" | head -1)"
+    case "$summary" in
+        *leaked*) summary="${summary%.}" ;;
+        *) summary="$(memory_error_kind "$1")" ;;
+    esac
+    sites="$(sed -n 's/^ *#[0-9]* 0x[0-9a-f]* in [^ ]* \.\.\/\([^ /]*\.c:[0-9]*\).*/\1/p' "$1" \
+        | awk '!seen[$0]++' | paste -sd ',' - | sed 's/,/, /g')"
+    if [ -n "$sites" ]; then
+        printf '%s, at %s' "$summary" "$sites"
+    else
+        printf '%s' "$summary"
+    fi
+}
+
 # Functions requested on the command line (./test.sh libft ft_strlen split).
 # Empty means the whole suite. Names are normalized to the ft_ prefix.
 selected=()
@@ -265,9 +296,21 @@ main()
                         [ $part_is_bonus -eq 0 ] && break_score=1
                         score_false=1
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(no ${fn_name}.c found in your project)${DEFAULT}\n"
-                    elif cc $CC_FLAGS -o "${test%.c}" "$test" "${student_objs[@]}" 2> compile_error.tmp; then
-                        test_output="$("./${test%.c}" 2>&1)"
-                        if [ $? -eq 0 ]; then
+                    elif cc $CC_FLAGS -o "${test%.c}" "$test" "$SCRIPT_DIR/utils/unbuffered_stdout.c" "${student_objs[@]}" 2> compile_error.tmp; then
+                        test_output="$("./${test%.c}" 2> asan_report.tmp)"
+                        test_status=$?
+                        memory_error="$(memory_error_kind asan_report.tmp)"
+                        # Keep the test's own stderr, minus the sanitizer report
+                        test_err="$(sed '/^=================================================================$/,$d' asan_report.tmp)"
+                        [ -n "$test_err" ] && test_output="${test_output:+$test_output
+}$test_err"
+                        if [ -n "$memory_error" ]; then
+                            [ $part_is_bonus -eq 0 ] && break_score=1
+                            score_false=1
+                            printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}Memory fail (%s)${DEFAULT}\n" "$memory_error"
+                            [ -n "$test_output" ] && printf '%s\n' "$test_output"
+                            printf "    ${RED}Memory fail: %s${DEFAULT}\n" "$(memory_error_detail asan_report.tmp)"
+                        elif [ $test_status -eq 0 ]; then
                             passed=$((passed+1))
                             [ $selected_mode -eq 1 ] && selected_passed=$((selected_passed+1))
                             printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
@@ -288,7 +331,7 @@ main()
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(cannot compile)${DEFAULT}\n"
                         sed 's/^/    /' compile_error.tmp | head -15
                     fi
-                    rm -f compile_error.tmp
+                    rm -f compile_error.tmp asan_report.tmp
                 done
                 print_test_result
                 space

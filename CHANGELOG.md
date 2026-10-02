@@ -9,6 +9,16 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-02
+
+### Changed
+- A test that hits an AddressSanitizer or LeakSanitizer error now shows a
+  red `FAIL <function> Memory fail (<kind>)` with its case lines and one
+  `Memory fail:` line (leak size or error kind, plus the student source
+  lines involved) instead of the raw sanitizer report.
+- Test binaries link `utils/unbuffered_stdout.c`, so case lines printed
+  before a sanitizer abort are no longer lost.
+
 ## [2.2.0] - 2026-09-30
 
 ### Added

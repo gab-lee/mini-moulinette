@@ -95,6 +95,11 @@ use-after-free. On Linux, LeakSanitizer also fails any test that leaks
 memory. LeakSanitizer is not supported on macOS/arm64, so there leaks are
 not reported.
 
+A memory error fails the function with a red `Memory fail` instead of the
+raw sanitizer report: the test's case lines are shown, followed by one
+line naming the error and where it happened in your code, e.g.
+`Memory fail: 24 byte(s) leaked in 6 allocation(s), at ft_strjoin.c:3`.
+
 Tests that return a newly allocated block (`ft_strdup`, `ft_calloc`,
 `ft_substr`, `ft_strjoin`, `ft_strtrim`, `ft_split`, `ft_itoa`,
 `ft_strmapi`, `ft_lstnew`) also check that it is exactly the size needed,
