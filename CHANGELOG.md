@@ -9,6 +9,13 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-10-03
+
+### Fixed
+- get_next_line: the test driver failed to compile on macOS, where the SDK
+  marks `sprintf` deprecated and `-Werror` turns that into an error, so
+  every get_next_line test failed. It now uses `snprintf`.
+
 ## [2.4.0] - 2026-10-03
 
 ### Added
