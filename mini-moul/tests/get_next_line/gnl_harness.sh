@@ -193,9 +193,10 @@ gnl_build()
 gnl_run()
 {
 	local variant=$1 scenario=$2 error=0 plain_note=0 bs bin mode num
-	local where=setup
+	local where=setup slow_mark="$GNL_BUILD/.slow_reported"
 
 	[ "$variant" = "bonus" ] && where=compile_bonus
+	rm -f "$slow_mark"
 	if ! ls "$GNL_BUILD/$variant"/gnl_* > /dev/null 2>&1; then
 		printf "    ${RED}not compiled for any BUFFER_SIZE, see %s${DEFAULT}\n" "$where"
 		return 1
@@ -214,8 +215,20 @@ gnl_run()
 		fi
 		num=$bs
 		[ "$bs" = "default" ] && num=0
-		"$bin" "$scenario" "$(gnl_label "$bs")" "$num" "$mode" || error=1
+		GNL_SLOW_MARK="$slow_mark" "$bin" "$scenario" "$(gnl_label "$bs")" "$num" "$mode"
+		case $? in
+			0) ;;
+			3)
+				# A case timed out: the other sizes would most likely time
+				# out too, and together outlast test.sh's TEST_TIMEOUT
+				error=1
+				printf "    ${RED}(skipped the remaining BUFFER_SIZEs after the timeout)${DEFAULT}\n"
+				break
+				;;
+			*) error=1 ;;
+		esac
 	done
+	rm -f "$slow_mark"
 	if [ $plain_note -eq 1 ]; then
 		printf "  ${YELLOW}[!] your files could not be built with mini-moulinette's malloc/free/read counters, so leak and read() checks were skipped${DEFAULT}\n"
 	fi

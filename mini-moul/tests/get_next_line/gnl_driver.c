@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 #include "get_next_line_proto.h"
 #include "../../utils/constants.h"
@@ -33,6 +34,9 @@
 #define MAX_TRACKED_FD 1024
 #define DETAIL_MAX 16384
 #define MAX_SHOWN 3
+/* Tripouille/gnlTester gives each test 1 second (under valgrind) and
+** reports TIMEOUT past it; a passing case slower than this gets a [!]. */
+#define SLOW_SECONDS 1.0
 /* test.sh sets ASAN_OPTIONS exitcode=86 */
 #define ASAN_EXIT 86
 
@@ -1021,6 +1025,31 @@ static void	report(const t_case *c, int i, const char *label, int result,
 	}
 }
 
+/* gnl_harness.sh points GNL_SLOW_MARK at a file that exists once a slow
+** case was reported, so the [!] is shown once per test, not per size. */
+static int	claim_slow_warning(void)
+{
+	const char	*mark;
+	int			fd;
+
+	mark = getenv("GNL_SLOW_MARK");
+	if (mark == NULL)
+		return (1);
+	fd = open(mark, O_WRONLY | O_CREAT | O_EXCL, 0644);
+	if (fd < 0)
+		return (0);
+	close(fd);
+	return (1);
+}
+
+static double	now_seconds(void)
+{
+	struct timespec	ts;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (ts.tv_sec + ts.tv_nsec / 1e9);
+}
+
 int	main(int argc, char **argv)
 {
 	const t_case	*cases;
@@ -1030,6 +1059,10 @@ int	main(int argc, char **argv)
 	int				result;
 	int				sig;
 	int				warned;
+	int				slow_warned;
+	int				timed_out;
+	double			started;
+	double			took;
 	static char		details[DETAIL_MAX];
 
 	if (argc != 5)
@@ -1072,16 +1105,28 @@ int	main(int argc, char **argv)
 	}
 	failed = 0;
 	warned = 0;
+	slow_warned = 0;
+	timed_out = 0;
 	i = 0;
 	while (i < count)
 	{
 		sig = 0;
+		started = now_seconds();
 		result = run_case(&cases[i], details, &sig);
+		took = now_seconds() - started;
 		if (result == 0)
 		{
 			if (details[0] != '\0' && !warned)
 				printf("%s", details);
 			warned |= details[0] != '\0';
+			if (took > SLOW_SECONDS && !slow_warned && claim_slow_warning())
+			{
+				printf(YELLOW "  [!] %s [%d] %s: took %.1fs; Tripouille's "
+					"gnlTester gives each test %.0fs and would report TIMEOUT "
+					"(mini allows %ds)\n" DEFAULT, argv[2], i + 1,
+					cases[i].desc, took, SLOW_SECONDS, GNL_TIMEOUT);
+				slow_warned = 1;
+			}
 		}
 		else
 		{
@@ -1089,10 +1134,12 @@ int	main(int argc, char **argv)
 				report(&cases[i], i + 1, argv[2], result, sig, details);
 			failed++;
 		}
-		if (result == 3 && i + 1 < count)
+		if (result == 3)
 		{
-			printf(RED "        (skipped the other %d case(s) for %s after "
-				"the timeout)\n" DEFAULT, count - i - 1, argv[2]);
+			timed_out = 1;
+			if (i + 1 < count)
+				printf(RED "        (skipped the other %d case(s) for %s "
+					"after the timeout)\n" DEFAULT, count - i - 1, argv[2]);
 			break ;
 		}
 		i++;
@@ -1103,5 +1150,7 @@ int	main(int argc, char **argv)
 	if (failed == 0)
 		printf("  " GREEN CHECKMARK GREY " %s: all %d cases passed\n" DEFAULT,
 			argv[2], count);
+	if (timed_out)
+		return (3);
 	return (failed != 0);
 }

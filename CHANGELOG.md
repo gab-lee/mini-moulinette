@@ -32,7 +32,9 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   caught by recompiling the student's files with `malloc`/`free`/`read`
   rerouted to counters in the test driver. Smaller over-reads, and calls
   to `memset`/`memcpy`/`memmove`/`bzero` (which the compiler can
-  generate), only print a `[!]` warning.
+  generate), only print a `[!]` warning, as does a passing case that
+  takes more than 1 second (where gnlTester would report TIMEOUT). A case
+  that times out skips the remaining cases and buffer sizes of that test.
 - Test cases from [Tripouille/gnlTester](https://github.com/Tripouille/gnlTester)
   ported into the get_next_line suite and run with every `BUFFER_SIZE`:
   `mandatory/gnltester.sh` (invalid fds; `files/empty`, `nl`, `41`/`42`/
@@ -49,7 +51,7 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   or names the crash signal, e.g. `(crashed: SIGSEGV)`. Sanitizer reports
   from `.sh` tests are now a Memory fail too.
 - `README.md`: get_next_line row marked First cut, a note on how the
-  suite works, and its two `[!]` warnings listed under Known strictness
+  suite works, and its three `[!]` warnings listed under Known strictness
   exceptions. The credits now name both of Tripouille's testers
   (libftTester for libft, gnlTester for get_next_line).
 
