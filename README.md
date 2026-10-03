@@ -15,7 +15,7 @@ All credit for the original mini-moulinette goes to **[Khairul Haaziq](https://g
 
 This tool was incredibly useful during my piscine: it saved me countless hours of waiting for evaluations only to fail on silly mistakes. This fork exists because I want the same safety net while going through the Common Core. Thank you, Khairul! 🙏
 
-The libft suite also integrates the test cases from **[Tripouille/libftTester](https://github.com/Tripouille/libftTester)**, including its exact allocation-size checks.
+The libft and get_next_line suites also integrate the test cases from **[Tripouille](https://github.com/Tripouille)**'s testers: **[libftTester](https://github.com/Tripouille/libftTester)** for libft, including its exact allocation-size checks, and **[gnlTester](https://github.com/Tripouille/gnlTester)** for get_next_line, whose files, call sequences and multiple-fd bonus run in mini with every `BUFFER_SIZE`.
 
 
 ## How Does It Work?
@@ -161,7 +161,7 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 > - get_next_line calling `memset`, `memcpy`, `memmove` or `bzero`: the compiler can generate these calls on its own (for example to zero an array), so they are not failed, but calling them yourself is forbidden.
 
 > [!NOTE]
-> **get_next_line** is compiled and run with every `BUFFER_SIZE` in 1, 2, 5, 42, 9999 and 10000000, and once without `-D BUFFER_SIZE` (the subject requires both). Each case runs on its own with a 5-second limit, so an infinite loop, a crash or a `read()` that waits forever fails that one case instead of hanging the run; a failure shows the case, the buffer size, the line expected and the line returned. Setup also checks the `README.md` the subject requires (italic first line, Description, Instructions and Resources sections); the algorithm explanation it asks for is up to you and your peers. The tests also check for memory leaks after `get_next_line` returns `NULL`, reject global variables and functions other than `read`, `malloc` and `free`, and fail an implementation that reads the whole file before returning the first line. Run it from a folder named `get_next_line`, or with `mini -get_next_line` from any folder.
+> **get_next_line** is compiled and run with every `BUFFER_SIZE` in 1, 2, 5, 42, 9999 and 10000000, and once without `-D BUFFER_SIZE` (the subject requires both). Each case runs on its own with a 5-second limit, so an infinite loop, a crash or a `read()` that waits forever fails that one case instead of hanging the run; a failure shows the case, the buffer size, the line expected and the line returned. Setup also checks the `README.md` the subject requires (italic first line, Description, Instructions and Resources sections); the algorithm explanation it asks for is up to you and your peers. The `gnltester` tests port every case from [Tripouille/gnlTester](https://github.com/Tripouille/gnlTester), including its check that, at `BUFFER_SIZE=42`, nothing past the first line of `files/42_with_nl` was read. The tests also check for memory leaks after `get_next_line` returns `NULL`, reject global variables and functions other than `read`, `malloc` and `free`, and fail an implementation that reads the whole file before returning the first line. Run it from a folder named `get_next_line`, or with `mini -get_next_line` from any folder.
 
 
 ## Updating

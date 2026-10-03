@@ -340,6 +340,23 @@ static char	*long_line(size_t n, const char *tail)
 	return (s);
 }
 
+/* n characters cycling through the digits 0-9, then tail. */
+static char	*long_digits(size_t n, const char *tail)
+{
+	char	*s;
+	size_t	i;
+
+	s = malloc(n + strlen(tail) + 1);
+	i = 0;
+	while (i < n)
+	{
+		s[i] = '0' + i % 10;
+		i++;
+	}
+	strcpy(s + n, tail);
+	return (s);
+}
+
 static char	*numbered_lines(int count)
 {
 	char	*s;
@@ -613,6 +630,198 @@ static int	case_multi(int which)
 /* Scenarios                                                               */
 /* ---------------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------- */
+/* Cases ported from Tripouille/gnlTester                                  */
+/* (https://github.com/Tripouille/gnlTester): the same file contents and   */
+/* call sequences, run with every BUFFER_SIZE and mini's checks.           */
+/* ---------------------------------------------------------------------- */
+
+typedef struct s_tri_file
+{
+	const char	*name;
+	const char	*content;
+}	t_tri_file;
+
+static const t_tri_file	g_tri_files[] = {
+	{"files/empty",
+		""},
+	{"files/nl",
+		"\n"},
+	{"files/41_no_nl",
+		"01234567890123456789012345678901234567890"},
+	{"files/41_with_nl",
+		"0123456789012345678901234567890123456789\n"
+		"0"},
+	{"files/42_no_nl",
+		"012345678901234567890123456789012345678901"},
+	{"files/42_with_nl",
+		"01234567890123456789012345678901234567890\n"
+		"1"},
+	{"files/43_no_nl",
+		"0123456789012345678901234567890123456789012"},
+	{"files/43_with_nl",
+		"012345678901234567890123456789012345678901\n"
+		"2"},
+	{"files/multiple_nlx5",
+		"\n"
+		"\n"
+		"\n"
+		"\n"
+		"\n"},
+	{"files/multiple_line_no_nl",
+		"01234567890123456789012345678901234567890\n"
+		"987654321098765432109876543210987654321098\n"
+		"0123456789012345678901234567890123456789012\n"
+		"987654321098765432109876543210987654321098\n"
+		"01234567890123456789012345678901234567890"},
+	{"files/multiple_line_with_nl",
+		"9876543210987654321098765432109876543210\n"
+		"01234567890123456789012345678901234567890\n"
+		"987654321098765432109876543210987654321098\n"
+		"01234567890123456789012345678901234567890\n"
+		"9876543210987654321098765432109876543210\n"},
+	{"files/alternate_line_nl_no_nl",
+		"98765432109876543210987654321098765432109\n"
+		"\n"
+		"012345678901234567890123456789012345678901\n"
+		"\n"
+		"9876543210987654321098765432109876543210987\n"
+		"\n"
+		"012345678901234567890123456789012345678901\n"
+		"\n"
+		"98765432109876543210987654321098765432109"},
+	{"files/alternate_line_nl_with_nl",
+		"01234567890123456789012345678901234567890\n"
+		"\n"
+		"987654321098765432109876543210987654321090\n"
+		"\n"
+		"0123456789012345678901234567890123456789012\n"
+		"\n"
+		"987654321098765432109876543210987654321090\n"
+		"\n"
+		"01234567890123456789012345678901234567890\n"},
+};
+
+#define TRI_FILES (int)(sizeof(g_tri_files) / sizeof(*g_tri_files))
+#define TRI_42_WITH_NL 5
+
+/* gnlTester's big_line_no_nl / big_line_with_nl: the digits 0-9 cycled
+** for 10000 characters, without and with a final '\n'. */
+static const char	*tri_big_line(int with_nl)
+{
+	return (long_digits(10000, with_nl ? "\n" : ""));
+}
+
+static const char	*tri_content(int which)
+{
+	if (which < TRI_FILES)
+		return (g_tri_files[which].content);
+	return (tri_big_line(which == TRI_FILES + 1));
+}
+
+/* With BUFFER_SIZE=42, the first read() of files/42_with_nl returns
+** exactly its first line, '\n' included; gnlTester then reads the fd
+** itself and expects the next byte, '1', which is only still there if
+** get_next_line did not read past the line. */
+static int	case_tri_42_exact(void)
+{
+	t_stream	s;
+	const char	*content;
+	char		c;
+
+	content = g_tri_files[TRI_42_WITH_NL].content;
+	init_stream(&s, open_content(content, strlen(content)), NULL, content);
+	if (step(&s))
+		return (1);
+	c = 0;
+	if (read(s.fd, &c, 1) != 1 || c != '1')
+	{
+		printf(RED "        after the first line, read() on the fd should "
+			"still return '1': get_next_line read past the line it "
+			"returned\n" DEFAULT);
+		return (1);
+	}
+	return (expect_null(s.fd, "the file, at its end") || check_leaks());
+}
+
+static int	case_tri_file(int which)
+{
+	t_stream	s;
+	const char	*content;
+
+	if (which == TRI_42_WITH_NL && g_bs == 42)
+		return (case_tri_42_exact());
+	content = tri_content(which);
+	init_stream(&s, open_content(content, strlen(content)), NULL, content);
+	return (read_all(&s) || check_leaks());
+}
+
+/* gnlTester's "Invalid fd" block: 1000, -1, then an fd closed after
+** opening files/empty. */
+static int	case_tri_invalid(int arg)
+{
+	int	fd;
+
+	(void)arg;
+	close(1000);
+	fd = open_content("", 0);
+	close(fd);
+	return (expect_null(1000, "1000") || expect_null(-1, "-1")
+		|| expect_null(fd, "a closed fd") || check_leaks());
+}
+
+/* gnlTester's "stdin" block: files/alternate_line_nl_with_nl on fd 0. */
+static int	case_tri_stdin(int arg)
+{
+	t_stream	s;
+	const char	*content;
+	int			fd;
+
+	(void)arg;
+	content = g_tri_files[12].content;
+	fd = open_content(content, strlen(content));
+	dup2(fd, STDIN_FILENO);
+	close(fd);
+	init_stream(&s, STDIN_FILENO, "fd 0", content);
+	return (read_all(&s) || check_leaks());
+}
+
+/* gnlTester's bonus "multiple fd" sequence: three files opened one after
+** another and read in turn, with a never-opened fd (1000 to 1007) called
+** between each read, then files/nl the same way. */
+static int	case_tri_multi(int arg)
+{
+	t_stream	s[4];
+	int			i;
+
+	(void)arg;
+	i = 1000;
+	while (i <= 1007)
+		close(i++);
+	init_stream(&s[0], open_content(g_tri_files[3].content,
+			strlen(g_tri_files[3].content)), "files/41_with_nl",
+		g_tri_files[3].content);
+	if (expect_null(1000, "1000") || step(&s[0]))
+		return (1);
+	init_stream(&s[1], open_content(g_tri_files[5].content,
+			strlen(g_tri_files[5].content)), "files/42_with_nl",
+		g_tri_files[5].content);
+	if (expect_null(1001, "1001") || step(&s[1]))
+		return (1);
+	init_stream(&s[2], open_content(g_tri_files[7].content,
+			strlen(g_tri_files[7].content)), "files/43_with_nl",
+		g_tri_files[7].content);
+	if (expect_null(1002, "1002") || step(&s[2])
+		|| expect_null(1003, "1003") || step(&s[0])
+		|| expect_null(1004, "1004") || step(&s[1])
+		|| expect_null(1005, "1005") || step(&s[2])
+		|| step(&s[0]) || step(&s[1]) || step(&s[2]) || check_leaks())
+		return (1);
+	init_stream(&s[3], open_content("\n", 1), "files/nl", "\n");
+	return (expect_null(1006, "1006") || step(&s[3])
+		|| expect_null(1007, "1007") || step(&s[3]) || check_leaks());
+}
+
 #define PIPE_HINT "get_next_line kept calling read() after it already had \
 a full line, and a pipe waits for input that has not been written yet; \
 return the line as soon as you find its '\\n'"
@@ -694,6 +903,33 @@ static void	forward_stderr(const char *path)
 	fclose(f);
 	fflush(stderr);
 }
+
+static const t_case	g_tri_cases[] = {
+	{"gnlTester: invalid fds (1000, -1, a closed fd)", case_tri_invalid, 0,
+		NULL},
+	{"gnlTester: files/empty", case_tri_file, 0, NULL},
+	{"gnlTester: files/nl", case_tri_file, 1, NULL},
+	{"gnlTester: files/41_no_nl", case_tri_file, 2, NULL},
+	{"gnlTester: files/41_with_nl", case_tri_file, 3, NULL},
+	{"gnlTester: files/42_no_nl", case_tri_file, 4, NULL},
+	{"gnlTester: files/42_with_nl", case_tri_file, 5, NULL},
+	{"gnlTester: files/43_no_nl", case_tri_file, 6, NULL},
+	{"gnlTester: files/43_with_nl", case_tri_file, 7, NULL},
+	{"gnlTester: files/multiple_nlx5", case_tri_file, 8, NULL},
+	{"gnlTester: files/multiple_line_no_nl", case_tri_file, 9, NULL},
+	{"gnlTester: files/multiple_line_with_nl", case_tri_file, 10, NULL},
+	{"gnlTester: files/alternate_line_nl_no_nl", case_tri_file, 11, NULL},
+	{"gnlTester: files/alternate_line_nl_with_nl", case_tri_file, 12, NULL},
+	{"gnlTester: files/big_line_no_nl", case_tri_file, 13, NULL},
+	{"gnlTester: files/big_line_with_nl", case_tri_file, 14, NULL},
+	{"gnlTester: stdin (files/alternate_line_nl_with_nl)", case_tri_stdin, 0,
+		NULL},
+};
+
+static const t_case	g_tri_multi_cases[] = {
+	{"gnlTester: multiple fd, with never-opened fds 1000-1007 in between",
+		case_tri_multi, 0, NULL},
+};
 
 /* Runs c in a child; its output lands in details. Returns 0 pass, 1 fail,
 ** 2 crash (signal in *sig), 3 timeout, 4 AddressSanitizer report. */
@@ -798,7 +1034,7 @@ int	main(int argc, char **argv)
 
 	if (argc != 5)
 	{
-		fprintf(stderr, "usage: %s <file|stdin|errors|multi> <label> "
+		fprintf(stderr, "usage: %s <file|stdin|errors|multi|tripouille|tripouille_multi> <label> "
 			"<buffer size> <instr|plain>\n", argv[0]);
 		return (2);
 	}
@@ -813,6 +1049,16 @@ int	main(int argc, char **argv)
 	{
 		cases = g_stdin_cases;
 		count = sizeof(g_stdin_cases) / sizeof(*g_stdin_cases);
+	}
+	else if (strcmp(argv[1], "tripouille") == 0)
+	{
+		cases = g_tri_cases;
+		count = sizeof(g_tri_cases) / sizeof(*g_tri_cases);
+	}
+	else if (strcmp(argv[1], "tripouille_multi") == 0)
+	{
+		cases = g_tri_multi_cases;
+		count = sizeof(g_tri_multi_cases) / sizeof(*g_tri_multi_cases);
 	}
 	else if (strcmp(argv[1], "errors") == 0)
 	{

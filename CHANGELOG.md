@@ -33,6 +33,16 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   rerouted to counters in the test driver. Smaller over-reads, and calls
   to `memset`/`memcpy`/`memmove`/`bzero` (which the compiler can
   generate), only print a `[!]` warning.
+- Test cases from [Tripouille/gnlTester](https://github.com/Tripouille/gnlTester)
+  ported into the get_next_line suite and run with every `BUFFER_SIZE`:
+  `mandatory/gnltester.sh` (invalid fds; `files/empty`, `nl`, `41`/`42`/
+  `43_no_nl` and `_with_nl` around a 42-byte buffer, `multiple_nlx5`,
+  `multiple_line_*`, `alternate_line_nl_*`, the 10000-character
+  `big_line_*`; stdin; and, at `BUFFER_SIZE=42`, a `read()` on the fd
+  after the first line of `42_with_nl` must still return `'1'`) and
+  `bonus/gnltester_bonus.sh` (its multiple-fd sequence with never-opened
+  fds 1000 to 1007 in between). Checked against gnlTester itself: both
+  pass a correct implementation and fail the same broken ones.
 - Runner timeout: every test file (`.c` and `.sh`) runs in its own
   process group and is killed after `TEST_TIMEOUT` seconds (60, in
   `config.sh`) or on Ctrl-C; the FAIL line says `(timed out after 60s)`
@@ -40,7 +50,8 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   from `.sh` tests are now a Memory fail too.
 - `README.md`: get_next_line row marked First cut, a note on how the
   suite works, and its two `[!]` warnings listed under Known strictness
-  exceptions.
+  exceptions. The credits now name both of Tripouille's testers
+  (libftTester for libft, gnlTester for get_next_line).
 
 ### Changed
 - `test.sh` adds `exitcode=86` to `ASAN_OPTIONS`, so the get_next_line
