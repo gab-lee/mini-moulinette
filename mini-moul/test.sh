@@ -26,9 +26,12 @@ if ! asan_probe; then
     exit 1
 fi
 # Oversized requests (e.g. ft_calloc(INT_MAX, INT_MAX)) must return NULL
-# like the real allocator instead of aborting the test. Appended after any
-# user ASAN_OPTIONS so they can't switch these off (later options win).
-asan_opts="allocator_may_return_null=1"
+# like the real allocator instead of aborting the test. A sanitizer report
+# exits with 86, so a harness that forks per case (get_next_line) can
+# tell it from an ordinary failure; test.sh itself
+# detects reports from stderr. Appended after any user ASAN_OPTIONS so
+# they can't switch these off (later options win).
+asan_opts="allocator_may_return_null=1:exitcode=86"
 [ "$(uname -s)" = "Linux" ] && asan_opts="$asan_opts:detect_leaks=1"
 export ASAN_OPTIONS="${ASAN_OPTIONS:+$ASAN_OPTIONS:}${asan_opts}"
 
@@ -157,6 +160,92 @@ memory_error_detail()
     fi
 }
 
+# run_limited <status-file> <command...>
+# Runs the command in its own process group and kills the whole group
+# after $TEST_TIMEOUT seconds or on Ctrl-C, so a hanging test (or anything
+# it forked) can't stall the run. Writes "timeout" or the killing signal's
+# name to <status-file> when the command didn't exit normally. perl, not
+# timeout(1), because macOS has no timeout(1).
+run_limited()
+{
+    perl -e '
+        use Config;
+        my ($limit, $status_file, @cmd) = @ARGV;
+        my $pid = fork();
+        die "fork: $!\n" unless defined $pid;
+        if ($pid == 0) { setpgrp(0, 0); exec { $cmd[0] } @cmd; exit 127; }
+        my $timed_out = 0;
+        $SIG{ALRM} = sub { $timed_out = 1; kill "KILL", -$pid; };
+        # The test is in its own process group, so Ctrl-C only reaches us
+        $SIG{$_} = sub { kill "KILL", -$pid; exit 130; } for qw(INT TERM HUP);
+        alarm $limit;
+        while (waitpid($pid, 0) == -1 && $!{EINTR}) { }
+        my $status = $?;
+        alarm 0;
+        my @names = split " ", $Config{sig_name};
+        my $note = $timed_out ? "timeout"
+            : ($status & 127) ? "SIG" . $names[$status & 127] : "";
+        if ($note ne "") {
+            open(my $fh, ">", $status_file) or die "$status_file: $!\n";
+            print $fh $note;
+            close $fh;
+            exit 1;
+        }
+        exit($status >> 8);
+    ' "$TEST_TIMEOUT" "$@"
+}
+
+# run_test <name> <command...>
+# Runs one test (a .c test binary or a .sh check script) under run_limited
+# and prints its PASS/FAIL line. Exit 0 is a PASS; [!] lines in a passing
+# test's output are known-strictness warnings and are still shown. An
+# AddressSanitizer/LeakSanitizer report on stderr is a Memory fail, and a
+# timeout or crash signal is named on the FAIL line.
+run_test()
+{
+    local name=$1
+    shift
+    local status_file=.test_status
+    local output code note="" memory_error test_err
+
+    rm -f "$status_file"
+    output="$(run_limited "$status_file" "$@" 2> asan_report.tmp < /dev/null)"
+    code=$?
+    if [ -f "$status_file" ]; then
+        case "$(cat "$status_file")" in
+            timeout) note=" (timed out after ${TEST_TIMEOUT}s)" ;;
+            *) note=" (crashed: $(cat "$status_file"))" ;;
+        esac
+        rm -f "$status_file"
+    fi
+    memory_error="$(memory_error_kind asan_report.tmp)"
+    # Keep the test's own stderr, minus the sanitizer report
+    test_err="$(sed -e '/^=================================================================$/,$d' \
+        -e '/^AddressSanitizer:DEADLYSIGNAL$/d' asan_report.tmp)"
+    [ -n "$test_err" ] && output="${output:+$output
+}$test_err"
+    if [ -n "$memory_error" ]; then
+        [ $part_is_bonus -eq 0 ] && break_score=1
+        score_false=1
+        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name} ${RED}Memory fail (%s)${DEFAULT}\n" "$memory_error"
+        [ -n "$output" ] && printf '%s\n' "$output"
+        printf "    ${RED}Memory fail: %s${DEFAULT}\n" "$(memory_error_detail asan_report.tmp)"
+    elif [ $code -eq 0 ]; then
+        passed=$((passed+1))
+        [ $selected_mode -eq 1 ] && selected_passed=$((selected_passed+1))
+        printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${name}\n"
+        case "$output" in
+            *"[!]"*) printf '%s\n' "$output" | grep -F '[!]' ;;
+        esac
+    else
+        [ $part_is_bonus -eq 0 ] && break_score=1
+        score_false=1
+        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name}${RED}${note}${DEFAULT}\n"
+        [ -n "$output" ] && printf '%s\n' "$output"
+    fi
+    rm -f asan_report.tmp
+}
+
 # Functions requested on the command line (./test.sh libft ft_strlen split).
 # Empty means the whole suite. Names are normalized to the ft_ prefix.
 selected=()
@@ -222,10 +311,10 @@ main()
             index=0
             build_student_objects "$dir"
 
-            # Run parts in subject order (setup, libc, additional, bonus),
-            # then anything else
+            # Run parts in subject order (setup, libc, additional), then any
+            # other part, then bonus last
             exercise_dirs=""
-            for part in setup libc additional bonus; do
+            for part in setup libc additional; do
                 [ -d "$dir/$part" ] && exercise_dirs+="$dir/$part "
             done
             for part in $dir/*; do
@@ -234,6 +323,7 @@ main()
                 esac
                 exercise_dirs+="$part "
             done
+            [ -d "$dir/bonus" ] && exercise_dirs+="$dir/bonus "
 
             for assignment in $exercise_dirs; do
                 [ -d "$assignment" ] || continue
@@ -269,61 +359,27 @@ main()
                     # mini-moul directory as cwd and the project at ../
                     case "$test" in
                         *.sh)
-                            fn_name="$(basename "${test%.sh}")"
-                            test_output="$(bash "$test" 2>&1)"
-                            if [ $? -eq 0 ]; then
-                                passed=$((passed+1))
-                                printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
-                            else
-                                [ $part_is_bonus -eq 0 ] && break_score=1
-                                score_false=1
-                                printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
-                                printf '%s\n' "$test_output"
-                            fi
+                            run_test "$(basename "${test%.sh}")" bash "$test"
                             continue
                             ;;
                     esac
 
                     fn_name="$(basename "${test%.c}")"
-                    src_err="$(student_compile_error "$fn_name")"
-
-                    if [ -n "$src_err" ]; then
-                        [ $part_is_bonus -eq 0 ] && break_score=1
-                        score_false=1
-                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(your ${fn_name}.c cannot compile)${DEFAULT}\n"
-                        sed 's/^/    /' "$src_err" | head -15
+                    fail_reason=""
+                    fail_detail="$(student_compile_error "$fn_name")"
+                    if [ -n "$fail_detail" ]; then
+                        fail_reason="your ${fn_name}.c cannot compile"
                     elif ! student_src_exists "$fn_name"; then
+                        fail_reason="no ${fn_name}.c found in your project"
+                    fi
+
+                    if [ -n "$fail_reason" ]; then
                         [ $part_is_bonus -eq 0 ] && break_score=1
                         score_false=1
-                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(no ${fn_name}.c found in your project)${DEFAULT}\n"
+                        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(${fail_reason})${DEFAULT}\n"
+                        [ -n "$fail_detail" ] && sed 's/^/    /' "$fail_detail" | head -15
                     elif cc $CC_FLAGS -o "${test%.c}" "$test" "$SCRIPT_DIR/utils/unbuffered_stdout.c" "${student_objs[@]}" 2> compile_error.tmp; then
-                        test_output="$("./${test%.c}" 2> asan_report.tmp)"
-                        test_status=$?
-                        memory_error="$(memory_error_kind asan_report.tmp)"
-                        # Keep the test's own stderr, minus the sanitizer report
-                        test_err="$(sed '/^=================================================================$/,$d' asan_report.tmp)"
-                        [ -n "$test_err" ] && test_output="${test_output:+$test_output
-}$test_err"
-                        if [ -n "$memory_error" ]; then
-                            [ $part_is_bonus -eq 0 ] && break_score=1
-                            score_false=1
-                            printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}Memory fail (%s)${DEFAULT}\n" "$memory_error"
-                            [ -n "$test_output" ] && printf '%s\n' "$test_output"
-                            printf "    ${RED}Memory fail: %s${DEFAULT}\n" "$(memory_error_detail asan_report.tmp)"
-                        elif [ $test_status -eq 0 ]; then
-                            passed=$((passed+1))
-                            [ $selected_mode -eq 1 ] && selected_passed=$((selected_passed+1))
-                            printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${fn_name}\n"
-                            # Known-strict cases surface as [!] warnings even on PASS
-                            case "$test_output" in
-                                *"[!]"*) printf '%s\n' "$test_output" | grep -F '[!]' ;;
-                            esac
-                        else
-                            [ $part_is_bonus -eq 0 ] && break_score=1
-                            score_false=1
-                            printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name}\n"
-                            printf '%s\n' "$test_output"
-                        fi
+                        run_test "$fn_name" "./${test%.c}"
                         rm -f "${test%.c}"
                     else
                         [ $part_is_bonus -eq 0 ] && break_score=1
