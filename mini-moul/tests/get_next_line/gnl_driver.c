@@ -372,7 +372,8 @@ static char	*numbered_lines(int count)
 	i = 1;
 	while (i <= count)
 	{
-		len += sprintf(s + len, "line %03d: some text\n", i);
+		len += snprintf(s + len, count * 32 + 1 - len,
+				"line %03d: some text\n", i);
 		i++;
 	}
 	return (s);
