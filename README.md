@@ -15,7 +15,7 @@ All credit for the original mini-moulinette goes to **[Khairul Haaziq](https://g
 
 This tool was incredibly useful during my piscine: it saved me countless hours of waiting for evaluations only to fail on silly mistakes. This fork exists because I want the same safety net while going through the Common Core. Thank you, Khairul! 🙏
 
-The libft suite also integrates the test cases from **[Tripouille/libftTester](https://github.com/Tripouille/libftTester)**, including its exact allocation-size checks.
+The libft and get_next_line suites also integrate the test cases from **[Tripouille](https://github.com/Tripouille)**'s testers: **[libftTester](https://github.com/Tripouille/libftTester)** for libft, including its exact allocation-size checks, and **[gnlTester](https://github.com/Tripouille/gnlTester)** for get_next_line, whose files, call sequences and multiple-fd bonus run in mini with every `BUFFER_SIZE`.
 
 
 ## How Does It Work?
@@ -100,6 +100,9 @@ raw sanitizer report: the test's case lines are shown, followed by one
 line naming the error and where it happened in your code, e.g.
 `Memory fail: 24 byte(s) leaked in 6 allocation(s), at ft_strjoin.c:3`.
 
+get_next_line is built with AddressSanitizer at every `BUFFER_SIZE`, and
+each failing case says it hit a memory error.
+
 Tests that return a newly allocated block (`ft_strdup`, `ft_calloc`,
 `ft_substr`, `ft_strjoin`, `ft_strtrim`, `ft_split`, `ft_itoa`,
 `ft_strmapi`, `ft_lstnew`) also check that it is exactly the size needed,
@@ -119,7 +122,7 @@ The original project covers the piscine (C00–C08). The goal of this fork is to
 
 - [x] Adapt the runner to detect Common Core project directories
 - [x] **Circle 0** — Libft (Part 1, Part 2, Part 3 - linked list)
-- [ ] **Circle 1** — ft_printf, get_next_line (mandatory + bonus) — targeting end of August
+- [ ] **Circle 1** — ft_printf, get_next_line (mandatory + bonus) — get_next_line first cut done
 - [ ] **Circle 2** — push_swap (operation validity + sort check), minitalk / pipex
 - [ ] **Circle 3** — philosophers (death timing / no-death scenarios), minishell (command comparison against bash)
 - [ ] **Circle 4** — CPP Modules 00–04
@@ -136,7 +139,7 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 | :----: | :------------------------- | :----------------------------------------- | :-------------: | :---------------------------------- |
 | 0      | Libft                      | Part 1 (libc), Part 2 (additional), Part 3 (linked list) | Complete | [Mia Combeau](https://github.com/mcombeau/libft/tree/main) |
 | 1      | ft_printf                  | Mandatory conversions + bonus flags        | Planned (targeting end of Aug) | —                     |
-| 1      | get_next_line              | Mandatory + multiple-fd bonus              | Planned (targeting end of Aug) | —                     |
+| 1      | get_next_line              | Every `BUFFER_SIZE` from 1 to 10000000, files, stdin and pipes, invalid fds, leaks, multiple-fd bonus | First cut | —                     |
 | 1      | Born2beroot                | —                                          | Out of scope (VM / sysadmin) | —                       |
 | 2      | push_swap                  | Operation validity, sort check, op count   | Planned         | —                                    |
 | 2      | minitalk / pipex           | Signal transmission / pipe behaviour       | Planned         | —                                    |
@@ -152,8 +155,14 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 | 6      | ft_transcendence           | —                                          | Out of scope (web project) | —                         |
 
 > [!NOTE]
-> **Known strictness exceptions.** The libc tests compare against the *real* libc, which is stricter than 42's moulinette in a few corners. These cases print a yellow `[!]` warning instead of failing the function:
+> **Known strictness exceptions.** Some checks are stricter than 42's moulinette, or cannot tell a real mistake from something the compiler did. These cases print a yellow `[!]` warning instead of failing:
 > - `ft_strchr` / `ft_strrchr` searching for an extended character (e.g. 233): implementations that compare as `unsigned char` return NULL where libc finds the byte.
+> - get_next_line reading further ahead than it needs to (for example one extra `read()` per call): the subject says to read as little as possible, but only reading the whole file on the first call fails.
+> - get_next_line calling `memset`, `memcpy`, `memmove` or `bzero`: the compiler can generate these calls on its own (for example to zero an array), so they are not failed, but calling them yourself is forbidden.
+> - get_next_line taking more than 1 second on a case: Tripouille's gnlTester would report TIMEOUT, but mini only fails a case after 5 seconds. The warning is shown once per test, for the first slow case.
+
+> [!NOTE]
+> **get_next_line** is compiled and run with every `BUFFER_SIZE` in 1, 2, 5, 42, 9999 and 10000000, and once without `-D BUFFER_SIZE` (the subject requires both). Each case runs on its own with a 5-second limit, so an infinite loop, a crash or a `read()` that waits forever fails that one case instead of hanging the run; a failure shows the case, the buffer size, the line expected and the line returned. Setup also checks the `README.md` the subject requires (italic first line, Description, Instructions and Resources sections); the algorithm explanation it asks for is up to you and your peers. The `gnltester` tests port every case from [Tripouille/gnlTester](https://github.com/Tripouille/gnlTester), including its check that, at `BUFFER_SIZE=42`, nothing past the first line of `files/42_with_nl` was read. The tests also check for memory leaks after `get_next_line` returns `NULL`, reject global variables and functions other than `read`, `malloc` and `free`, and fail an implementation that reads the whole file before returning the first line. Run it from a folder named `get_next_line`, or with `mini -get_next_line` from any folder.
 
 
 ## Updating

@@ -9,6 +9,67 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-03
+
+### Added
+- First-cut `get_next_line` suite, checked against subject v14.3.
+  `setup`: the three required files, header include guard, the
+  `README.md` the subject requires (italic first line, Description,
+  Instructions and Resources sections), prototype, builds with every tested
+  `BUFFER_SIZE` (1, 2, 5, 42, 9999, 10000000) and without
+  `-D BUFFER_SIZE`, no global variables (a file-scope `static` counts),
+  no functions beyond `read`/`malloc`/`free`. `mandatory`: 13
+  regular-file cases (empty file, missing final `'\n'`, only newlines,
+  10000-character lines, 100 lines, every line length from 1 to 60),
+  standard input and pipes (including a pipe that stays open, which fails
+  an implementation that reads ahead past the first line), and invalid
+  fds and `read()` errors. `bonus`: the same file checks on the `_bonus`
+  files, at most one static variable, and five interleaved multiple-fd
+  cases. Every case runs in a forked child with a 5-second limit, built
+  with AddressSanitizer like every other mini test; a case that hits a
+  memory error names its kind (e.g. `heap-use-after-free`). Leaks, unfreeable
+  lines and reading the whole input on the first call fail; they are
+  caught by recompiling the student's files with `malloc`/`free`/`read`
+  rerouted to counters in the test driver. Smaller over-reads, and calls
+  to `memset`/`memcpy`/`memmove`/`bzero` (which the compiler can
+  generate), only print a `[!]` warning, as does a passing case that
+  takes more than 1 second (where gnlTester would report TIMEOUT). A case
+  that times out skips the remaining cases and buffer sizes of that test.
+- Test cases from [Tripouille/gnlTester](https://github.com/Tripouille/gnlTester)
+  ported into the get_next_line suite and run with every `BUFFER_SIZE`:
+  `mandatory/gnltester.sh` (invalid fds; `files/empty`, `nl`, `41`/`42`/
+  `43_no_nl` and `_with_nl` around a 42-byte buffer, `multiple_nlx5`,
+  `multiple_line_*`, `alternate_line_nl_*`, the 10000-character
+  `big_line_*`; stdin; and, at `BUFFER_SIZE=42`, a `read()` on the fd
+  after the first line of `42_with_nl` must still return `'1'`) and
+  `bonus/gnltester_bonus.sh` (its multiple-fd sequence with never-opened
+  fds 1000 to 1007 in between). Checked against gnlTester itself: both
+  pass a correct implementation and fail the same broken ones.
+- Runner timeout: every test file (`.c` and `.sh`) runs in its own
+  process group and is killed after `TEST_TIMEOUT` seconds (60, in
+  `config.sh`) or on Ctrl-C; the FAIL line says `(timed out after 60s)`
+  or names the crash signal, e.g. `(crashed: SIGSEGV)`. Sanitizer reports
+  from `.sh` tests are now a Memory fail too.
+- `README.md`: get_next_line row marked First cut, a note on how the
+  suite works, and its three `[!]` warnings listed under Known strictness
+  exceptions. The credits now name both of Tripouille's testers
+  (libftTester for libft, gnlTester for get_next_line).
+
+### Changed
+- `test.sh` adds `exitcode=86` to `ASAN_OPTIONS`, so the get_next_line
+  harness can tell a sanitizer report in a forked case from an ordinary
+  failure. libft is unaffected: memory errors are still detected from the
+  report on stderr.
+- The `AddressSanitizer:DEADLYSIGNAL` line printed before a crash report
+  no longer leaks into a failing test's output.
+- The `bonus` part now always runs last, after any custom-named
+  mandatory part.
+- `[!]` warnings from a passing `.sh` test are now shown, as they already
+  were for `.c` tests.
+- `check_prototypes` (in `utils/proto_check.sh`) now takes the student's
+  header filename as its first argument instead of hardcoding `libft.h`.
+  The libft call sites pass `"libft.h"`; behavior unchanged.
+
 ## [2.3.0] - 2026-10-02
 
 ### Changed
