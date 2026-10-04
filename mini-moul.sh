@@ -75,18 +75,59 @@ detect_assignment() {
 }
 
 print_usage() {
-  printf "Usage: mini [-<suite>] [function ...]\n"
-  printf "  mini                     run every test for the suite named after this folder\n"
-  printf "  mini ft_strlen ft_split  run only these functions (the ft_ prefix is optional)\n"
-  printf "  mini -libft strlen       pick the suite explicitly, for a folder with another name\n"
+  printf "Usage: mini [-<suite>] [--show] [function ...]\n"
+  printf "       mini [-<suite>] --try <function> [arg ...]\n"
+  printf "\n"
+  printf "  mini                       run every test for the suite named after this folder\n"
+  printf "  mini ft_strlen ft_split    run only these functions (the ft_ prefix is optional)\n"
+  printf "  mini -libft strlen         pick the suite explicitly, for a folder with another name\n"
+  printf "  mini --show [function ...] also print every case of a passing test, not only failures\n"
+  printf "  mini --try strlen \"hello\"  call one function with your own arguments (libft only)\n"
+  printf "  mini -h, --help            show this help\n"
+  printf "\n"
+  printf "Arguments for --try (quote each one):\n"
+  printf "  string   decoded escapes: \\\\n \\\\t \\\\0 \\\\xHH ...; @null passes NULL\n"
+  printf "  number   base 10, e.g. 42 or -1 (-1 as a size_t is SIZE_MAX)\n"
+  printf "  char     one character is taken as is ('a', ' ', '7'); anything longer is its value (0, 200, -1)\n"
+  printf "  list     ft_lst* functions take one argument per node\n"
+  printf "  callback ft_strmapi, ft_striteri, ft_lstiter, ft_lstmap take toupper, tolower, addindex or digit\n"
+  printf "A wrong number of arguments prints what that function takes. Examples:\n"
+  printf "  mini --try memchr 'ab\\\\0cd' c 5\n"
+  printf "  mini --try substr \"hello world\" 6 5\n"
+  printf "  mini --try strmapi \"hello\" toupper\n"
+  printf "  mini --try lstsize a b c\n"
 }
 
-# Optional -<suite> first, then any number of function names
+# Options first (-<suite>, --show, --try, in any order), then function
+# names. With --try the first name is the function and everything after it
+# is passed to it as is, so an argument like -1 is not read as an option.
 assignment_flag=""
-case "$1" in
-  -h|--help) print_usage; exit 0 ;;
-  -*) assignment_flag="${1#-}"; shift ;;
-esac
+mode=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help) print_usage; exit 0 ;;
+    --show|--try)
+      if [ -n "$mode" ] && [ "$mode" != "$1" ]; then
+        printf "${RED}--show and --try cannot be used together.${DEFAULT}\n"
+        exit 1
+      fi
+      mode="$1"
+      shift
+      ;;
+    --*)
+      printf "${RED}Unknown option '$1'.${DEFAULT}\n"
+      print_usage
+      exit 1
+      ;;
+    -*) assignment_flag="${1#-}"; shift ;;
+    *) break ;;
+  esac
+done
+
+if [ "$mode" = "--try" ] && [ $# -eq 0 ]; then
+  printf "${RED}--try needs a function name, e.g. mini --try strlen \"hello\".${DEFAULT}\n"
+  exit 1
+fi
 
 check_for_updates
 
@@ -94,7 +135,7 @@ if detect_assignment; then
   cp -R ~/mini-moulinette/mini-moul mini-moul
   trap handle_sigint SIGINT
   cd mini-moul
-  ./test.sh "$assignment" "$@"
+  ./test.sh $mode "$assignment" "$@"
   rm -R ../mini-moul
 else
   if [ -n "$assignment_flag" ]; then
