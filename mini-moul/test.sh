@@ -234,9 +234,13 @@ run_test()
         passed=$((passed+1))
         [ $selected_mode -eq 1 ] && selected_passed=$((selected_passed+1))
         printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${name}\n"
-        case "$output" in
-            *"[!]"*) printf '%s\n' "$output" | grep -F '[!]' ;;
-        esac
+        if [ $show_cases -eq 1 ]; then
+            [ -n "$output" ] && printf '%s\n' "$output"
+        else
+            case "$output" in
+                *"[!]"*) printf '%s\n' "$output" | grep -F '[!]' ;;
+            esac
+        fi
     else
         [ $part_is_bonus -eq 0 ] && break_score=1
         score_false=1
@@ -244,6 +248,93 @@ run_test()
         [ -n "$output" ] && printf '%s\n' "$output"
     fi
     rm -f asan_report.tmp
+}
+
+# --show: print every case line of a passing test, not only [!] warnings
+show_cases=0
+
+# try_main <suite> <function> [arg ...]
+# --try: builds the manual driver try/<suite>/<function>.c against the
+# student's objects and runs it with the given arguments, under the same
+# AddressSanitizer flags, timeout and Memory fail reporting as a test. The
+# objects go into an archive so only the ones the call needs are linked.
+try_main()
+{
+    local suite=$1 try_fn=$2 try_dir="$SCRIPT_DIR/try/$1" fail_detail code note
+    local memory_error test_err status_file=.test_status bin=try_bin
+    if [ ! -d "$try_dir" ]; then
+        printf "${RED}Manual testing (--try) is not available for '%s'. Available for: %s${DEFAULT}\n" \
+            "$suite" "$(ls "$SCRIPT_DIR/try" | grep -v '\.h$' | tr '\n' ' ')"
+        exit 1
+    fi
+    if [ -z "$try_fn" ]; then
+        printf "${RED}--try needs a function name, e.g. mini --try strlen \"hello\".${DEFAULT}\n"
+        exit 1
+    fi
+    case "$try_fn" in
+        ft_*) ;;
+        *) try_fn="ft_$try_fn" ;;
+    esac
+    if [ ! -f "$try_dir/$try_fn.c" ]; then
+        printf "${RED}No manual test for '%s' in %s.${DEFAULT}\n" "$try_fn" "$suite"
+        printf "Available functions:\n"
+        for name in "$try_dir"/*.c; do
+            basename "${name%.c}"
+        done | sort | tr '\n' ' '
+        printf "\n"
+        exit 1
+    fi
+    shift 2
+
+    build_student_objects "$SCRIPT_DIR/tests/$suite"
+    fail_detail="$(student_compile_error "$try_fn")"
+    if [ -n "$fail_detail" ]; then
+        printf "${RED}Your ${try_fn}.c cannot compile:${DEFAULT}\n"
+        sed 's/^/    /' "$fail_detail" | head -15
+        rm -rf "$OBJ_DIR"
+        exit 1
+    elif ! student_src_exists "$try_fn"; then
+        printf "${RED}No ${try_fn}.c found in your project.${DEFAULT}\n"
+        rm -rf "$OBJ_DIR"
+        exit 1
+    fi
+    rm -f "$OBJ_DIR/libstudent.a"
+    ar rcs "$OBJ_DIR/libstudent.a" "${student_objs[@]}"
+    if ! cc $CC_FLAGS -o "$bin" "$try_dir/$try_fn.c" "$SCRIPT_DIR/utils/unbuffered_stdout.c" \
+        "$OBJ_DIR/libstudent.a" 2> compile_error.tmp; then
+        printf "${RED}Cannot build the manual test for ${try_fn}:${DEFAULT}\n"
+        sed 's/^/    /' compile_error.tmp | head -15
+        rm -rf "$OBJ_DIR" compile_error.tmp
+        exit 1
+    fi
+    rm -rf "$OBJ_DIR" compile_error.tmp
+
+    # stdout goes straight to the terminal; stderr is kept to find a
+    # sanitizer report, and the rest of it is shown afterwards
+    rm -f "$status_file"
+    run_limited "$status_file" "./$bin" "$@" 2> asan_report.tmp < /dev/null
+    code=$?
+    note=""
+    if [ -f "$status_file" ]; then
+        case "$(cat "$status_file")" in
+            timeout) note="timed out after ${TEST_TIMEOUT}s" ;;
+            *) note="crashed: $(cat "$status_file")" ;;
+        esac
+        rm -f "$status_file"
+    fi
+    memory_error="$(memory_error_kind asan_report.tmp)"
+    test_err="$(sed -e '/^=================================================================$/,$d' \
+        -e '/^AddressSanitizer:DEADLYSIGNAL$/d' asan_report.tmp)"
+    [ -n "$test_err" ] && printf '%s\n' "$test_err"
+    if [ -n "$memory_error" ]; then
+        printf "  ${RED}Memory fail: %s${DEFAULT}\n" "$(memory_error_detail asan_report.tmp)"
+        code=1
+    elif [ -n "$note" ]; then
+        printf "  ${RED}%s${DEFAULT}\n" "$note"
+        code=1
+    fi
+    rm -f asan_report.tmp "$bin"
+    exit $code
 }
 
 # Functions requested on the command line (./test.sh libft ft_strlen split).
@@ -525,6 +616,12 @@ check_dependency()
 }
 
 #check_dependency
+# ./test.sh [--show] <suite> [function ...]
+# ./test.sh --try <suite> <function> [arg ...]
+case "$1" in
+    --show) show_cases=1; shift ;;
+    --try) shift; try_main "$@" ;;
+esac
 if [ "${1}" = "" ]; then
     printf "Please select a project. e.g. './test.sh libft' or './test.sh libft ft_strlen'\n"
     exit 1

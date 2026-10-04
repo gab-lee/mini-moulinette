@@ -79,10 +79,50 @@ Pass function names to run only those tests. The `ft_` prefix is optional, and T
 mini strlen            # only ft_strlen
 mini ft_split substr   # several functions
 mini -libft strlen     # pick the suite yourself when your folder has another name
-mini -h                # usage
+mini -h                # usage, including --show and --try
 ```
 
 A run limited to some functions skips the setup checks (Makefile, `libft.h`, prototypes) and shows how many of the chosen functions passed instead of a score. Run `mini` with no names for the full graded suite.
+
+### Showing every test case
+
+By default a passing function prints only its PASS line. Add `--show` to also print every case it ran:
+
+```bash
+mini --show            # whole suite, every case
+mini --show strlen     # every case of ft_strlen
+```
+
+### Trying a function by hand (libft)
+
+`--try` calls one of your functions with your own arguments and prints what it returned, next to the real libc result when there is one (`ft_strlcpy`, `ft_strlcat` and `ft_strnstr` are compared with a BSD reference, since not every libc has them):
+
+```bash
+mini --try strlen "hello"
+mini --try memchr 'ab\0cd' c 5
+mini --try substr "hello world" 6 5
+mini --try strmapi "hello" toupper
+mini --try lstsize a b c
+```
+
+```
+ft_strlen("hello")
+  ft     5
+  libc   5
+  ✓ same result as libc
+```
+
+Each argument is one shell word, so quote anything with spaces:
+
+- **string**: `\n`, `\t`, `\0`, `\xHH` and the other C escapes are decoded (use single quotes so the shell leaves the backslash alone). `@null` passes a `NULL` pointer.
+- **number**: base 10, e.g. `42` or `-1`. A negative `size_t` wraps, so `-1` is `SIZE_MAX`.
+- **char**: one character is taken as is (`a`, `' '`, `7` is `'7'`); anything longer is its value (`0`, `200`, `-1`). `\0` is the NUL byte.
+- **buffers** (`ft_memset`, `ft_memcpy`, `ft_bzero`, ...) are exactly as big as the string you give plus its NUL, so going past the end is reported. `ft_memmove` takes one buffer and two offsets into it, so you can test overlapping copies.
+- **lists** (`ft_lst*`): one argument per node. `ft_lstadd_front`/`ft_lstadd_back` take the new node first.
+- **callbacks** (`ft_strmapi`, `ft_striteri`, `ft_lstiter`, `ft_lstmap`): `toupper`, `tolower`, `addindex` (adds the index to the character) or `digit` (replaces it with its index's last digit).
+- **fd** (`ft_put*_fd`): optional, default `1`. Output to fd 1 is captured and shown escaped; other fds are written to directly.
+
+A wrong number of arguments prints what that function takes. `--try` runs under AddressSanitizer like the tests, so a crash, leak or overflow in the call is reported as a `Memory fail`.
 
 
 ## Memory Safety

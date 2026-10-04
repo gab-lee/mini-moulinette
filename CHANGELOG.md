@@ -9,6 +9,21 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-04
+
+### Added
+- `mini --show [function ...]`: prints every case of a passing test, not
+  only its PASS line and `[!]` warnings.
+- `mini --try <function> [arg ...]` (libft): calls one function with your
+  own arguments and prints its result next to libc's (or a BSD reference
+  for `ft_strlcpy`, `ft_strlcat`, `ft_strnstr`, `printf` for `ft_itoa` and
+  the `ft_put*_fd` output, the expected result for lists and callbacks).
+  Strings decode C escapes and `@null`; buffers are sized exactly, so an
+  overflow is caught; runs under AddressSanitizer with the same Memory fail
+  reporting as the tests. One driver per function in `mini-moul/try/libft/`.
+- `mini -h` documents both options and the `--try` argument formats; tab
+  completion offers `--show`, `--try` and `--help`.
+
 ## [2.4.1] - 2026-10-03
 
 ### Fixed

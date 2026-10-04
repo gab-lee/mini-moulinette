@@ -5,7 +5,10 @@
 #   mini                   whole suite for the folder you're in
 #   mini strlen split      only these functions (ft_ prefix optional)
 #   mini -libft strlen     pick the suite explicitly
-# Tab completes suites after `-` and the suite's function names.
+#   mini --show strlen     also print every case of a passing test
+#   mini --try strlen "hi" call one function with your own arguments
+# Tab completes the options, suites after `-` and the suite's function
+# names (only the function after --try, not its arguments).
 
 unalias mini 2> /dev/null
 mini()
@@ -15,15 +18,33 @@ mini()
 
 _mini_complete()
 {
-	local cur tests suite words name
+	local cur tests suite words name w i options try
 	cur="${COMP_WORDS[COMP_CWORD]}"
 	tests=~/mini-moulinette/mini-moul/tests
 	suite="$(basename "$PWD")"
-	case "${COMP_WORDS[1]}" in
-		-*) [ "$COMP_CWORD" -gt 1 ] && suite="${COMP_WORDS[1]#-}" ;;
-	esac
+	options=1
+	try=0
+	i=1
+	while [ "$i" -lt "$COMP_CWORD" ]; do
+		w="${COMP_WORDS[$i]}"
+		case "$w" in
+			--try) [ "$options" -eq 1 ] && try=1 ;;
+			--*) ;;
+			-*) [ "$options" -eq 1 ] && suite="${w#-}" ;;
+			*)
+				# After --try <function>, the rest are its arguments
+				if [ "$try" -eq 1 ]; then
+					COMPREPLY=()
+					return
+				fi
+				options=0
+				;;
+		esac
+		i=$((i + 1))
+	done
 	words=""
-	if [ "$COMP_CWORD" -eq 1 ]; then
+	if [ "$options" -eq 1 ]; then
+		words="--show --try --help"
 		for name in $(ls "$tests" 2> /dev/null); do
 			words="$words -$name"
 		done
