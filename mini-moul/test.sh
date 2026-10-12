@@ -195,6 +195,12 @@ run_limited()
     ' "$TEST_TIMEOUT" "$@"
 }
 
+# now_ms: milliseconds since the epoch (date +%s%N is not portable to macOS)
+now_ms()
+{
+    perl -MTime::HiRes=time -e 'printf "%d", time * 1000'
+}
+
 # run_test <name> <command...>
 # Runs one test (a .c test binary or a .sh check script) under run_limited
 # and prints its PASS/FAIL line. Exit 0 is a PASS; [!] lines in a passing
@@ -206,11 +212,15 @@ run_test()
     local name=$1
     shift
     local status_file=.test_status
-    local output code note="" memory_error test_err
+    local output code note="" memory_error test_err started took_ms took=""
 
     rm -f "$status_file"
+    started=$(now_ms)
     output="$(run_limited "$status_file" "$@" 2> asan_report.tmp < /dev/null)"
     code=$?
+    took_ms=$(( $(now_ms) - started ))
+    [ $show_time -eq 1 ] && took="$(printf " ${GREY}(%d.%ds)${DEFAULT}" \
+        $((took_ms / 1000)) $((took_ms % 1000 / 100)))"
     if [ -f "$status_file" ]; then
         case "$(cat "$status_file")" in
             timeout) note=" (timed out after ${TEST_TIMEOUT}s)" ;;
@@ -227,13 +237,17 @@ run_test()
     if [ -n "$memory_error" ]; then
         [ $part_is_bonus -eq 0 ] && break_score=1
         score_false=1
-        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name} ${RED}Memory fail (%s)${DEFAULT}\n" "$memory_error"
+        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name} ${RED}Memory fail (%s)${DEFAULT}%s\n" "$memory_error" "$took"
         [ -n "$output" ] && printf '%s\n' "$output"
         printf "    ${RED}Memory fail: %s${DEFAULT}\n" "$(memory_error_detail asan_report.tmp)"
     elif [ $code -eq 0 ]; then
         passed=$((passed+1))
         [ $selected_mode -eq 1 ] && selected_passed=$((selected_passed+1))
-        printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${name}\n"
+        printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${name}%s\n" "$took"
+        if [ $show_time -eq 1 ] && [ $took_ms -ge $((SLOW_TEST_SECONDS * 1000)) ]; then
+            printf "  ${YELLOW}[!] took over %ds; mini stops a test after %ds${DEFAULT}\n" \
+                "$SLOW_TEST_SECONDS" "$TEST_TIMEOUT"
+        fi
         if [ $show_cases -eq 1 ]; then
             [ -n "$output" ] && printf '%s\n' "$output"
         else
@@ -244,7 +258,7 @@ run_test()
     else
         [ $part_is_bonus -eq 0 ] && break_score=1
         score_false=1
-        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name}${RED}${note}${DEFAULT}\n"
+        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name}${RED}${note}${DEFAULT}%s\n" "$took"
         [ -n "$output" ] && printf '%s\n' "$output"
     fi
     rm -f asan_report.tmp
@@ -252,6 +266,9 @@ run_test()
 
 # --show: print every case line of a passing test, not only [!] warnings
 show_cases=0
+
+# get_next_line: print each test's duration on its PASS/FAIL line
+show_time=0
 
 # try_main <suite> <function> [arg ...]
 # --try: builds the manual driver try/<suite>/<function>.c against the
@@ -394,6 +411,7 @@ main()
         
         if [ -d "$dir" ] && [ "$dirname" == "$1" ]; then
             dirname_found=1
+            [ "$dirname" = "get_next_line" ] && show_time=1
             select_functions "$dir" "${@:2}"
             print_header
             printf "${GREEN} Generating test for ${1}...\n${DEFAULT}"

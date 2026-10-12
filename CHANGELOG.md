@@ -9,6 +9,13 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-12
+
+### Added
+- get_next_line: each test's PASS/FAIL line shows how long it took, and a
+  passing test slower than 30 seconds (`SLOW_TEST_SECONDS`, half of the
+  60-second `TEST_TIMEOUT`) gets a `[!]` warning.
+
 ## [2.5.0] - 2026-10-04
 
 ### Added
