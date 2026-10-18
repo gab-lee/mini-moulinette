@@ -68,6 +68,42 @@ gnl_check_files()
 	return $error
 }
 
+# gnl_check_readme
+# The subject (chapter V) requires a README.md at the root of the
+# repository whose first line is italic and reads "This project has been
+# created as part of the 42 curriculum by <login>...", with Description,
+# Instructions and Resources sections. The detailed explanation of the
+# algorithm it also asks for can't be checked by a script.
+gnl_check_readme()
+{
+	local readme=../README.md first section i=3 error=0
+
+	if [ ! -f "$readme" ]; then
+		printf "    ${RED}[1] README.md is missing at the root of your project (the subject requires one)${DEFAULT}\n"
+		return 1
+	fi
+	printf "  ${GREEN}${CHECKMARK}${GREY} [1] README.md exists${DEFAULT}\n"
+	first="$(grep -v '^[[:space:]]*$' "$readme" | head -1 | tr -d '\r')"
+	if printf '%s\n' "$first" | grep -qE '^([*]This project has been created as part of the 42 curriculum by .+[*]|_This project has been created as part of the 42 curriculum by .+_)[[:space:]]*$' \
+		&& ! printf '%s\n' "$first" | grep -q '^[*][*]'; then
+		printf "  ${GREEN}${CHECKMARK}${GREY} [2] first line is the italic \"This project has been created as part of the 42 curriculum by ...\"${DEFAULT}\n"
+	else
+		printf "    ${RED}[2] the first line must be italic and read: *This project has been created as part of the 42 curriculum by <login>*${DEFAULT}\n"
+		printf "    ${RED}    yours: %s${DEFAULT}\n" "$first"
+		error=1
+	fi
+	for section in Description Instructions Resources; do
+		if grep -qiE "^#{1,6}[[:space:]]*${section}" "$readme"; then
+			printf "  ${GREEN}${CHECKMARK}${GREY} [$i] has the \"%s\" section${DEFAULT}\n" "$section"
+		else
+			printf "    ${RED}[$i] no \"%s\" section (a markdown heading such as ## %s)${DEFAULT}\n" "$section" "$section"
+			error=1
+		fi
+		i=$((i+1))
+	done
+	return $error
+}
+
 # gnl_build <mandatory|bonus>
 # Compiles the student's files once per size in GNL_SIZES and links each
 # build with the driver. Objects are built twice: plainly (to report real
@@ -157,9 +193,14 @@ gnl_build()
 gnl_run()
 {
 	local variant=$1 scenario=$2 error=0 plain_note=0 bs bin mode num
-	local where=setup
+	local where=setup slow_mark="$GNL_BUILD/.slow_reported"
 
 	[ "$variant" = "bonus" ] && where=compile_bonus
+	rm -f "$slow_mark"
+	if ! ls "$GNL_BUILD/$variant"/gnl_* > /dev/null 2>&1; then
+		printf "    ${RED}not compiled for any BUFFER_SIZE, see %s${DEFAULT}\n" "$where"
+		return 1
+	fi
 	for bs in $GNL_SIZES; do
 		bin="$GNL_BUILD/$variant/gnl_$bs"
 		if [ ! -x "$bin" ]; then
@@ -174,8 +215,20 @@ gnl_run()
 		fi
 		num=$bs
 		[ "$bs" = "default" ] && num=0
-		"$bin" "$scenario" "$(gnl_label "$bs")" "$num" "$mode" || error=1
+		GNL_SLOW_MARK="$slow_mark" "$bin" "$scenario" "$(gnl_label "$bs")" "$num" "$mode"
+		case $? in
+			0) ;;
+			3)
+				# A case timed out: the other sizes would most likely time
+				# out too, and together outlast test.sh's TEST_TIMEOUT
+				error=1
+				printf "    ${RED}(skipped the remaining BUFFER_SIZEs after the timeout)${DEFAULT}\n"
+				break
+				;;
+			*) error=1 ;;
+		esac
 	done
+	rm -f "$slow_mark"
 	if [ $plain_note -eq 1 ]; then
 		printf "  ${YELLOW}[!] your files could not be built with mini-moulinette's malloc/free/read counters, so leak and read() checks were skipped${DEFAULT}\n"
 	fi

@@ -9,7 +9,7 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
-## [2.4.0] - 2026-10-02
+## [2.6.0] - 2026-10-18
 
 ### Added
 - First-cut `ft_printf` suite. `setup`: the Makefile builds
@@ -26,8 +26,66 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   sanitizer error is reported against its case instead of ending the test
   file. The child exits through `exit()`, so LeakSanitizer reports memory
   `ft_printf` leaked as a Memory fail.
-- First-cut `get_next_line` suite. `setup`: the three required files,
-  header include guard, prototype, builds with every tested
+- Runner library mode: a `tests/<assignment>/library` file (ft_printf:
+  `libftprintf.a`) makes every `.c` test link against the library the
+  student's Makefile builds instead of compiling the student's sources.
+  Only a library built by this run's `make` is tested, never a stale one.
+  The runner runs `make bonus` before the `bonus` part and fails the part
+  if it fails.
+- get_next_line: each test's PASS/FAIL line shows how long it took, and a
+  passing test slower than 30 seconds (`SLOW_TEST_SECONDS`, half of the
+  60-second `TEST_TIMEOUT`) gets a `[!]` warning.
+- `README.md`: a one-line description of every Common Core project, one
+  row per project instead of grouping alternatives, plus libasm; a note on
+  how the ft_printf suite works.
+
+### Changed
+- get_next_line: the cases ported from Tripouille/gnlTester are now cases
+  of the main tests instead of separate `gnltester` and `gnltester_bonus`
+  tests: its files and stdin cases run in `read_file`/`read_stdin` (and
+  `read_file_bonus`), its invalid fds in `invalid_fd`, and its multiple-fd
+  sequence in `multiple_fd`.
+- The `exitcode=86` that `test.sh` adds to `ASAN_OPTIONS` is now also read
+  by the ft_printf harness to tell a sanitizer report in a forked case
+  from an ordinary failure.
+- `README.md`: push_swap moved to Circle 1 and Born2beroot to Circle 2;
+  the roadmap lists ft_printf, get_next_line and push_swap on separate
+  lines; the "Credits" section is merged into "Authors".
+
+### Removed
+- `README.md`: the "Cross-tested against 42 submissions" column, the
+  "Looking for piscine tests?" note, and the roadmap disclaimer about not
+  having started the Cursus.
+
+## [2.5.0] - 2026-10-04
+
+### Added
+- `mini --show [function ...]`: prints every case of a passing test, not
+  only its PASS line and `[!]` warnings.
+- `mini --try <function> [arg ...]` (libft): calls one function with your
+  own arguments and prints its result next to libc's (or a BSD reference
+  for `ft_strlcpy`, `ft_strlcat`, `ft_strnstr`, `printf` for `ft_itoa` and
+  the `ft_put*_fd` output, the expected result for lists and callbacks).
+  Strings decode C escapes and `@null`; buffers are sized exactly, so an
+  overflow is caught; runs under AddressSanitizer with the same Memory fail
+  reporting as the tests. One driver per function in `mini-moul/try/libft/`.
+- `mini -h` documents both options and the `--try` argument formats; tab
+  completion offers `--show`, `--try` and `--help`.
+
+## [2.4.1] - 2026-10-03
+
+### Fixed
+- get_next_line: the test driver failed to compile on macOS, where the SDK
+  marks `sprintf` deprecated and `-Werror` turns that into an error, so
+  every get_next_line test failed. It now uses `snprintf`.
+
+## [2.4.0] - 2026-10-03
+
+### Added
+- First-cut `get_next_line` suite, checked against subject v14.3.
+  `setup`: the three required files, header include guard, the
+  `README.md` the subject requires (italic first line, Description,
+  Instructions and Resources sections), prototype, builds with every tested
   `BUFFER_SIZE` (1, 2, 5, 42, 9999, 10000000) and without
   `-D BUFFER_SIZE`, no global variables (a file-scope `static` counts),
   no functions beyond `read`/`malloc`/`free`. `mandatory`: 13
@@ -38,33 +96,40 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   fds and `read()` errors. `bonus`: the same file checks on the `_bonus`
   files, at most one static variable, and five interleaved multiple-fd
   cases. Every case runs in a forked child with a 5-second limit, built
-  with AddressSanitizer like every other mini test. Leaks, unfreeable
+  with AddressSanitizer like every other mini test; a case that hits a
+  memory error names its kind (e.g. `heap-use-after-free`). Leaks, unfreeable
   lines and reading the whole input on the first call fail; they are
   caught by recompiling the student's files with `malloc`/`free`/`read`
   rerouted to counters in the test driver. Smaller over-reads, and calls
   to `memset`/`memcpy`/`memmove`/`bzero` (which the compiler can
-  generate), only print a `[!]` warning.
-- Runner library mode: a `tests/<assignment>/library` file (ft_printf:
-  `libftprintf.a`) makes every `.c` test link against the library the
-  student's Makefile builds instead of compiling the student's sources.
-  Only a library built by this run's `make` is tested, never a stale one.
-  The runner runs `make bonus` before the `bonus` part and fails the part
-  if it fails.
+  generate), only print a `[!]` warning, as does a passing case that
+  takes more than 1 second (where gnlTester would report TIMEOUT). A case
+  that times out skips the remaining cases and buffer sizes of that test.
+- Test cases from [Tripouille/gnlTester](https://github.com/Tripouille/gnlTester)
+  ported into the get_next_line suite and run with every `BUFFER_SIZE`:
+  `mandatory/gnltester.sh` (invalid fds; `files/empty`, `nl`, `41`/`42`/
+  `43_no_nl` and `_with_nl` around a 42-byte buffer, `multiple_nlx5`,
+  `multiple_line_*`, `alternate_line_nl_*`, the 10000-character
+  `big_line_*`; stdin; and, at `BUFFER_SIZE=42`, a `read()` on the fd
+  after the first line of `42_with_nl` must still return `'1'`) and
+  `bonus/gnltester_bonus.sh` (its multiple-fd sequence with never-opened
+  fds 1000 to 1007 in between). Checked against gnlTester itself: both
+  pass a correct implementation and fail the same broken ones.
 - Runner timeout: every test file (`.c` and `.sh`) runs in its own
   process group and is killed after `TEST_TIMEOUT` seconds (60, in
   `config.sh`) or on Ctrl-C; the FAIL line says `(timed out after 60s)`
   or names the crash signal, e.g. `(crashed: SIGSEGV)`. Sanitizer reports
   from `.sh` tests are now a Memory fail too.
-- `README.md`: a one-line description of every Common Core project, one
-  row per project instead of grouping alternatives, plus libasm; notes on
-  how the ft_printf and get_next_line suites work; the two get_next_line
-  `[!]` warnings listed under Known strictness exceptions.
+- `README.md`: get_next_line row marked First cut, a note on how the
+  suite works, and its three `[!]` warnings listed under Known strictness
+  exceptions. The credits now name both of Tripouille's testers
+  (libftTester for libft, gnlTester for get_next_line).
 
 ### Changed
-- `test.sh` adds `exitcode=86` to `ASAN_OPTIONS`, so the ft_printf and
-  get_next_line harnesses can tell a sanitizer report in a forked case
-  from an ordinary failure. libft is unaffected: memory errors are still
-  detected from the report on stderr.
+- `test.sh` adds `exitcode=86` to `ASAN_OPTIONS`, so the get_next_line
+  harness can tell a sanitizer report in a forked case from an ordinary
+  failure. libft is unaffected: memory errors are still detected from the
+  report on stderr.
 - The `AddressSanitizer:DEADLYSIGNAL` line printed before a crash report
   no longer leaks into a failing test's output.
 - The `bonus` part now always runs last, after any custom-named
@@ -74,14 +139,6 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 - `check_prototypes` (in `utils/proto_check.sh`) now takes the student's
   header filename as its first argument instead of hardcoding `libft.h`.
   The libft call sites pass `"libft.h"`; behavior unchanged.
-- `README.md`: push_swap moved to Circle 1 and Born2beroot to Circle 2;
-  the roadmap lists ft_printf, get_next_line and push_swap on separate
-  lines; the "Credits" section is merged into "Authors".
-
-### Removed
-- `README.md`: the "Cross-tested against 42 submissions" column, the
-  "Looking for piscine tests?" note, and the roadmap disclaimer about not
-  having started the Cursus.
 
 ## [2.3.0] - 2026-10-02
 

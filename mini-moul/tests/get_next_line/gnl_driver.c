@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 #include "get_next_line_proto.h"
 #include "../../utils/constants.h"
@@ -33,6 +34,9 @@
 #define MAX_TRACKED_FD 1024
 #define DETAIL_MAX 16384
 #define MAX_SHOWN 3
+/* Tripouille/gnlTester gives each test 1 second (under valgrind) and
+** reports TIMEOUT past it; a passing case slower than this gets a [!]. */
+#define SLOW_SECONDS 1.0
 /* test.sh sets ASAN_OPTIONS exitcode=86 */
 #define ASAN_EXIT 86
 
@@ -66,6 +70,7 @@ static int	g_bad_free;
 static int	g_fail_read;
 static int	g_warned;
 static long	g_bytes_read[MAX_TRACKED_FD];
+static char	g_asan_kind[64];
 
 /* ---------------------------------------------------------------------- */
 /* Instrumentation (only reached in "instr" mode)                          */
@@ -339,6 +344,23 @@ static char	*long_line(size_t n, const char *tail)
 	return (s);
 }
 
+/* n characters cycling through the digits 0-9, then tail. */
+static char	*long_digits(size_t n, const char *tail)
+{
+	char	*s;
+	size_t	i;
+
+	s = malloc(n + strlen(tail) + 1);
+	i = 0;
+	while (i < n)
+	{
+		s[i] = '0' + i % 10;
+		i++;
+	}
+	strcpy(s + n, tail);
+	return (s);
+}
+
 static char	*numbered_lines(int count)
 {
 	char	*s;
@@ -350,7 +372,8 @@ static char	*numbered_lines(int count)
 	i = 1;
 	while (i <= count)
 	{
-		len += sprintf(s + len, "line %03d: some text\n", i);
+		len += snprintf(s + len, count * 32 + 1 - len,
+				"line %03d: some text\n", i);
 		i++;
 	}
 	return (s);
@@ -612,6 +635,198 @@ static int	case_multi(int which)
 /* Scenarios                                                               */
 /* ---------------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------- */
+/* Cases ported from Tripouille/gnlTester                                  */
+/* (https://github.com/Tripouille/gnlTester): the same file contents and   */
+/* call sequences, run with every BUFFER_SIZE and mini's checks.           */
+/* ---------------------------------------------------------------------- */
+
+typedef struct s_tri_file
+{
+	const char	*name;
+	const char	*content;
+}	t_tri_file;
+
+static const t_tri_file	g_tri_files[] = {
+	{"files/empty",
+		""},
+	{"files/nl",
+		"\n"},
+	{"files/41_no_nl",
+		"01234567890123456789012345678901234567890"},
+	{"files/41_with_nl",
+		"0123456789012345678901234567890123456789\n"
+		"0"},
+	{"files/42_no_nl",
+		"012345678901234567890123456789012345678901"},
+	{"files/42_with_nl",
+		"01234567890123456789012345678901234567890\n"
+		"1"},
+	{"files/43_no_nl",
+		"0123456789012345678901234567890123456789012"},
+	{"files/43_with_nl",
+		"012345678901234567890123456789012345678901\n"
+		"2"},
+	{"files/multiple_nlx5",
+		"\n"
+		"\n"
+		"\n"
+		"\n"
+		"\n"},
+	{"files/multiple_line_no_nl",
+		"01234567890123456789012345678901234567890\n"
+		"987654321098765432109876543210987654321098\n"
+		"0123456789012345678901234567890123456789012\n"
+		"987654321098765432109876543210987654321098\n"
+		"01234567890123456789012345678901234567890"},
+	{"files/multiple_line_with_nl",
+		"9876543210987654321098765432109876543210\n"
+		"01234567890123456789012345678901234567890\n"
+		"987654321098765432109876543210987654321098\n"
+		"01234567890123456789012345678901234567890\n"
+		"9876543210987654321098765432109876543210\n"},
+	{"files/alternate_line_nl_no_nl",
+		"98765432109876543210987654321098765432109\n"
+		"\n"
+		"012345678901234567890123456789012345678901\n"
+		"\n"
+		"9876543210987654321098765432109876543210987\n"
+		"\n"
+		"012345678901234567890123456789012345678901\n"
+		"\n"
+		"98765432109876543210987654321098765432109"},
+	{"files/alternate_line_nl_with_nl",
+		"01234567890123456789012345678901234567890\n"
+		"\n"
+		"987654321098765432109876543210987654321090\n"
+		"\n"
+		"0123456789012345678901234567890123456789012\n"
+		"\n"
+		"987654321098765432109876543210987654321090\n"
+		"\n"
+		"01234567890123456789012345678901234567890\n"},
+};
+
+#define TRI_FILES (int)(sizeof(g_tri_files) / sizeof(*g_tri_files))
+#define TRI_42_WITH_NL 5
+
+/* gnlTester's big_line_no_nl / big_line_with_nl: the digits 0-9 cycled
+** for 10000 characters, without and with a final '\n'. */
+static const char	*tri_big_line(int with_nl)
+{
+	return (long_digits(10000, with_nl ? "\n" : ""));
+}
+
+static const char	*tri_content(int which)
+{
+	if (which < TRI_FILES)
+		return (g_tri_files[which].content);
+	return (tri_big_line(which == TRI_FILES + 1));
+}
+
+/* With BUFFER_SIZE=42, the first read() of files/42_with_nl returns
+** exactly its first line, '\n' included; gnlTester then reads the fd
+** itself and expects the next byte, '1', which is only still there if
+** get_next_line did not read past the line. */
+static int	case_tri_42_exact(void)
+{
+	t_stream	s;
+	const char	*content;
+	char		c;
+
+	content = g_tri_files[TRI_42_WITH_NL].content;
+	init_stream(&s, open_content(content, strlen(content)), NULL, content);
+	if (step(&s))
+		return (1);
+	c = 0;
+	if (read(s.fd, &c, 1) != 1 || c != '1')
+	{
+		printf(RED "        after the first line, read() on the fd should "
+			"still return '1': get_next_line read past the line it "
+			"returned\n" DEFAULT);
+		return (1);
+	}
+	return (expect_null(s.fd, "the file, at its end") || check_leaks());
+}
+
+static int	case_tri_file(int which)
+{
+	t_stream	s;
+	const char	*content;
+
+	if (which == TRI_42_WITH_NL && g_bs == 42)
+		return (case_tri_42_exact());
+	content = tri_content(which);
+	init_stream(&s, open_content(content, strlen(content)), NULL, content);
+	return (read_all(&s) || check_leaks());
+}
+
+/* gnlTester's "Invalid fd" block: 1000, -1, then an fd closed after
+** opening files/empty. */
+static int	case_tri_invalid(int arg)
+{
+	int	fd;
+
+	(void)arg;
+	close(1000);
+	fd = open_content("", 0);
+	close(fd);
+	return (expect_null(1000, "1000") || expect_null(-1, "-1")
+		|| expect_null(fd, "a closed fd") || check_leaks());
+}
+
+/* gnlTester's "stdin" block: files/alternate_line_nl_with_nl on fd 0. */
+static int	case_tri_stdin(int arg)
+{
+	t_stream	s;
+	const char	*content;
+	int			fd;
+
+	(void)arg;
+	content = g_tri_files[12].content;
+	fd = open_content(content, strlen(content));
+	dup2(fd, STDIN_FILENO);
+	close(fd);
+	init_stream(&s, STDIN_FILENO, "fd 0", content);
+	return (read_all(&s) || check_leaks());
+}
+
+/* gnlTester's bonus "multiple fd" sequence: three files opened one after
+** another and read in turn, with a never-opened fd (1000 to 1007) called
+** between each read, then files/nl the same way. */
+static int	case_tri_multi(int arg)
+{
+	t_stream	s[4];
+	int			i;
+
+	(void)arg;
+	i = 1000;
+	while (i <= 1007)
+		close(i++);
+	init_stream(&s[0], open_content(g_tri_files[3].content,
+			strlen(g_tri_files[3].content)), "files/41_with_nl",
+		g_tri_files[3].content);
+	if (expect_null(1000, "1000") || step(&s[0]))
+		return (1);
+	init_stream(&s[1], open_content(g_tri_files[5].content,
+			strlen(g_tri_files[5].content)), "files/42_with_nl",
+		g_tri_files[5].content);
+	if (expect_null(1001, "1001") || step(&s[1]))
+		return (1);
+	init_stream(&s[2], open_content(g_tri_files[7].content,
+			strlen(g_tri_files[7].content)), "files/43_with_nl",
+		g_tri_files[7].content);
+	if (expect_null(1002, "1002") || step(&s[2])
+		|| expect_null(1003, "1003") || step(&s[0])
+		|| expect_null(1004, "1004") || step(&s[1])
+		|| expect_null(1005, "1005") || step(&s[2])
+		|| step(&s[0]) || step(&s[1]) || step(&s[2]) || check_leaks())
+		return (1);
+	init_stream(&s[3], open_content("\n", 1), "files/nl", "\n");
+	return (expect_null(1006, "1006") || step(&s[3])
+		|| expect_null(1007, "1007") || step(&s[3]) || check_leaks());
+}
+
 #define PIPE_HINT "get_next_line kept calling read() after it already had \
 a full line, and a pipe waits for input that has not been written yet; \
 return the line as soon as you find its '\\n'"
@@ -660,6 +875,67 @@ static const t_case	g_multi_cases[] = {
 		case_multi, 4, NULL},
 };
 
+/* Passes a case's captured stderr through to ours (test.sh turns a
+** sanitizer report there into the Memory fail line) and records the
+** report's error kind, e.g. "heap-use-after-free", in g_asan_kind. */
+static void	forward_stderr(const char *path)
+{
+	FILE	*f;
+	char	line[512];
+	char	*kind;
+	size_t	len;
+
+	g_asan_kind[0] = '\0';
+	f = fopen(path, "r");
+	if (f == NULL)
+		return ;
+	while (fgets(line, sizeof(line), f))
+	{
+		fputs(line, stderr);
+		kind = strstr(line, "ERROR: AddressSanitizer: ");
+		if (kind && g_asan_kind[0] == '\0')
+		{
+			kind += strlen("ERROR: AddressSanitizer: ");
+			len = strcspn(kind, " \n");
+			if (len >= sizeof(g_asan_kind))
+				len = sizeof(g_asan_kind) - 1;
+			memcpy(g_asan_kind, kind, len);
+			g_asan_kind[len] = '\0';
+		}
+		else if (strstr(line, "ERROR: LeakSanitizer") && g_asan_kind[0] == '\0')
+			strcpy(g_asan_kind, "memory leak");
+	}
+	fclose(f);
+	fflush(stderr);
+}
+
+static const t_case	g_tri_cases[] = {
+	{"gnlTester: invalid fds (1000, -1, a closed fd)", case_tri_invalid, 0,
+		NULL},
+	{"gnlTester: files/empty", case_tri_file, 0, NULL},
+	{"gnlTester: files/nl", case_tri_file, 1, NULL},
+	{"gnlTester: files/41_no_nl", case_tri_file, 2, NULL},
+	{"gnlTester: files/41_with_nl", case_tri_file, 3, NULL},
+	{"gnlTester: files/42_no_nl", case_tri_file, 4, NULL},
+	{"gnlTester: files/42_with_nl", case_tri_file, 5, NULL},
+	{"gnlTester: files/43_no_nl", case_tri_file, 6, NULL},
+	{"gnlTester: files/43_with_nl", case_tri_file, 7, NULL},
+	{"gnlTester: files/multiple_nlx5", case_tri_file, 8, NULL},
+	{"gnlTester: files/multiple_line_no_nl", case_tri_file, 9, NULL},
+	{"gnlTester: files/multiple_line_with_nl", case_tri_file, 10, NULL},
+	{"gnlTester: files/alternate_line_nl_no_nl", case_tri_file, 11, NULL},
+	{"gnlTester: files/alternate_line_nl_with_nl", case_tri_file, 12, NULL},
+	{"gnlTester: files/big_line_no_nl", case_tri_file, 13, NULL},
+	{"gnlTester: files/big_line_with_nl", case_tri_file, 14, NULL},
+	{"gnlTester: stdin (files/alternate_line_nl_with_nl)", case_tri_stdin, 0,
+		NULL},
+};
+
+static const t_case	g_tri_multi_cases[] = {
+	{"gnlTester: multiple fd, with never-opened fds 1000-1007 in between",
+		case_tri_multi, 0, NULL},
+};
+
 /* Runs c in a child; its output lands in details. Returns 0 pass, 1 fail,
 ** 2 crash (signal in *sig), 3 timeout, 4 AddressSanitizer report. */
 static int	run_case(const t_case *c, char *details, int *sig)
@@ -670,8 +946,12 @@ static int	run_case(const t_case *c, char *details, int *sig)
 	ssize_t	n;
 	size_t	total;
 	char	sink[512];
+	char	err_path[64];
+	int		err_fd;
 
 	fflush(stdout);
+	fflush(stderr);
+	snprintf(err_path, sizeof(err_path), ".gnl_stderr_%d.txt", (int)getpid());
 	if (pipe(fds) != 0)
 	{
 		perror("pipe");
@@ -683,6 +963,12 @@ static int	run_case(const t_case *c, char *details, int *sig)
 		close(fds[0]);
 		dup2(fds[1], STDOUT_FILENO);
 		close(fds[1]);
+		err_fd = open(err_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if (err_fd >= 0)
+		{
+			dup2(err_fd, STDERR_FILENO);
+			close(err_fd);
+		}
 		alarm(GNL_TIMEOUT);
 		status = c->fn(c->arg);
 		fflush(stdout);
@@ -698,6 +984,8 @@ static int	run_case(const t_case *c, char *details, int *sig)
 		;
 	close(fds[0]);
 	waitpid(pid, &status, 0);
+	forward_stderr(err_path);
+	unlink(err_path);
 	if (WIFSIGNALED(status))
 	{
 		*sig = WTERMSIG(status);
@@ -727,13 +1015,40 @@ static void	report(const t_case *c, int i, const char *label, int result,
 			: "infinite loop, or a read() waiting for input that never comes");
 	else if (result == 4)
 	{
-		printf(RED "        memory error found by AddressSanitizer (see the "
-			"Memory fail line)");
-		if (g_bs >= 1000000)
+		printf(RED "        memory error found by AddressSanitizer");
+		if (g_asan_kind[0] != '\0')
+			printf(": %s", g_asan_kind);
+		printf(" (see the Memory fail line)");
+		if (strcmp(g_asan_kind, "stack-overflow") == 0 && g_bs >= 1000000)
 			printf(" (an array of BUFFER_SIZE bytes on the stack is too big "
 				"for it; allocate the buffer with malloc)");
 		printf("\n" DEFAULT);
 	}
+}
+
+/* gnl_harness.sh points GNL_SLOW_MARK at a file that exists once a slow
+** case was reported, so the [!] is shown once per test, not per size. */
+static int	claim_slow_warning(void)
+{
+	const char	*mark;
+	int			fd;
+
+	mark = getenv("GNL_SLOW_MARK");
+	if (mark == NULL)
+		return (1);
+	fd = open(mark, O_WRONLY | O_CREAT | O_EXCL, 0644);
+	if (fd < 0)
+		return (0);
+	close(fd);
+	return (1);
+}
+
+static double	now_seconds(void)
+{
+	struct timespec	ts;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (ts.tv_sec + ts.tv_nsec / 1e9);
 }
 
 int	main(int argc, char **argv)
@@ -745,11 +1060,15 @@ int	main(int argc, char **argv)
 	int				result;
 	int				sig;
 	int				warned;
+	int				slow_warned;
+	int				timed_out;
+	double			started;
+	double			took;
 	static char		details[DETAIL_MAX];
 
 	if (argc != 5)
 	{
-		fprintf(stderr, "usage: %s <file|stdin|errors|multi> <label> "
+		fprintf(stderr, "usage: %s <file|stdin|errors|multi|tripouille|tripouille_multi> <label> "
 			"<buffer size> <instr|plain>\n", argv[0]);
 		return (2);
 	}
@@ -765,6 +1084,16 @@ int	main(int argc, char **argv)
 		cases = g_stdin_cases;
 		count = sizeof(g_stdin_cases) / sizeof(*g_stdin_cases);
 	}
+	else if (strcmp(argv[1], "tripouille") == 0)
+	{
+		cases = g_tri_cases;
+		count = sizeof(g_tri_cases) / sizeof(*g_tri_cases);
+	}
+	else if (strcmp(argv[1], "tripouille_multi") == 0)
+	{
+		cases = g_tri_multi_cases;
+		count = sizeof(g_tri_multi_cases) / sizeof(*g_tri_multi_cases);
+	}
 	else if (strcmp(argv[1], "errors") == 0)
 	{
 		cases = g_error_cases;
@@ -777,16 +1106,28 @@ int	main(int argc, char **argv)
 	}
 	failed = 0;
 	warned = 0;
+	slow_warned = 0;
+	timed_out = 0;
 	i = 0;
 	while (i < count)
 	{
 		sig = 0;
+		started = now_seconds();
 		result = run_case(&cases[i], details, &sig);
+		took = now_seconds() - started;
 		if (result == 0)
 		{
 			if (details[0] != '\0' && !warned)
 				printf("%s", details);
 			warned |= details[0] != '\0';
+			if (took > SLOW_SECONDS && !slow_warned && claim_slow_warning())
+			{
+				printf(YELLOW "  [!] %s [%d] %s: took %.1fs; Tripouille's "
+					"gnlTester gives each test %.0fs and would report TIMEOUT "
+					"(mini allows %ds)\n" DEFAULT, argv[2], i + 1,
+					cases[i].desc, took, SLOW_SECONDS, GNL_TIMEOUT);
+				slow_warned = 1;
+			}
 		}
 		else
 		{
@@ -794,10 +1135,12 @@ int	main(int argc, char **argv)
 				report(&cases[i], i + 1, argv[2], result, sig, details);
 			failed++;
 		}
-		if (result == 3 && i + 1 < count)
+		if (result == 3)
 		{
-			printf(RED "        (skipped the other %d case(s) for %s after "
-				"the timeout)\n" DEFAULT, count - i - 1, argv[2]);
+			timed_out = 1;
+			if (i + 1 < count)
+				printf(RED "        (skipped the other %d case(s) for %s "
+					"after the timeout)\n" DEFAULT, count - i - 1, argv[2]);
 			break ;
 		}
 		i++;
@@ -808,5 +1151,7 @@ int	main(int argc, char **argv)
 	if (failed == 0)
 		printf("  " GREEN CHECKMARK GREY " %s: all %d cases passed\n" DEFAULT,
 			argv[2], count);
+	if (timed_out)
+		return (3);
 	return (failed != 0);
 }

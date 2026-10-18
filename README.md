@@ -70,10 +70,50 @@ Pass function names to run only those tests. The `ft_` prefix is optional, and T
 mini strlen            # only ft_strlen
 mini ft_split substr   # several functions
 mini -libft strlen     # pick the suite yourself when your folder has another name
-mini -h                # usage
+mini -h                # usage, including --show and --try
 ```
 
 A run limited to some functions skips the setup checks (Makefile, `libft.h`, prototypes) and shows how many of the chosen functions passed instead of a score. Run `mini` with no names for the full graded suite.
+
+### Showing every test case
+
+By default a passing function prints only its PASS line. Add `--show` to also print every case it ran:
+
+```bash
+mini --show            # whole suite, every case
+mini --show strlen     # every case of ft_strlen
+```
+
+### Trying a function by hand (libft)
+
+`--try` calls one of your functions with your own arguments and prints what it returned, next to the real libc result when there is one (`ft_strlcpy`, `ft_strlcat` and `ft_strnstr` are compared with a BSD reference, since not every libc has them):
+
+```bash
+mini --try strlen "hello"
+mini --try memchr 'ab\0cd' c 5
+mini --try substr "hello world" 6 5
+mini --try strmapi "hello" toupper
+mini --try lstsize a b c
+```
+
+```
+ft_strlen("hello")
+  ft     5
+  libc   5
+  ✓ same result as libc
+```
+
+Each argument is one shell word, so quote anything with spaces:
+
+- **string**: `\n`, `\t`, `\0`, `\xHH` and the other C escapes are decoded (use single quotes so the shell leaves the backslash alone). `@null` passes a `NULL` pointer.
+- **number**: base 10, e.g. `42` or `-1`. A negative `size_t` wraps, so `-1` is `SIZE_MAX`.
+- **char**: one character is taken as is (`a`, `' '`, `7` is `'7'`); anything longer is its value (`0`, `200`, `-1`). `\0` is the NUL byte.
+- **buffers** (`ft_memset`, `ft_memcpy`, `ft_bzero`, ...) are exactly as big as the string you give plus its NUL, so going past the end is reported. `ft_memmove` takes one buffer and two offsets into it, so you can test overlapping copies.
+- **lists** (`ft_lst*`): one argument per node. `ft_lstadd_front`/`ft_lstadd_back` take the new node first.
+- **callbacks** (`ft_strmapi`, `ft_striteri`, `ft_lstiter`, `ft_lstmap`): `toupper`, `tolower`, `addindex` (adds the index to the character) or `digit` (replaces it with its index's last digit).
+- **fd** (`ft_put*_fd`): optional, default `1`. Output to fd 1 is captured and shown escaped; other fds are written to directly.
+
+A wrong number of arguments prints what that function takes. `--try` runs under AddressSanitizer like the tests, so a crash, leak or overflow in the call is reported as a `Memory fail`.
 
 
 ## Memory Safety
@@ -166,12 +206,13 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 > - `ft_strchr` / `ft_strrchr` searching for an extended character (e.g. 233): implementations that compare as `unsigned char` return NULL where libc finds the byte.
 > - get_next_line reading further ahead than it needs to (for example one extra `read()` per call): the subject says to read as little as possible, but only reading the whole file on the first call fails.
 > - get_next_line calling `memset`, `memcpy`, `memmove` or `bzero`: the compiler can generate these calls on its own (for example to zero an array), so they are not failed, but calling them yourself is forbidden.
+> - get_next_line taking more than 1 second on a case: Tripouille's gnlTester would report TIMEOUT, but mini only fails a case after 5 seconds. The warning is shown once per test, for the first slow case.
 
 > [!NOTE]
 > **ft_printf** is tested the way 42's moulinette does it: `setup` runs your `make`, and every test links against the `libftprintf.a` it builds, so sources in subfolders or a bundled libft are fine. The `bonus` part runs `make bonus` first. Output and return values are compared against the real `printf` on your machine, so `%p` of `NULL` expects `(nil)` on Linux and `0x0` on macOS. The subject lets you do only some bonus flags, but the `bonus` part currently expects all of them.
 
 > [!NOTE]
-> **get_next_line** is compiled and run with every `BUFFER_SIZE` in 1, 2, 5, 42, 9999 and 10000000, and once without `-D BUFFER_SIZE` (the subject requires both). Each case runs on its own with a 5-second limit, so an infinite loop, a crash or a `read()` that waits forever fails that one case instead of hanging the run; a failure shows the case, the buffer size, the line expected and the line returned. The tests also check for memory leaks after `get_next_line` returns `NULL`, reject global variables and functions other than `read`, `malloc` and `free`, and fail an implementation that reads the whole file before returning the first line.
+> **get_next_line** is compiled and run with every `BUFFER_SIZE` in 1, 2, 5, 42, 9999 and 10000000, and once without `-D BUFFER_SIZE` (the subject requires both). Each case runs on its own with a 5-second limit, so an infinite loop, a crash or a `read()` that waits forever fails that one case instead of hanging the run; a failure shows the case, the buffer size, the line expected and the line returned. Setup also checks the `README.md` the subject requires (italic first line, Description, Instructions and Resources sections); the algorithm explanation it asks for is up to you and your peers. The `gnltester` tests port every case from [Tripouille/gnlTester](https://github.com/Tripouille/gnlTester), including its check that, at `BUFFER_SIZE=42`, nothing past the first line of `files/42_with_nl` was read. The tests also check for memory leaks after `get_next_line` returns `NULL`, reject global variables and functions other than `read`, `malloc` and `free`, and fail an implementation that reads the whole file before returning the first line. Run it from a folder named `get_next_line`, or with `mini -get_next_line` from any folder.
 
 
 ## Updating
@@ -249,7 +290,7 @@ All credit for the original mini-moulinette goes to **[Khairul Haaziq](https://g
 
 This tool was incredibly useful during my piscine: it saved me countless hours of waiting for evaluations only to fail on silly mistakes. This fork exists because I want the same safety net while going through the Common Core. Thank you, Khairul! 🙏
 
-The libft suite also integrates the test cases from **[Tripouille/libftTester](https://github.com/Tripouille/libftTester)**, including its exact allocation-size checks.
+The libft and get_next_line suites also integrate the test cases from **[Tripouille](https://github.com/Tripouille)**'s testers: **[libftTester](https://github.com/Tripouille/libftTester)** for libft, including its exact allocation-size checks, and **[gnlTester](https://github.com/Tripouille/gnlTester)** for get_next_line, whose files, call sequences and multiple-fd bonus run in mini with every `BUFFER_SIZE`.
 
 
 ## Contributors

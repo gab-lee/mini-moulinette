@@ -4,3 +4,4 @@ compile_bonus.sh
 forbidden_bonus.sh
 read_file_bonus.sh
 multiple_fd.sh
+gnltester_bonus.sh
