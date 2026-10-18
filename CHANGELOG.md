@@ -9,6 +9,28 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-18
+
+### Added
+- Alpha `push_swap` suite: setup (files, Makefile, allowed functions, no
+  global variables), `errors` (invalid and duplicate numbers, no argument,
+  already sorted), `sorting` (every order of 2 to 5 numbers, 100 and 500
+  random lists, extreme values, reverse order, scored on the evaluation
+  scale) and a `bonus` part for `checker`.
+- Alpha `philo` suite: setup, argument handling, simulations checked
+  against the subject's log rules and the 10 ms death window, an
+  AddressSanitizer run and a ThreadSanitizer data race run, and a bonus
+  part for `philo_bonus` (processes, none left behind, semaphores).
+- Alpha `minishell` suite: output, files and stderr compared with bash for
+  builtins, expansion, quotes, redirections, heredoc, pipes, command
+  lookup, syntax errors and memory; bonus `&&`, `||`, parentheses and
+  wildcards. Prompts are learned from a calibration run and removed.
+- A yellow **ALPHA - UNTESTED** banner for `ft_printf`, `push_swap`, `philo`
+  and `minishell` (`ALPHA_SUITES` in `config.sh`), and a "no checks yet"
+  message for a suite without tests.
+- `utils/program_check.sh` and `utils/limited.pl`: helpers shared by the
+  suites that grade a whole program.
+
 ## [2.5.0] - 2026-10-04
 
 ### Added

@@ -3,10 +3,14 @@
 # Single source of truth for the version banner in test.sh. Follows SemVer
 # (MAJOR.MINOR.PATCH); bump it on every PR merge to main — see CLAUDE.md
 # "Versioning".
-readonly VERSION="2.5.0"
+readonly VERSION="2.6.0"
 
 # Seconds a single test file may run before test.sh kills it
 readonly TEST_TIMEOUT=60
+
+# Suites whose checks have not been run against real 42 submissions yet;
+# test.sh prints an alpha banner for them (see print_alpha_banner)
+readonly ALPHA_SUITES="ft_printf push_swap philo minishell"
 
 #constants
 readonly GREEN='\033[38;5;84m'
