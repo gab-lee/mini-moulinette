@@ -8,6 +8,10 @@ readonly VERSION="2.6.0"
 # Seconds a single test file may run before test.sh kills it
 readonly TEST_TIMEOUT=60
 
+# get_next_line prints each test's duration; a passing test slower than
+# this (half of TEST_TIMEOUT) gets a [!], since it is close to being killed
+readonly SLOW_TEST_SECONDS=30
+
 #constants
 readonly GREEN='\033[38;5;84m'
 readonly RED='\033[38;5;197m'
