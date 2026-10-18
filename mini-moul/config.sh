@@ -10,7 +10,7 @@ readonly TEST_TIMEOUT=60
 
 # Suites whose checks have not been run against real 42 submissions yet;
 # test.sh prints an alpha banner for them (see print_alpha_banner)
-readonly ALPHA_SUITES="ft_printf push_swap philo minishell"
+readonly ALPHA_SUITES="ft_printf push_swap"
 
 #constants
 readonly GREEN='\033[38;5;84m'
