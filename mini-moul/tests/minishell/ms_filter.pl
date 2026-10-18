@@ -65,8 +65,14 @@ sub clean
 	my ($P, $H) = ($c->{P}, $c->{H});
 	my $out = '';
 	if (!$c->{echo}) {
-		$raw =~ s/\Q$H\E//g if length $H;
-		$raw =~ s/\Q$P\E//g if length $P;
+		# A heredoc prompt only counts right after a prompt or another one,
+		# so a "> " inside a command's output stays
+		if (length $P && length $H) {
+			$raw =~ s/\Q$P\E(?:\Q$H\E)*//g;
+		} else {
+			$raw =~ s/\Q$H\E//g if length $H;
+			$raw =~ s/\Q$P\E//g if length $P;
+		}
 		$out = $raw;
 	} else {
 		my $pos = 0;
