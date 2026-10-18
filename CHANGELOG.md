@@ -9,6 +9,54 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-18
+
+### Added
+- First-cut `ft_printf` suite. `setup`: the Makefile builds
+  `libftprintf.a` with `-Wall -Wextra -Werror`, does not relink, and has
+  `clean`/`fclean`/`re` rules; `ft_printf` is prototyped as the subject
+  defines. `libc`: all nine mandatory conversions `cspdiuxX%` (including
+  a NUL `%c`, `NULL` `%s` and `%p`, `INT_MIN`/`INT_MAX`, extreme `%p`
+  values) plus a combined-conversions test. `bonus`: `-`, `0`, `.`,
+  width, `#`, `+`, space, and stacked combinations. Every case compares
+  `ft_printf`'s output and return value byte-for-byte against the real
+  `printf` given the same format and arguments.
+- `utils/printf_compare.h`: runs each `ft_printf` call in a forked child
+  with fd 1 captured and a 3-second timeout, so a crash, infinite loop or
+  sanitizer error is reported against its case instead of ending the test
+  file. The child exits through `exit()`, so LeakSanitizer reports memory
+  `ft_printf` leaked as a Memory fail.
+- Runner library mode: a `tests/<assignment>/library` file (ft_printf:
+  `libftprintf.a`) makes every `.c` test link against the library the
+  student's Makefile builds instead of compiling the student's sources.
+  Only a library built by this run's `make` is tested, never a stale one.
+  The runner runs `make bonus` before the `bonus` part and fails the part
+  if it fails.
+- get_next_line: each test's PASS/FAIL line shows how long it took, and a
+  passing test slower than 30 seconds (`SLOW_TEST_SECONDS`, half of the
+  60-second `TEST_TIMEOUT`) gets a `[!]` warning.
+- `README.md`: a one-line description of every Common Core project, one
+  row per project instead of grouping alternatives, plus libasm; a note on
+  how the ft_printf suite works.
+
+### Changed
+- get_next_line: the cases ported from Tripouille/gnlTester are now cases
+  of the main tests instead of separate `gnltester` and `gnltester_bonus`
+  tests: its files and stdin cases run in `read_file`/`read_stdin` (and
+  `read_file_bonus`), its invalid fds in `invalid_fd`, and its multiple-fd
+  sequence in `multiple_fd`.
+- The `exitcode=86` that `test.sh` adds to `ASAN_OPTIONS` is now also read
+  by the ft_printf harness to tell a sanitizer report in a forked case
+  from an ordinary failure.
+- `README.md`: push_swap moved to Circle 1 and Born2beroot to Circle 2;
+  the roadmap lists ft_printf, get_next_line and push_swap on separate
+  lines; the "Credits" section is merged into "Authors".
+
+### Removed
+- `README.md`: the "Cross-tested against 42 submissions" column, the
+  "Looking for piscine tests?" note, and the roadmap disclaimer about not
+  having started the Cursus.
+
 ## [2.5.0] - 2026-10-04
 
 ### Added

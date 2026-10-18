@@ -27,8 +27,8 @@ if ! asan_probe; then
 fi
 # Oversized requests (e.g. ft_calloc(INT_MAX, INT_MAX)) must return NULL
 # like the real allocator instead of aborting the test. A sanitizer report
-# exits with 86, so a harness that forks per case (get_next_line) can
-# tell it from an ordinary failure; test.sh itself
+# exits with 86, so harnesses that fork per case (ft_printf,
+# get_next_line) can tell it from an ordinary failure; test.sh itself
 # detects reports from stderr. Appended after any user ASAN_OPTIONS so
 # they can't switch these off (later options win).
 asan_opts="allocator_may_return_null=1:exitcode=86"
@@ -195,6 +195,12 @@ run_limited()
     ' "$TEST_TIMEOUT" "$@"
 }
 
+# now_ms: milliseconds since the epoch (date +%s%N is not portable to macOS)
+now_ms()
+{
+    perl -MTime::HiRes=time -e 'printf "%d", time * 1000'
+}
+
 # run_test <name> <command...>
 # Runs one test (a .c test binary or a .sh check script) under run_limited
 # and prints its PASS/FAIL line. Exit 0 is a PASS; [!] lines in a passing
@@ -206,11 +212,15 @@ run_test()
     local name=$1
     shift
     local status_file=.test_status
-    local output code note="" memory_error test_err
+    local output code note="" memory_error test_err started took_ms took=""
 
     rm -f "$status_file"
+    started=$(now_ms)
     output="$(run_limited "$status_file" "$@" 2> asan_report.tmp < /dev/null)"
     code=$?
+    took_ms=$(( $(now_ms) - started ))
+    [ $show_time -eq 1 ] && took="$(printf " ${GREY}(%d.%ds)${DEFAULT}" \
+        $((took_ms / 1000)) $((took_ms % 1000 / 100)))"
     if [ -f "$status_file" ]; then
         case "$(cat "$status_file")" in
             timeout) note=" (timed out after ${TEST_TIMEOUT}s)" ;;
@@ -227,13 +237,17 @@ run_test()
     if [ -n "$memory_error" ]; then
         [ $part_is_bonus -eq 0 ] && break_score=1
         score_false=1
-        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name} ${RED}Memory fail (%s)${DEFAULT}\n" "$memory_error"
+        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name} ${RED}Memory fail (%s)${DEFAULT}%s\n" "$memory_error" "$took"
         [ -n "$output" ] && printf '%s\n' "$output"
         printf "    ${RED}Memory fail: %s${DEFAULT}\n" "$(memory_error_detail asan_report.tmp)"
     elif [ $code -eq 0 ]; then
         passed=$((passed+1))
         [ $selected_mode -eq 1 ] && selected_passed=$((selected_passed+1))
-        printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${name}\n"
+        printf " ${BG_GREEN}${BLACK}${BOLD} PASS ${DEFAULT} ${name}%s\n" "$took"
+        if [ $show_time -eq 1 ] && [ $took_ms -ge $((SLOW_TEST_SECONDS * 1000)) ]; then
+            printf "  ${YELLOW}[!] took over %ds; mini stops a test after %ds${DEFAULT}\n" \
+                "$SLOW_TEST_SECONDS" "$TEST_TIMEOUT"
+        fi
         if [ $show_cases -eq 1 ]; then
             [ -n "$output" ] && printf '%s\n' "$output"
         else
@@ -244,7 +258,7 @@ run_test()
     else
         [ $part_is_bonus -eq 0 ] && break_score=1
         score_false=1
-        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name}${RED}${note}${DEFAULT}\n"
+        printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${name}${RED}${note}${DEFAULT}%s\n" "$took"
         [ -n "$output" ] && printf '%s\n' "$output"
     fi
     rm -f asan_report.tmp
@@ -252,6 +266,9 @@ run_test()
 
 # --show: print every case line of a passing test, not only [!] warnings
 show_cases=0
+
+# get_next_line: print each test's duration on its PASS/FAIL line
+show_time=0
 
 # try_main <suite> <function> [arg ...]
 # --try: builds the manual driver try/<suite>/<function>.c against the
@@ -394,13 +411,23 @@ main()
         
         if [ -d "$dir" ] && [ "$dirname" == "$1" ]; then
             dirname_found=1
+            [ "$dirname" = "get_next_line" ] && show_time=1
             select_functions "$dir" "${@:2}"
             print_header
             printf "${GREEN} Generating test for ${1}...\n${DEFAULT}"
             space
             dirname_found=1
             index=0
-            build_student_objects "$dir"
+            # An assignment whose subject has the student's Makefile build a
+            # library (tests/<assignment>/library names it, e.g.
+            # libftprintf.a) links its tests against that library, built by
+            # the setup part, instead of compiling the student's sources.
+            library=""
+            [ -f "$dir/library" ] && library="$(cat "$dir/library")"
+            [ -z "$library" ] && build_student_objects "$dir"
+            # Written by the setup part only when this run's make succeeded,
+            # so a stale library from an earlier build is never tested
+            rm -f .library_built
 
             # Run parts in subject order (setup, libc, additional), then any
             # other part, then bonus last
@@ -442,6 +469,16 @@ main()
                 fi
                 printf "${PURPLE}${BOLD} ${assignment_name}${DEFAULT}\n"
 
+                bonus_build_failed=0
+                if [ -n "$library" ] && [ $part_is_bonus -eq 1 ]; then
+                    if ! make --no-print-directory -C .. bonus > make_bonus.tmp 2>&1; then
+                        bonus_build_failed=1
+                        printf "    ${RED}'make bonus' failed:${DEFAULT}\n"
+                        sed 's/^/    /' make_bonus.tmp | head -15
+                    fi
+                    rm -f make_bonus.tmp
+                fi
+
                 for test in $test_files; do
                     checks=$((checks+1))
                     [ $selected_mode -eq 1 ] && selected_total=$((selected_total+1))
@@ -457,11 +494,22 @@ main()
 
                     fn_name="$(basename "${test%.c}")"
                     fail_reason=""
-                    fail_detail="$(student_compile_error "$fn_name")"
-                    if [ -n "$fail_detail" ]; then
-                        fail_reason="your ${fn_name}.c cannot compile"
-                    elif ! student_src_exists "$fn_name"; then
-                        fail_reason="no ${fn_name}.c found in your project"
+                    fail_detail=""
+                    if [ -n "$library" ]; then
+                        link_inputs=("../$library")
+                        if [ $bonus_build_failed -eq 1 ]; then
+                            fail_reason="'make bonus' failed"
+                        elif [ ! -f .library_built ] || [ ! -f "../$library" ]; then
+                            fail_reason="$library was not built by this run's make; see setup"
+                        fi
+                    else
+                        link_inputs=("${student_objs[@]}")
+                        fail_detail="$(student_compile_error "$fn_name")"
+                        if [ -n "$fail_detail" ]; then
+                            fail_reason="your ${fn_name}.c cannot compile"
+                        elif ! student_src_exists "$fn_name"; then
+                            fail_reason="no ${fn_name}.c found in your project"
+                        fi
                     fi
 
                     if [ -n "$fail_reason" ]; then
@@ -469,7 +517,7 @@ main()
                         score_false=1
                         printf " ${BG_RED}${BOLD} FAIL ${DEFAULT} ${fn_name} ${RED}(${fail_reason})${DEFAULT}\n"
                         [ -n "$fail_detail" ] && sed 's/^/    /' "$fail_detail" | head -15
-                    elif cc $CC_FLAGS -o "${test%.c}" "$test" "$SCRIPT_DIR/utils/unbuffered_stdout.c" "${student_objs[@]}" 2> compile_error.tmp; then
+                    elif cc $CC_FLAGS -o "${test%.c}" "$test" "$SCRIPT_DIR/utils/unbuffered_stdout.c" "${link_inputs[@]}" 2> compile_error.tmp; then
                         run_test "$fn_name" "./${test%.c}"
                         rm -f "${test%.c}"
                     else

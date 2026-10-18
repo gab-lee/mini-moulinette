@@ -2,3 +2,4 @@
 .vscode
 .student_objs/
 .gnl_build/
+.library_built
