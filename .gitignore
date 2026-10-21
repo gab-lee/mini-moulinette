@@ -9,3 +9,4 @@
 .pc_status
 .make_out
 .lsan.supp
+.library_built

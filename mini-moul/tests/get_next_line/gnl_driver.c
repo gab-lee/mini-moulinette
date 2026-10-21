@@ -845,6 +845,21 @@ static const t_case	g_file_cases[] = {
 	{"a 10000-character line with no '\\n'", case_file, 10, NULL},
 	{"100 lines", case_file, 11, NULL},
 	{"lines of every length from 1 to 60", case_file, 12, NULL},
+	{"gnlTester: files/empty", case_tri_file, 0, NULL},
+	{"gnlTester: files/nl", case_tri_file, 1, NULL},
+	{"gnlTester: files/41_no_nl", case_tri_file, 2, NULL},
+	{"gnlTester: files/41_with_nl", case_tri_file, 3, NULL},
+	{"gnlTester: files/42_no_nl", case_tri_file, 4, NULL},
+	{"gnlTester: files/42_with_nl", case_tri_file, 5, NULL},
+	{"gnlTester: files/43_no_nl", case_tri_file, 6, NULL},
+	{"gnlTester: files/43_with_nl", case_tri_file, 7, NULL},
+	{"gnlTester: files/multiple_nlx5", case_tri_file, 8, NULL},
+	{"gnlTester: files/multiple_line_no_nl", case_tri_file, 9, NULL},
+	{"gnlTester: files/multiple_line_with_nl", case_tri_file, 10, NULL},
+	{"gnlTester: files/alternate_line_nl_no_nl", case_tri_file, 11, NULL},
+	{"gnlTester: files/alternate_line_nl_with_nl", case_tri_file, 12, NULL},
+	{"gnlTester: files/big_line_no_nl", case_tri_file, 13, NULL},
+	{"gnlTester: files/big_line_with_nl", case_tri_file, 14, NULL},
 };
 
 static const t_case	g_stdin_cases[] = {
@@ -852,6 +867,8 @@ static const t_case	g_stdin_cases[] = {
 	{"standard input from a pipe", case_stdin_pipe, 0, NULL},
 	{"returns a pipe's first line without waiting for more input",
 		case_pipe_open, 0, PIPE_HINT},
+	{"gnlTester: stdin (files/alternate_line_nl_with_nl)", case_tri_stdin, 0,
+		NULL},
 };
 
 static const t_case	g_error_cases[] = {
@@ -863,6 +880,8 @@ static const t_case	g_error_cases[] = {
 		case_read_error, 0, NULL},
 	{"a normal file still reads correctly after invalid fds", case_recover,
 		0, NULL},
+	{"gnlTester: invalid fds (1000, -1, a closed fd)", case_tri_invalid, 0,
+		NULL},
 };
 
 static const t_case	g_multi_cases[] = {
@@ -873,6 +892,8 @@ static const t_case	g_multi_cases[] = {
 	{"a pipe and a file read in turn", case_multi, 3, NULL},
 	{"a 3000-character line in one file, short lines in another",
 		case_multi, 4, NULL},
+	{"gnlTester: multiple fd, with never-opened fds 1000-1007 in between",
+		case_tri_multi, 0, NULL},
 };
 
 /* Passes a case's captured stderr through to ours (test.sh turns a
@@ -908,33 +929,6 @@ static void	forward_stderr(const char *path)
 	fclose(f);
 	fflush(stderr);
 }
-
-static const t_case	g_tri_cases[] = {
-	{"gnlTester: invalid fds (1000, -1, a closed fd)", case_tri_invalid, 0,
-		NULL},
-	{"gnlTester: files/empty", case_tri_file, 0, NULL},
-	{"gnlTester: files/nl", case_tri_file, 1, NULL},
-	{"gnlTester: files/41_no_nl", case_tri_file, 2, NULL},
-	{"gnlTester: files/41_with_nl", case_tri_file, 3, NULL},
-	{"gnlTester: files/42_no_nl", case_tri_file, 4, NULL},
-	{"gnlTester: files/42_with_nl", case_tri_file, 5, NULL},
-	{"gnlTester: files/43_no_nl", case_tri_file, 6, NULL},
-	{"gnlTester: files/43_with_nl", case_tri_file, 7, NULL},
-	{"gnlTester: files/multiple_nlx5", case_tri_file, 8, NULL},
-	{"gnlTester: files/multiple_line_no_nl", case_tri_file, 9, NULL},
-	{"gnlTester: files/multiple_line_with_nl", case_tri_file, 10, NULL},
-	{"gnlTester: files/alternate_line_nl_no_nl", case_tri_file, 11, NULL},
-	{"gnlTester: files/alternate_line_nl_with_nl", case_tri_file, 12, NULL},
-	{"gnlTester: files/big_line_no_nl", case_tri_file, 13, NULL},
-	{"gnlTester: files/big_line_with_nl", case_tri_file, 14, NULL},
-	{"gnlTester: stdin (files/alternate_line_nl_with_nl)", case_tri_stdin, 0,
-		NULL},
-};
-
-static const t_case	g_tri_multi_cases[] = {
-	{"gnlTester: multiple fd, with never-opened fds 1000-1007 in between",
-		case_tri_multi, 0, NULL},
-};
 
 /* Runs c in a child; its output lands in details. Returns 0 pass, 1 fail,
 ** 2 crash (signal in *sig), 3 timeout, 4 AddressSanitizer report. */
@@ -1068,7 +1062,7 @@ int	main(int argc, char **argv)
 
 	if (argc != 5)
 	{
-		fprintf(stderr, "usage: %s <file|stdin|errors|multi|tripouille|tripouille_multi> <label> "
+		fprintf(stderr, "usage: %s <file|stdin|errors|multi> <label> "
 			"<buffer size> <instr|plain>\n", argv[0]);
 		return (2);
 	}
@@ -1083,16 +1077,6 @@ int	main(int argc, char **argv)
 	{
 		cases = g_stdin_cases;
 		count = sizeof(g_stdin_cases) / sizeof(*g_stdin_cases);
-	}
-	else if (strcmp(argv[1], "tripouille") == 0)
-	{
-		cases = g_tri_cases;
-		count = sizeof(g_tri_cases) / sizeof(*g_tri_cases);
-	}
-	else if (strcmp(argv[1], "tripouille_multi") == 0)
-	{
-		cases = g_tri_multi_cases;
-		count = sizeof(g_tri_multi_cases) / sizeof(*g_tri_multi_cases);
 	}
 	else if (strcmp(argv[1], "errors") == 0)
 	{
