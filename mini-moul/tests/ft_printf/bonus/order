@@ -6,3 +6,6 @@ ft_printf_flag_hash.c
 ft_printf_flag_plus.c
 ft_printf_flag_space.c
 ft_printf_combinations.c
+ft_printf_flag_order.c
+ft_printf_zero_and_precision.c
+ft_printf_wide_fields.c

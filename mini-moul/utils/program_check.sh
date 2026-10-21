@@ -77,6 +77,12 @@ pc_check_makefile()
 		pc_bad "Makefile must compile with -Wall -Wextra -Werror"
 	fi
 
+	if grep -Eq '^[[:space:]]*CC[[:space:]]*[:?]?=[[:space:]]*(gcc|clang|g\+\+|c\+\+)' "$dir/Makefile"; then
+		pc_bad "Makefile must compile with cc (it sets CC to another compiler)"
+	else
+		pc_ok "Makefile compiles with cc"
+	fi
+
 	if make -C "$dir" > "$make_out" 2>&1; then
 		pc_ok "make runs without error"
 		if [ -f "$dir/$binary" ]; then
@@ -195,6 +201,68 @@ pc_check_forbidden()
 		pc_bad "$count global variables ($globals); the subject allows $max_globals"
 	fi
 	return $pc_error
+}
+
+# pc_check_readme <README.md path>
+# The subject requires a README.md at the root of the repository whose
+# first line is italic and reads "This project has been created as part of
+# the 42 curriculum by <login>...", with Description, Instructions and
+# Resources sections. The explanation of how AI was used cannot be checked.
+pc_check_readme()
+{
+	local readme=$1 first section
+
+	if [ ! -f "$readme" ]; then
+		pc_bad "README.md is missing at the root of your repository (the subject requires one)"
+		return 1
+	fi
+	pc_ok "README.md exists"
+	first="$(grep -v '^[[:space:]]*$' "$readme" | head -1 | tr -d '\r')"
+	if printf '%s\n' "$first" | grep -qE '^([*]This project has been created as part of the 42 curriculum by .+[*]|_This project has been created as part of the 42 curriculum by .+_)[[:space:]]*$' \
+		&& ! printf '%s\n' "$first" | grep -q '^[*][*]'; then
+		pc_ok "first line is the italic \"This project has been created as part of the 42 curriculum by ...\""
+	else
+		pc_bad "the first line must be italic and read: *This project has been created as part of the 42 curriculum by <login>*"
+		pc_detail "yours: $first"
+	fi
+	for section in Description Instructions Resources; do
+		if grep -qiE "^#{1,6}[[:space:]]*${section}" "$readme"; then
+			pc_ok "has the \"$section\" section"
+		else
+			pc_bad "no \"$section\" section (a markdown heading such as ## $section)"
+		fi
+	done
+	return $pc_error
+}
+
+# pc_check_global_size <dir> <max bytes>
+# The only global variable minishell may have stores a signal number, so a
+# global bigger than <max bytes> (a structure) fails. Needs nm -S, which
+# macOS does not have: the check is skipped there with a [!].
+pc_check_global_size()
+{
+	local dir=$1 max=$2 objs sizes name size dec worst=""
+	objs="$(find "$dir" -name '*.o' -not -path '*/mini-moul/*' -not -path '*/.git/*' 2> /dev/null)"
+	[ -z "$objs" ] && return 0
+	# shellcheck disable=SC2086
+	sizes="$(nm -S $objs 2> /dev/null | awk 'NF == 4 && ($3 ~ /^[BCDGRSV]$/ || ($3 ~ /^[bdrs]$/ && $4 !~ /\./)) && $4 !~ /^(environ|\..*)$/ { print $2, $4 }')"
+	if [ -z "$sizes" ]; then
+		if ! nm -S $objs 2> /dev/null | awk 'NF == 4 { found = 1 } END { exit !found }'; then
+			pc_warn "nm cannot print symbol sizes here, so the size of the global variable was not checked"
+		fi
+		return 0
+	fi
+	while read -r size name; do
+		dec=$((16#$size))
+		if [ "$dec" -gt "$max" ]; then
+			worst="$worst $name ($dec bytes)"
+		fi
+	done <<< "$sizes"
+	if [ -n "$worst" ]; then
+		pc_bad "the global variable may only hold a signal number, but these are larger than $max bytes:$worst"
+	else
+		pc_ok "the global variable is small enough to hold only a signal number"
+	fi
 }
 
 # pc_instrumented_build <kind> <project dir> <sanitizer flags> <marker symbol> <binary> [make target...]

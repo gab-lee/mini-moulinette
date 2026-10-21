@@ -176,7 +176,7 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 | Circle | Project | What it is | Tests cover | Coverage |
 | :----: | :------ | :--------- | :---------- | :------: |
 | 0 | Libft | Your own C library: libc functions, string and memory helpers, and a linked list, reused in later projects. | Part 1 (libc), Part 2 (additional), Part 3 (linked list), Makefile | Complete |
-| 1 | ft_printf | Recode `printf()` as the `libftprintf.a` library, using variadic arguments. | Makefile, `cspdiuxX%` conversions, bonus flags `-0.# +` and width | First cut |
+| 1 | ft_printf | Recode `printf()` as the `libftprintf.a` library, using variadic arguments. | Makefile, `cspdiuxX%` conversions and their edge cases (NUL, `NULL`, `INT_MIN`, long strings and formats), bonus flags `-0.# +`, width, precision, flag order and repeats, very wide fields | First cut |
 | 1 | get_next_line | A function that returns one line per call from a file descriptor, using static variables. | Every `BUFFER_SIZE` from 1 to 10000000, files, stdin and pipes, invalid fds, leaks, multiple-fd bonus | First cut |
 | 1 | push_swap | Sort integers with two stacks and a limited set of operations, in as few operations as possible. | Argument errors, instruction replay, operation count against the evaluation scale, checker bonus | Alpha (untested) |
 | 2 | Born2beroot | Set up a hardened Linux server in a virtual machine (partitions, sudo and password policy, firewall, SSH, monitoring script). | — | Out of scope (VM / sysadmin) |
@@ -227,7 +227,7 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 
 These suites print a yellow **ALPHA - UNTESTED** banner at the start of a run. They were written from the subjects and checked only against reference programs written for that purpose (some deliberately broken), never against real 42 submissions: a FAIL can be a mistake in mini, and a PASS proves nothing. Please report anything that looks wrong. ft_printf is a first cut and carries the banner too. The list lives in `ALPHA_SUITES` in `mini-moul/config.sh`; a suite leaves it once it has been cross-tested.
 
-All three are programs your Makefile builds, so each starts with a `setup` part (files, Makefile rules and flags, no relink, only the functions the subject allows, global variables). Run `mini` from the project folder (`push_swap`, `philo`, `minishell`), or pass the suite with `mini -push_swap`. There are no per-function tests: `mini` takes no function names for them.
+All three are programs your Makefile builds, so each starts with a `setup` part (files, the `README.md` the subject requires for philo and minishell, Makefile rules, `cc` and flags, no relink, only the functions the subject allows, global variables). Run `mini` from the project folder (`push_swap`, `philo`, `minishell`), or pass the suite with `mini -push_swap`. There are no per-function tests: `mini` takes no function names for them.
 
 ### push_swap
 
@@ -241,7 +241,7 @@ Run from the `philo` folder, or from a folder that holds `philo` and `philo_bonu
 
 ### minishell
 
-Each case feeds the same lines to bash and to your `minishell` in the same sandbox folder and compares stdout, the files left behind, whether anything went to stderr, and (for `exit`) the status. Fed from a pipe, a readline shell still prints its prompt and the line it reads; mini learns both from a calibration run and removes them, so the prompt can be anything. Lines are not tested with a tab (readline completes it) and a syntax error is a one-line case, since bash stops its script there. The bonus part runs `make bonus` first when the Makefile has that rule.
+Each case feeds the same lines to bash and to your `minishell` in the same sandbox folder and compares stdout, the files left behind, whether anything went to stderr, and (for `exit`) the status. Fed from a pipe, a readline shell still prints its prompt and the line it reads; mini learns both from a calibration run and removes them, so the prompt can be anything. Lines are not tested with a tab (readline completes it) and a syntax error is a one-line case, since bash stops its script there. The one global variable the subject allows must be small enough to hold only a signal number. `;` and `\` are checked against plain text and only print a `[!]` when they differ, since bash interprets them but the subject says not to. The `interactive` part runs minishell in a pseudo-terminal, driven by `python3`, to check ctrl-C, ctrl-D and ctrl-\ at the prompt, on a running command and in a heredoc (skipped with a `[!]` without `python3`). The bonus part checks the `bonus` rule and the `_bonus.c`/`_bonus.h` files, then runs `make bonus`.
 
 
 ## Updating
