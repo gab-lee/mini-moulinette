@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Helpers shared by the suites that grade a whole program built by the
-# student's Makefile (push_swap so far). Sourced by the .sh test
+# student's Makefile (push_swap, philo, minishell). Sourced by the .sh test
 # scripts with the mini-moul directory as cwd and config.sh already sourced.
 #
 # Output helpers number every line like the other setup scripts do:

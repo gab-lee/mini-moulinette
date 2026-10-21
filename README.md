@@ -152,9 +152,10 @@ There is no way to turn it off. If your compiler cannot build with
 `-fsanitize=address`, mini stops with an error instead of grading without
 it.
 
-push_swap is a whole program built by your own Makefile, so there mini
-builds a second copy of your project with
-`make CC="cc -fsanitize=address -g"` and runs the memory checks on that copy. A Makefile that
+push_swap, philo and minishell are whole programs built by your own
+Makefile, so there mini builds a second copy of your project with
+`make CC="cc -fsanitize=address -g"` (and `-fsanitize=thread` for the philo
+data race check) and runs the memory checks on that copy. A Makefile that
 hardcodes its compiler cannot be overridden: mini then prints a yellow
 `[!]` and skips that check instead of failing it.
 
@@ -170,7 +171,7 @@ The original project covers the piscine (C00–C08). The goal of this fork is to
 - [x] **Circle 0** — Libft (Part 1, Part 2, Part 3 - linked list)
 - [ ] **Circle 1** — ft_printf, get_next_line (mandatory + bonus) — get_next_line first cut done
 - [ ] **Circle 2** — push_swap (alpha: argument errors, instruction replay, evaluation-scale operation counts, checker bonus), minitalk / pipex
-- [ ] **Circle 3** — philosophers (death timing / no-death scenarios), minishell (command comparison against bash)
+- [ ] **Circle 3** — philosophers (alpha: death timing, no-death scenarios, data races, bonus processes), minishell (alpha: output comparison against bash, bonus operators and wildcards)
 - [ ] **Circle 4** — CPP Modules 00–04
 - [ ] **Circle 5** — CPP Modules 05–09, webserv / ft_irc basic conformance tests
 
@@ -190,8 +191,8 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 | 2      | push_swap                  | Argument errors, instruction replay, op count against the evaluation scale, checker bonus | Alpha (untested) | —                 |
 | 2      | minitalk / pipex           | Signal transmission / pipe behaviour       | Planned         | —                                    |
 | 2      | so_long / FdF / fract-ol   | —                                          | Out of scope (graphical) | —                           |
-| 3      | philosophers               | Death timing, no-death scenarios           | Planned         | —                                    |
-| 3      | minishell                  | Output comparison against bash             | Planned         | —                                    |
+| 3      | philosophers               | Death timing, no-death scenarios, meal count, data races, forbidden functions, bonus processes and semaphores | Alpha (untested) | —  |
+| 3      | minishell                  | Output comparison against bash: builtins, quotes, `$`, redirections, heredoc, pipes, syntax errors, memory; bonus `&&` `\|\|` `()` `*` | Alpha (untested) | —  |
 | 4      | NetPractice                | —                                          | Out of scope (web exercise) | —                        |
 | 4      | cub3D / miniRT             | —                                          | Out of scope (graphical) | —                           |
 | 4      | CPP Modules 00–04          | Per-exercise behaviour tests               | Planned         | —                                    |
@@ -211,17 +212,25 @@ Projects that are graphical, system-administration or web-based (Born2beroot, so
 > **get_next_line** is compiled and run with every `BUFFER_SIZE` in 1, 2, 5, 42, 9999 and 10000000, and once without `-D BUFFER_SIZE` (the subject requires both). Each case runs on its own with a 5-second limit, so an infinite loop, a crash or a `read()` that waits forever fails that one case instead of hanging the run; a failure shows the case, the buffer size, the line expected and the line returned. Setup also checks the `README.md` the subject requires (italic first line, Description, Instructions and Resources sections); the algorithm explanation it asks for is up to you and your peers. The `gnltester` tests port every case from [Tripouille/gnlTester](https://github.com/Tripouille/gnlTester), including its check that, at `BUFFER_SIZE=42`, nothing past the first line of `files/42_with_nl` was read. The tests also check for memory leaks after `get_next_line` returns `NULL`, reject global variables and functions other than `read`, `malloc` and `free`, and fail an implementation that reads the whole file before returning the first line. Run it from a folder named `get_next_line`, or with `mini -get_next_line` from any folder.
 
 
-## Alpha suites (push_swap, ft_printf)
+## Alpha suites (push_swap, philo, minishell, ft_printf)
 
 These suites print a yellow **ALPHA - UNTESTED** banner at the start of a run. They were written from the subjects and checked only against reference programs written for that purpose (some deliberately broken), never against real 42 submissions: a FAIL can be a mistake in mini, and a PASS proves nothing. Please report anything that looks wrong. ft_printf has no checks yet and already carries the banner. The list lives in `ALPHA_SUITES` in `mini-moul/config.sh`; a suite leaves it once it has been cross-tested.
 
-push_swap is a program your Makefile builds, so it starts with a `setup` part (files, Makefile rules and flags, no relink, only the functions the subject allows, global variables). Run `mini` from the `push_swap` folder, or pass the suite with `mini -push_swap`. There are no per-function tests: `mini` takes no function names for it.
+All three are programs your Makefile builds, so each starts with a `setup` part (files, Makefile rules and flags, no relink, only the functions the subject allows, global variables). Run `mini` from the project folder (`push_swap`, `philo`, `minishell`), or pass the suite with `mini -push_swap`. There are no per-function tests: `mini` takes no function names for them.
 
 ### push_swap
 
 - `errors`: `Error` and a newline on stderr for non-integers, out-of-range numbers and duplicates, nothing for no argument or an already sorted list.
 - `sorting`: your instructions are replayed on a simulator. Every order of 2 to 5 numbers must be sorted (3 numbers in at most 3 instructions, 5 in at most 12); 100 random numbers must take fewer than 1500 instructions and 500 fewer than 11500. The evaluation scale (under 700 / 5500 is 5/5) is printed as a `[!]` when you are below full marks. The thresholds come from the public evaluation sheet and may be out of date.
 - `bonus`: a `checker` built by `make bonus`: `Error`, `OK` and `KO` on hand-made cases, and your push_swap piped into it.
+
+### philo
+
+Run from the `philo` folder, or from a folder that holds `philo` and `philo_bonus`; `philo_bonus` is found next to it. The simulations (`1 800 200 200` dies, `5 800 200 200` and `4 410 200 200` keep going, `5 800 200 200 7` stops, `4 310 200 100` dies) read your log: format, two forks per meal, eating and sleeping times, no two neighbours eating at once, the death message within 10 ms, nothing after it. A "nobody dies" scenario runs for `PH_ALIVE` seconds (8 by default); `PH_LIMIT` caps one that must stop by itself (30). The `memory` part runs your program under AddressSanitizer and ThreadSanitizer. The bonus checks the same scenarios, that each philosopher is a process, that none is left running, and (on Linux) that named semaphores are unlinked.
+
+### minishell
+
+Each case feeds the same lines to bash and to your `minishell` in the same sandbox folder and compares stdout, the files left behind, whether anything went to stderr, and (for `exit`) the status. Fed from a pipe, a readline shell still prints its prompt and the line it reads; mini learns both from a calibration run and removes them, so the prompt can be anything. Lines are not tested with a tab (readline completes it) and a syntax error is a one-line case, since bash stops its script there. The bonus part runs `make bonus` first when the Makefile has that rule.
 
 
 ## Updating
