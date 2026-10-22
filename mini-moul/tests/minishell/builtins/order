@@ -1,0 +1,7 @@
+echo.sh
+pwd.sh
+cd.sh
+env.sh
+export.sh
+unset.sh
+exit.sh

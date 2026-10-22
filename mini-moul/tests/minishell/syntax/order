@@ -1,0 +1,3 @@
+syntax_errors.sh
+unclosed_quotes.sh
+not_interpreted.sh

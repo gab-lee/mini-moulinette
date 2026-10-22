@@ -2,4 +2,11 @@
 .vscode
 .student_objs/
 .gnl_build/
+.instr_*/
+.ms_*
+.ps_*
+.ph_*
+.pc_status
+.make_out
+.lsan.supp
 .library_built

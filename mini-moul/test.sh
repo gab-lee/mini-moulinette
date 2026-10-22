@@ -378,6 +378,10 @@ select_functions()
     local suite_dir=$1 name bad=0
     shift
     [ $# -eq 0 ] && return
+    if ! ls "$suite_dir"/*/*.c > /dev/null 2>&1; then
+        printf "${RED}%s has no per-function tests: run mini without function names.${DEFAULT}\n" "$(basename "$suite_dir")"
+        exit 1
+    fi
     selected_mode=1
     for name in "$@"; do
         case "$name" in
@@ -414,6 +418,7 @@ main()
             [ "$dirname" = "get_next_line" ] && show_time=1
             select_functions "$dir" "${@:2}"
             print_header
+            print_alpha_banner "$1"
             printf "${GREEN} Generating test for ${1}...\n${DEFAULT}"
             space
             dirname_found=1
@@ -542,7 +547,10 @@ main()
         exit 1
     fi
     [ -n "$OBJ_DIR" ] && rm -rf "$OBJ_DIR"
-    if [ $selected_mode -eq 1 ]; then
+    if [ $questions -eq 0 ] && [ $checks -eq 0 ]; then
+        printf "${GREY}There are no checks for ${1} yet.${DEFAULT}\n"
+        space
+    elif [ $selected_mode -eq 1 ]; then
         print_selected_footer
     else
         print_footer
@@ -566,6 +574,22 @@ print_header()
     printf "${BLUE}Mini moulinette ${DEFAULT}version ${VERSION}.\n"
     printf "${BLUE}Written by ${DEFAULT}gab-lee.\n"
     printf "${BLUE}AddressSanitizer ${DEFAULT}on.\n"
+    space
+}
+
+# Suites listed in ALPHA_SUITES (config.sh) get a banner: their checks are
+# written from the subject and have only been run against reference programs
+# written for this purpose, never against real submissions.
+print_alpha_banner()
+{
+    case " $ALPHA_SUITES " in
+        *" $1 "*) ;;
+        *) return ;;
+    esac
+    printf "${YELLOW}${BOLD} ALPHA - UNTESTED${DEFAULT}\n"
+    printf "${YELLOW} The checks for ${1} have not been run against real 42 submissions yet.${DEFAULT}\n"
+    printf "${YELLOW} A FAIL can be a mistake in mini-moulinette, and a PASS proves nothing.${DEFAULT}\n"
+    printf "${YELLOW} Please report anything that looks wrong on GitHub.${DEFAULT}\n"
     space
 }
 

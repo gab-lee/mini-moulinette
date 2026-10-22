@@ -9,6 +9,43 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-10-21
+
+### Added
+- Alpha `push_swap` suite: setup (files, Makefile, allowed functions, no
+  global variables), `errors` (invalid and duplicate numbers, no argument,
+  already sorted), `sorting` (every order of 2 to 5 numbers, 100 and 500
+  random lists, extreme values, reverse order, scored on the evaluation
+  scale) and a `bonus` part for `checker`.
+- Alpha `philo` suite: setup, argument handling, simulations checked
+  against the subject's log rules and the 10 ms death window, an
+  AddressSanitizer run and a ThreadSanitizer data race run, and a bonus
+  part for `philo_bonus` (processes, none left behind, semaphores).
+- Alpha `minishell` suite: output, files and stderr compared with bash for
+  builtins, expansion, quotes, redirections, heredoc, pipes, command
+  lookup, syntax errors and memory; bonus `&&`, `||`, parentheses and
+  wildcards. Prompts are learned from a calibration run and removed.
+- A yellow **ALPHA - UNTESTED** banner for `ft_printf`, `push_swap`, `philo`
+  and `minishell` (`ALPHA_SUITES` in `config.sh`), and a "no checks yet"
+  message for a suite without tests.
+- `utils/program_check.sh` and `utils/limited.pl`: helpers shared by the
+  suites that grade a whole program.
+- philo and minishell checks written from the subjects (Philosophers v13.0,
+  minishell v10.0): the required `README.md`, the Makefile compiler (`cc`,
+  for every program suite), the size of minishell's one global variable,
+  the `bonus` rule and `_bonus` files of the minishell bonus, ctrl-C,
+  ctrl-D and ctrl-\ in a pseudo-terminal, and a `[!]` when `;` or `\` are
+  interpreted.
+- ft_printf edge cases (120 more cases in four new files):
+  `libc/ft_printf_edge_cases.c` (bytes outside 0..127, NULs, conversions
+  inside arguments, 10000 and 100000 character strings, 1000 escaped
+  percents, digit-count boundaries, twelve arguments in one call),
+  `bonus/ft_printf_flag_order.c` (flags in any order and repeated),
+  `bonus/ft_printf_zero_and_precision.c` (missing and zero precision,
+  `+` and space with the value 0, `#` with precision) and
+  `bonus/ft_printf_wide_fields.c` (widths and precisions up to 5000, NUL
+  and `NULL` under a width).
+
 ## [2.6.0] - 2026-10-18
 
 ### Added

@@ -8,3 +8,4 @@ ft_printf_x_lower.c
 ft_printf_x_upper.c
 ft_printf_percent.c
 ft_printf_multi.c
+ft_printf_edge_cases.c
