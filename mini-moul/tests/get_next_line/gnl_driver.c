@@ -26,7 +26,7 @@
 ** -Dmalloc=gnl_test_malloc -Dfree=gnl_test_free -Dread=gnl_test_read, so a
 ** case can count blocks still allocated after get_next_line returns NULL,
 ** check that returned lines are real malloc'd blocks, see how far
-** get_next_line read ahead, and make read() fail.
+** get_next_line read ahead, and make read() or the nth malloc() fail.
 */
 
 #define GNL_TIMEOUT 5
@@ -68,6 +68,8 @@ static long	g_live_blocks;
 static long	g_live_bytes;
 static int	g_bad_free;
 static int	g_fail_read;
+static long	g_malloc_calls;
+static long	g_fail_malloc_at;
 static int	g_warned;
 static long	g_bytes_read[MAX_TRACKED_FD];
 static char	g_asan_kind[64];
@@ -80,6 +82,12 @@ void	*gnl_test_malloc(size_t size)
 {
 	size_t	*block;
 
+	g_malloc_calls++;
+	if (g_fail_malloc_at != 0 && g_malloc_calls == g_fail_malloc_at)
+	{
+		errno = ENOMEM;
+		return (NULL);
+	}
 	block = malloc(size + 2 * sizeof(size_t));
 	if (block == NULL)
 		return (NULL);
@@ -322,6 +330,92 @@ static int	check_leaks(void)
 		"after get_next_line returned NULL\n" DEFAULT,
 		g_live_blocks, g_live_bytes);
 	return (1);
+}
+
+/* ---------------------------------------------------------------------- */
+/* malloc failures                                                         */
+/* ---------------------------------------------------------------------- */
+
+#define MALLOC_RUNS_MAX 4000
+/* Exit status of a run in which the failing malloc was never reached */
+#define NOT_REACHED 10
+
+/* One read of content with the nth malloc of the student's code failing,
+** in a child of its own: a failed call may leave the static state broken
+** for the next one. Passes when get_next_line does not crash, returns NULL
+** in the end (it may return lines first) and holds nothing once it did:
+** an error is a NULL return, and the subject wants memory freed. */
+static int	failing_run(const char *content, long n)
+{
+	char	*line;
+	int		fd;
+	int		calls;
+
+	g_malloc_calls = 0;
+	g_fail_malloc_at = n;
+	fd = open_content(content, strlen(content));
+	calls = 0;
+	line = get_next_line(fd);
+	while (line != NULL && ++calls < 100)
+	{
+		free_line(line);
+		line = get_next_line(fd);
+	}
+	g_fail_malloc_at = 0;
+	if (line != NULL)
+	{
+		printf(RED "        when malloc call %ld fails, get_next_line never "
+			"returned NULL\n" DEFAULT, n);
+		return (1);
+	}
+	if (g_live_blocks != 0)
+		printf(RED "        when malloc call %ld fails: memory leak, %ld "
+			"block(s), %ld bytes still allocated after get_next_line returned "
+			"NULL\n" DEFAULT, n, g_live_blocks, g_live_bytes);
+	if (g_live_blocks != 0)
+		return (1);
+	return (g_malloc_calls < n ? NOT_REACHED : 0);
+}
+
+static int	case_malloc_fails(int which)
+{
+	static const char	*content[] = {
+		"first line\nsecond\n\nlast without newline",
+		"a line longer than most buffers: 0123456789012345678901234567890\nok\n",
+		"x\n",
+		"",
+	};
+	pid_t	pid;
+	int		status;
+	long	n;
+
+	if (!g_instr)
+		return (0);
+	n = 1;
+	while (n <= MALLOC_RUNS_MAX)
+	{
+		fflush(stdout);
+		pid = fork();
+		if (pid == 0)
+		{
+			status = failing_run(content[which], n);
+			fflush(stdout);
+			_exit(status);
+		}
+		waitpid(pid, &status, 0);
+		if (WIFSIGNALED(status))
+			printf(RED "        when malloc call %ld fails: crashed: %s\n"
+				DEFAULT, n, strsignal(WTERMSIG(status)));
+		else if (WEXITSTATUS(status) == ASAN_EXIT)
+			printf(RED "        when malloc call %ld fails: memory error found "
+				"by AddressSanitizer (see the Memory fail line)\n" DEFAULT, n);
+		else if (WEXITSTATUS(status) == NOT_REACHED)
+			return (0);
+		if (WIFSIGNALED(status) || WEXITSTATUS(status) != 0)
+			return (1);
+		n++;
+	}
+	return (0);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -896,6 +990,15 @@ static const t_case	g_multi_cases[] = {
 		case_tri_multi, 0, NULL},
 };
 
+static const t_case	g_malloc_cases[] = {
+	{"malloc fails once, in a file of short lines: NULL, nothing leaked",
+		case_malloc_fails, 0, NULL},
+	{"malloc fails once, in a line longer than BUFFER_SIZE",
+		case_malloc_fails, 1, NULL},
+	{"malloc fails once, in a one-line file", case_malloc_fails, 2, NULL},
+	{"malloc fails once, in an empty file", case_malloc_fails, 3, NULL},
+};
+
 /* Passes a case's captured stderr through to ours (test.sh turns a
 ** sanitizer report there into the Memory fail line) and records the
 ** report's error kind, e.g. "heap-use-after-free", in g_asan_kind. */
@@ -1062,7 +1165,7 @@ int	main(int argc, char **argv)
 
 	if (argc != 5)
 	{
-		fprintf(stderr, "usage: %s <file|stdin|errors|multi> <label> "
+		fprintf(stderr, "usage: %s <file|stdin|errors|malloc|multi> <label> "
 			"<buffer size> <instr|plain>\n", argv[0]);
 		return (2);
 	}
@@ -1082,6 +1185,11 @@ int	main(int argc, char **argv)
 	{
 		cases = g_error_cases;
 		count = sizeof(g_error_cases) / sizeof(*g_error_cases);
+	}
+	else if (strcmp(argv[1], "malloc") == 0)
+	{
+		cases = g_malloc_cases;
+		count = sizeof(g_malloc_cases) / sizeof(*g_malloc_cases);
 	}
 	else
 	{
