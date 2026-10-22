@@ -36,6 +36,13 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
   the `bonus` rule and `_bonus` files of the minishell bonus, ctrl-C,
   ctrl-D and ctrl-\ in a pseudo-terminal, and a `[!]` when `;` or `\` are
   interpreted.
+- get_next_line: `malloc_failure` (and `malloc_failure_bonus`) tests. The
+  driver makes the nth `malloc` of your code fail, for n = 1, 2, ... on four
+  small files and every tested `BUFFER_SIZE`, and fails a crash, a memory
+  error or a block still allocated once `get_next_line` returned `NULL`.
+  Before, no test ever made `malloc` fail, so leaks on that path went
+  unnoticed. Skipped with a `[!]` when your files cannot be built with the
+  malloc counters.
 - ft_printf edge cases (120 more cases in four new files):
   `libc/ft_printf_edge_cases.c` (bytes outside 0..127, NULs, conversions
   inside arguments, 10000 and 100000 character strings, 1000 escaped

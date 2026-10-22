@@ -188,7 +188,7 @@ gnl_build()
 	return $error
 }
 
-# gnl_run <mandatory|bonus> <file|stdin|errors|multi>
+# gnl_run <mandatory|bonus> <file|stdin|errors|malloc|multi>
 # Runs one driver scenario against every build.
 gnl_run()
 {
