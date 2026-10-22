@@ -339,6 +339,21 @@ static int	check_leaks(void)
 #define MALLOC_RUNS_MAX 4000
 /* Exit status of a run in which the failing malloc was never reached */
 #define NOT_REACHED 10
+/* Exit status of a run that ended with NULL and nothing lost, but with
+** memory still held by get_next_line's static variable */
+#define STILL_REACHABLE 11
+
+int	__lsan_do_recoverable_leak_check(void);
+
+/* True when LeakSanitizer is on (test.sh sets detect_leaks=1 on Linux),
+** so it can tell a lost block from one a static variable still points to */
+static int	lsan_active(void)
+{
+	const char	*opts;
+
+	opts = getenv("ASAN_OPTIONS");
+	return (opts != NULL && strstr(opts, "detect_leaks=1") != NULL);
+}
 
 /* One read of content with the nth malloc of the student's code failing,
 ** in a child of its own: a failed call may leave the static state broken
@@ -368,12 +383,16 @@ static int	failing_run(const char *content, long n)
 			"returned NULL\n" DEFAULT, n);
 		return (1);
 	}
+	if (g_live_blocks != 0 && lsan_active()
+		&& __lsan_do_recoverable_leak_check() == 0)
+		return (STILL_REACHABLE);
 	if (g_live_blocks != 0)
+	{
 		printf(RED "        when malloc call %ld fails: memory leak, %ld "
 			"block(s), %ld bytes still allocated after get_next_line returned "
 			"NULL\n" DEFAULT, n, g_live_blocks, g_live_bytes);
-	if (g_live_blocks != 0)
 		return (1);
+	}
 	return (g_malloc_calls < n ? NOT_REACHED : 0);
 }
 
@@ -388,9 +407,11 @@ static int	case_malloc_fails(int which)
 	pid_t	pid;
 	int		status;
 	long	n;
+	long	reachable;
 
 	if (!g_instr)
 		return (0);
+	reachable = 0;
 	n = 1;
 	while (n <= MALLOC_RUNS_MAX)
 	{
@@ -410,11 +431,19 @@ static int	case_malloc_fails(int which)
 			printf(RED "        when malloc call %ld fails: memory error found "
 				"by AddressSanitizer (see the Memory fail line)\n" DEFAULT, n);
 		else if (WEXITSTATUS(status) == NOT_REACHED)
-			return (0);
-		if (WIFSIGNALED(status) || WEXITSTATUS(status) != 0)
+			break ;
+		else if (WEXITSTATUS(status) == STILL_REACHABLE && reachable == 0)
+			reachable = n;
+		if (WIFSIGNALED(status) || (WEXITSTATUS(status) != 0
+				&& WEXITSTATUS(status) != STILL_REACHABLE))
 			return (1);
 		n++;
 	}
+	if (reachable != 0)
+		printf(YELLOW "  [!] when malloc call %ld fails, get_next_line returns "
+			"NULL but keeps memory in its static variable (not lost, still "
+			"reachable); free it before returning NULL on an error\n" DEFAULT,
+			reachable);
 	return (0);
 }
 

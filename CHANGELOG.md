@@ -39,7 +39,8 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 - get_next_line: `malloc_failure` (and `malloc_failure_bonus`) tests. The
   driver makes the nth `malloc` of your code fail, for n = 1, 2, ... on four
   small files and every tested `BUFFER_SIZE`, and fails a crash, a memory
-  error or a block still allocated once `get_next_line` returned `NULL`.
+  error or a block lost once `get_next_line` returned `NULL` (a block the
+  static variable still points to only gets a `[!]`).
   Before, no test ever made `malloc` fail, so leaks on that path went
   unnoticed. Skipped with a `[!]` when your files cannot be built with the
   malloc counters.
