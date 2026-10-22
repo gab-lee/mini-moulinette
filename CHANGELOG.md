@@ -9,6 +9,22 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.7.1] - 2026-10-22
+
+### Fixed
+- get_next_line: the `malloc_failure` tests failed any block still held
+  after a failed `malloc`, even one the static `stash` still points to, and
+  told lost blocks apart with LeakSanitizer, which needs ptrace, scans the
+  stack conservatively and is missing on macOS, so the answer could differ
+  between machines. The driver now keeps a list of live blocks and finds the
+  lost ones itself (nothing reachable from the program's `.data`/`.bss`
+  points to them), the same on every platform. Lost blocks fail; a block the
+  static still points to only prints a `[!]`.
+- A header that does not compile on its own (for example a type used before
+  its `typedef`, or a `static` function declared in it) was reported as
+  "prototype differs from the subject". The prototype check now says the
+  header does not compile and shows the compiler's first errors.
+
 ## [2.7.0] - 2026-10-21
 
 ### Added
