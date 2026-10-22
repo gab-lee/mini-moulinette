@@ -8,6 +8,13 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#if defined(__APPLE__) && defined(__has_include)
+# if __has_include(<mach-o/getsect.h>) && __has_include(<mach-o/ldsyms.h>)
+#  include <mach-o/getsect.h>
+#  include <mach-o/ldsyms.h>
+#  define GNL_MACH_DATA 1
+# endif
+#endif
 #include "get_next_line_proto.h"
 #include "../../utils/constants.h"
 
@@ -62,6 +69,20 @@ void	*gnl_test_malloc(size_t size);
 void	gnl_test_free(void *ptr);
 ssize_t	gnl_test_read(int fd, void *buf, size_t nbytes);
 
+/* Header in front of every block the student's code allocates, so live
+** blocks can be listed and, after a case, told apart into those something
+** still points to and those nothing does (lost). */
+typedef struct s_hdr
+{
+	size_t			size;
+	size_t			magic;
+	struct s_hdr	*prev;
+	struct s_hdr	*next;
+	int				mark;
+	int				scanned;
+}	__attribute__((aligned(16))) t_hdr;
+
+static t_hdr	*g_blocks;
 static int	g_instr;
 static long	g_bs;
 static long	g_live_blocks;
@@ -80,7 +101,7 @@ static char	g_asan_kind[64];
 
 void	*gnl_test_malloc(size_t size)
 {
-	size_t	*block;
+	t_hdr	*block;
 
 	g_malloc_calls++;
 	if (g_fail_malloc_at != 0 && g_malloc_calls == g_fail_malloc_at)
@@ -88,14 +109,21 @@ void	*gnl_test_malloc(size_t size)
 		errno = ENOMEM;
 		return (NULL);
 	}
-	block = malloc(size + 2 * sizeof(size_t));
+	block = malloc(size + sizeof(t_hdr));
 	if (block == NULL)
 		return (NULL);
-	block[0] = size;
-	block[1] = GNL_MAGIC;
+	block->size = size;
+	block->magic = GNL_MAGIC;
+	block->prev = NULL;
+	block->next = g_blocks;
+	block->mark = 0;
+	block->scanned = 0;
+	if (g_blocks)
+		g_blocks->prev = block;
+	g_blocks = block;
 	g_live_blocks++;
 	g_live_bytes += size;
-	return (block + 2);
+	return (block + 1);
 }
 
 /* Not sanitized: reading the header of a pointer that is not the start of
@@ -103,19 +131,25 @@ void	*gnl_test_malloc(size_t size)
 __attribute__((no_sanitize_address))
 void	gnl_test_free(void *ptr)
 {
-	size_t	*block;
+	t_hdr	*block;
 
 	if (ptr == NULL)
 		return ;
-	block = (size_t *)ptr - 2;
-	if (block[1] != GNL_MAGIC)
+	block = (t_hdr *)ptr - 1;
+	if (block->magic != GNL_MAGIC)
 	{
 		g_bad_free++;
 		return ;
 	}
-	block[1] = 0;
+	if (block->prev)
+		block->prev->next = block->next;
+	else
+		g_blocks = block->next;
+	if (block->next)
+		block->next->prev = block->prev;
+	block->magic = 0;
 	g_live_blocks--;
-	g_live_bytes -= block[0];
+	g_live_bytes -= block->size;
 	free(block);
 }
 
@@ -339,6 +373,134 @@ static int	check_leaks(void)
 #define MALLOC_RUNS_MAX 4000
 /* Exit status of a run in which the failing malloc was never reached */
 #define NOT_REACHED 10
+/* Exit status of a run that ended with NULL and nothing lost, but with
+** memory still held by get_next_line's static variable */
+#define STILL_REACHABLE 11
+
+#if defined(__linux__)
+extern char	__data_start[] __attribute__((weak));
+extern char	_end[] __attribute__((weak));
+#endif
+
+/* The program's own writable data (.data and .bss): where a static variable
+** such as the stash lives. Returns 0 when the platform does not tell. */
+static int	data_range(const char **lo, const char **hi)
+{
+#if defined(__linux__)
+	if ((void *)__data_start == NULL || (void *)_end == NULL)
+		return (0);
+	*lo = __data_start;
+	*hi = _end;
+	return (1);
+#elif defined(GNL_MACH_DATA)
+	unsigned long	size;
+	const char		*start;
+
+	start = (const char *)getsegmentdata(
+			(const struct mach_header_64 *)&_mh_execute_header, "__DATA",
+			&size);
+	if (start == NULL)
+		return (0);
+	*lo = start;
+	*hi = start + size;
+	return (1);
+#else
+	(void)lo;
+	(void)hi;
+	return (0);
+#endif
+}
+
+/* The live block that contains the address word, if any (interior
+** pointers count). */
+__attribute__((no_sanitize_address))
+static t_hdr	*find_block(size_t word)
+{
+	t_hdr	*b;
+
+	b = g_blocks;
+	while (b)
+	{
+		if (word >= (size_t)(b + 1) && word < (size_t)(b + 1) + b->size)
+			return (b);
+		b = b->next;
+	}
+	return (NULL);
+}
+
+/* Marks every live block that some word in [lo, hi) points to. */
+__attribute__((no_sanitize_address))
+static void	mark_from(const char *lo, const char *hi)
+{
+	const size_t	*w;
+	t_hdr			*b;
+
+	w = (const size_t *)(((size_t)lo + sizeof(size_t) - 1)
+			& ~(sizeof(size_t) - 1));
+	while ((const char *)(w + 1) <= hi)
+	{
+		b = find_block(*w);
+		if (b)
+			b->mark = 1;
+		w++;
+	}
+}
+
+/* Blocks that nothing reachable from the program's static data points to
+** any more: leaked for good. A block the stash still points to is not
+** counted, since the next call could free it. Done here, without
+** LeakSanitizer, so it gives the same answer everywhere: LeakSanitizer
+** scans the stack conservatively, needs ptrace, and is not on macOS.
+** Returns -1 when the platform cannot say. */
+__attribute__((no_sanitize_address))
+static long	count_lost(long *bytes)
+{
+	const char	*lo;
+	const char	*hi;
+	t_hdr		*b;
+	int			pending;
+	long		lost;
+
+	if (!data_range(&lo, &hi))
+		return (-1);
+	b = g_blocks;
+	while (b)
+	{
+		b->mark = 0;
+		b->scanned = 0;
+		b = b->next;
+	}
+	mark_from(lo, hi);
+	pending = 1;
+	while (pending)
+	{
+		pending = 0;
+		b = g_blocks;
+		while (b)
+		{
+			if (b->mark && !b->scanned)
+			{
+				b->scanned = 1;
+				pending = 1;
+				mark_from((const char *)(b + 1), (const char *)(b + 1) + b->size);
+			}
+			b = b->next;
+		}
+	}
+	lost = 0;
+	*bytes = 0;
+	b = g_blocks;
+	while (b)
+	{
+		if (!b->mark)
+		{
+			lost++;
+			*bytes += b->size;
+		}
+		b = b->next;
+	}
+	return (lost);
+}
 
 /* One read of content with the nth malloc of the student's code failing,
 ** in a child of its own: a failed call may leave the static state broken
@@ -350,6 +512,8 @@ static int	failing_run(const char *content, long n)
 	char	*line;
 	int		fd;
 	int		calls;
+	long	lost;
+	long	lost_bytes;
 
 	g_malloc_calls = 0;
 	g_fail_malloc_at = n;
@@ -369,11 +533,21 @@ static int	failing_run(const char *content, long n)
 		return (1);
 	}
 	if (g_live_blocks != 0)
-		printf(RED "        when malloc call %ld fails: memory leak, %ld "
-			"block(s), %ld bytes still allocated after get_next_line returned "
-			"NULL\n" DEFAULT, n, g_live_blocks, g_live_bytes);
-	if (g_live_blocks != 0)
+	{
+		lost = count_lost(&lost_bytes);
+		if (lost == 0)
+			return (STILL_REACHABLE);
+		if (lost < 0)
+			printf(RED "        when malloc call %ld fails: memory leak, %ld "
+				"block(s), %ld bytes still allocated after get_next_line "
+				"returned NULL\n" DEFAULT, n, g_live_blocks, g_live_bytes);
+		else
+			printf(RED "        when malloc call %ld fails: memory leak, %ld "
+				"block(s), %ld bytes lost (nothing points to them any more) "
+				"after get_next_line returned NULL\n" DEFAULT,
+				n, lost, lost_bytes);
 		return (1);
+	}
 	return (g_malloc_calls < n ? NOT_REACHED : 0);
 }
 
@@ -388,9 +562,11 @@ static int	case_malloc_fails(int which)
 	pid_t	pid;
 	int		status;
 	long	n;
+	long	reachable;
 
 	if (!g_instr)
 		return (0);
+	reachable = 0;
 	n = 1;
 	while (n <= MALLOC_RUNS_MAX)
 	{
@@ -410,11 +586,19 @@ static int	case_malloc_fails(int which)
 			printf(RED "        when malloc call %ld fails: memory error found "
 				"by AddressSanitizer (see the Memory fail line)\n" DEFAULT, n);
 		else if (WEXITSTATUS(status) == NOT_REACHED)
-			return (0);
-		if (WIFSIGNALED(status) || WEXITSTATUS(status) != 0)
+			break ;
+		else if (WEXITSTATUS(status) == STILL_REACHABLE && reachable == 0)
+			reachable = n;
+		if (WIFSIGNALED(status) || (WEXITSTATUS(status) != 0
+				&& WEXITSTATUS(status) != STILL_REACHABLE))
 			return (1);
 		n++;
 	}
+	if (reachable != 0)
+		printf(YELLOW "  [!] when malloc call %ld fails, get_next_line returns "
+			"NULL but keeps memory in its static variable (not lost, still "
+			"reachable); free it before returning NULL on an error\n" DEFAULT,
+			reachable);
 	return (0);
 }
 

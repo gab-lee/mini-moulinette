@@ -28,6 +28,15 @@ check_prototypes()
 		printf "    ${RED}%s is missing at the root of your project; cannot check prototypes${DEFAULT}\n" "$header"
 		return 1
 	fi
+	# A header that does not compile on its own would make every entry below
+	# report a wrong prototype, so say so first
+	printf '#include "../%s"\n\nvoid probe(void)\n{\n}\n' "$header" > "$probe"
+	if ! cc -Wall -Werror -Wextra -c "$probe" -o "$obj" 2> "$err"; then
+		printf "    ${RED}[$i] %s does not compile on its own, so its prototypes cannot be checked:${DEFAULT}\n" "$header"
+		sed 's/^/    /' "$err" | head -8
+		rm -f "$probe" "$obj" "$err"
+		return 1
+	fi
 	for entry in "$@"; do
 		IFS='|' read -r name decl pretty <<< "$entry"
 		{
