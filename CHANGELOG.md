@@ -9,6 +9,26 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-10-31
+
+### Added
+- push_swap: tests for subject v1.2. A `strategies` part checks that
+  `--simple`, `--medium`, `--complex` and `--adaptive` sort every valid
+  input (sizes 2 to 500, sorted and reversed lists, errors) and that
+  `--bench` writes the disorder (two decimals), the strategy's complexity
+  class, the total and the 11 operation counts on stderr only, leaving
+  stdout unchanged.
+- push_swap: `setup/readme` checks the README.md the subject requires.
+- push_swap: the checker bonus rejects an empty argument (`./checker "" 1`).
+- `ps_tool disorder` computes the subject's disorder metric.
+
+### Changed
+- push_swap: benchmark limits follow v1.2 (100 numbers: pass under 2000,
+  good under 1500, excellent under 700; 500 numbers: pass under 12000,
+  good under 8000, excellent under 5500). The old 5-point evaluation scale
+  and the 1500 / 11500 failure limits are gone; a count below excellent
+  prints a `[!]` naming its tier.
+
 ## [2.7.1] - 2026-10-22
 
 ### Fixed

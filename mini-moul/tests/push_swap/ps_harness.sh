@@ -104,7 +104,14 @@ ps_sort_case()
 		ps_problem="wrote on stderr: $(head -c 60 .ps_err | head -1)"
 		return
 	fi
-	result="$("$PS_TOOL" sim "$@" < .ps_out)"
+	local numbers=() arg
+	for arg in "$@"; do
+		case "$arg" in
+			--[a-z]*) ;;
+			*) numbers+=("$arg") ;;
+		esac
+	done
+	result="$("$PS_TOOL" sim "${numbers[@]}" < .ps_out)"
 	case "$result" in
 		OK*) ps_ops=${result#OK } ;;
 		KO*) ps_ops=${result#KO }; ps_problem="the instructions do not leave stack a sorted with stack b empty" ;;
@@ -112,22 +119,24 @@ ps_sort_case()
 	esac
 }
 
-# ps_points <100|500> <operations>: points on the evaluation scale (0 to 5)
-ps_points()
+# ps_tier <100|500> <operations>: pass, good or excellent (subject VI.6),
+# or fail when the count is at or above the pass limit
+ps_tier()
 {
-	local limits points=5 limit
+	local pass good excellent
 	case "$1" in
-		100) limits="700 900 1100 1300 1500" ;;
-		*) limits="5500 7000 8500 10000 11500" ;;
+		100) pass=2000; good=1500; excellent=700 ;;
+		*) pass=12000; good=8000; excellent=5500 ;;
 	esac
-	for limit in $limits; do
-		if [ "$2" -lt "$limit" ]; then
-			printf '%s' "$points"
-			return
-		fi
-		points=$((points - 1))
-	done
-	printf '0'
+	if [ "$2" -lt "$excellent" ]; then
+		printf 'excellent'
+	elif [ "$2" -lt "$good" ]; then
+		printf 'good'
+	elif [ "$2" -lt "$pass" ]; then
+		printf 'pass'
+	else
+		printf 'fail'
+	fi
 }
 
 # ps_every_permutation <count> <max operations>
@@ -163,13 +172,22 @@ ps_every_permutation()
 	fi
 }
 
-# ps_random_sorts <count> <fail limit> <first seed> <number of lists> [extremes]
-# Sorts random lists; fails on a bad answer or beyond the lowest point on
-# the evaluation scale, and warns below full marks.
+# ps_random_sorts <count> <seed> <number of lists> [extremes] -- <push_swap options...>
+# Sorts random lists; fails on a bad answer or at the subject's pass limit
+# (2000 for 100 numbers, 12000 for 500), and warns below the excellent tier
+# (700 / 5500). Options such as --simple go before the numbers.
 ps_random_sorts()
 {
-	local count=$1 limit=$2 seed=$3 lists=$4 extremes=$5 worst=0 i failed=0
-	local list args points
+	local count=$1 seed=$2 lists=$3 extremes="" worst=0 i failed=0
+	local list args tier limit excellent
+	shift 3
+	[ "$1" = "extremes" ] && { extremes=extremes; shift; }
+	[ "$1" = "--" ] && shift
+	case "$count" in
+		100) limit=2000; excellent=700 ;;
+		500) limit=12000; excellent=5500 ;;
+		*) limit=1000000000; excellent=0 ;;
+	esac
 	i=0
 	while [ $i -lt "$lists" ]; do
 		list="$("$PS_TOOL" gen "$count" $((seed + i)) $extremes)"
@@ -179,7 +197,7 @@ ps_random_sorts()
 		fi
 		# shellcheck disable=SC2206
 		args=($list)
-		ps_sort_case "${args[@]}"
+		ps_sort_case "$@" "${args[@]}"
 		if [ -n "$ps_problem" ]; then
 			pc_bad "$count random numbers (seed $((seed + i))): $ps_problem"
 			failed=1
@@ -195,8 +213,8 @@ ps_random_sorts()
 	fi
 	pc_ok "$count random numbers: sorted, $worst operations in the worst of $lists lists"
 	[ "$count" -eq 100 ] || [ "$count" -eq 500 ] || return 0
-	points="$(ps_points "$count" "$worst")"
-	if [ "$points" -lt 5 ]; then
-		pc_warn "$worst operations is $points/5 on the evaluation scale; under $([ "$count" -eq 100 ] && echo 700 || echo 5500) earns 5/5"
+	tier="$(ps_tier "$count" "$worst")"
+	if [ "$tier" != "excellent" ]; then
+		pc_warn "$worst operations is \"$tier\" in the subject's benchmark; under $excellent is excellent"
 	fi
 }

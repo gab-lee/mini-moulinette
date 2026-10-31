@@ -162,7 +162,7 @@ The original project covers the piscine (C00–C08). The goal of this fork is to
 - [x] **Circle 0** — Libft (Part 1, Part 2, Part 3 - linked list)
 - [ ] **Circle 1** — ft_printf (mandatory + bonus) — first cut done
 - [ ] **Circle 1** — get_next_line (mandatory + bonus) — first cut done
-- [ ] **Circle 1** — push_swap (alpha: argument errors, instruction replay, evaluation-scale operation counts, checker bonus)
+- [ ] **Circle 1** — push_swap (alpha: argument errors, instruction replay, benchmark operation counts, strategy selectors and --bench, checker bonus)
 - [ ] **Circle 2** — minitalk / pipex
 - [ ] **Circle 3** — philosophers (alpha: death timing, no-death scenarios, data races, bonus processes), minishell (alpha: output comparison against bash, bonus operators and wildcards)
 - [ ] **Circle 4** — CPP Modules 00–04
@@ -231,9 +231,11 @@ All three are programs your Makefile builds, so each starts with a `setup` part 
 
 ### push_swap
 
+- `setup`: besides the Makefile and forbidden-function checks, the `README.md` the subject requires (italic first line, Description, Instructions, Resources).
 - `errors`: `Error` and a newline on stderr for non-integers, out-of-range numbers and duplicates, nothing for no argument or an already sorted list.
-- `sorting`: your instructions are replayed on a simulator. Every order of 2 to 5 numbers must be sorted (3 numbers in at most 3 instructions, 5 in at most 12); 100 random numbers must take fewer than 1500 instructions and 500 fewer than 11500. The evaluation scale (under 700 / 5500 is 5/5) is printed as a `[!]` when you are below full marks. The thresholds come from the public evaluation sheet and may be out of date.
-- `bonus`: a `checker` built by `make bonus`: `Error`, `OK` and `KO` on hand-made cases, and your push_swap piped into it.
+- `sorting`: your instructions are replayed on a simulator. Every order of 2 to 5 numbers must be sorted (3 numbers in at most 3 instructions, 5 in at most 12); 100 random numbers must take fewer than 2000 instructions and 500 fewer than 12000 (the subject's pass limits). Under 1500 / 8000 is good and under 700 / 5500 is excellent; below excellent prints a `[!]`. The 3 and 5 number limits come from the public evaluation sheet and are not in the subject.
+- `strategies`: `--simple`, `--medium`, `--complex` and `--adaptive` must each sort lists of 2 to 500 numbers (no operation limit) and report errors. `--bench` must print on stderr the disorder with two decimals, the strategy's complexity class, the total and the count of each of the 11 operations, without changing stdout. The subject fixes no layout, so mini looks for each number next to its label (`sa: 3`).
+- `bonus`: a `checker` built by `make bonus`: `Error` (including for an empty argument), `OK` and `KO` on hand-made cases, and your push_swap piped into it.
 
 ### philo
 

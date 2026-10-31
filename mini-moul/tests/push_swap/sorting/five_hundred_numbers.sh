@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# 500 random numbers. The evaluation scale: under 5500 instructions is
-# 5/5, under 7000 4/5, under 8500 3/5, under 10000 2/5, under 11500 1/5. A
-# list at or above 11500 fails here; anything below full marks is a [!].
+# 500 random numbers. The subject's benchmark (VI.6): under 12000
+# instructions passes, under 8000 is good, under 5500 is excellent. A list
+# at or above 12000 fails here; anything below excellent is a [!].
 # Run by test.sh with the mini-moul directory as cwd; the student's
 # project is at ../
 
@@ -11,5 +11,5 @@ source ./tests/push_swap/ps_harness.sh
 
 ps_prepare push_swap
 
-ps_random_sorts 500 11500 1 3
+ps_random_sorts 500 1 3
 exit $pc_error
