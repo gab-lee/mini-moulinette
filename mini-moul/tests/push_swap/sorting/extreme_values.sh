@@ -20,6 +20,6 @@ else
 	pc_ok "INT_MAX, INT_MIN and 0: sorted in $ps_ops operation(s)"
 fi
 ps_every_permutation 5 12
-ps_random_sorts 10 100000 21 3 extremes
-ps_random_sorts 100 1500 31 2 extremes
+ps_random_sorts 10 21 3 extremes
+ps_random_sorts 100 31 2 extremes
 exit $pc_error

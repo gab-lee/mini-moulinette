@@ -9,6 +9,9 @@
 **   ps_tool solve <integer...>
 **       the shortest list of instructions (one per line) that sorts up to 6
 **       integers, found by a breadth-first search.
+**   ps_tool disorder <integer...>
+**       the subject's disorder metric (mistaken pairs / all pairs) as a
+**       percentage with two decimals, e.g. 33.33
 **   ps_tool sim <integer...>
 **       reads instructions from stdin and applies them to stack a (the
 **       integers, first one on top) and an empty stack b. Prints one line:
@@ -380,6 +383,32 @@ static int	sim(int argc, char **argv)
 	return (0);
 }
 
+static int	disorder(int argc, char **argv)
+{
+	long	mistakes;
+	long	pairs;
+	int		i;
+	int		j;
+
+	mistakes = 0;
+	pairs = 0;
+	i = 0;
+	while (i < argc)
+	{
+		j = i + 1;
+		while (j < argc)
+		{
+			pairs++;
+			if (atol(argv[i]) > atol(argv[j]))
+				mistakes++;
+			j++;
+		}
+		i++;
+	}
+	printf("%.2f\n", pairs ? 100.0 * mistakes / pairs : 0.0);
+	return (0);
+}
+
 int	main(int argc, char **argv)
 {
 	if (argc >= 4 && !strcmp(argv[1], "gen"))
@@ -389,8 +418,10 @@ int	main(int argc, char **argv)
 		return (perms(atoi(argv[2])));
 	if (argc >= 2 && !strcmp(argv[1], "solve"))
 		return (solve(argc - 2, argv + 2));
+	if (argc >= 2 && !strcmp(argv[1], "disorder"))
+		return (disorder(argc - 2, argv + 2));
 	if (argc >= 2 && !strcmp(argv[1], "sim"))
 		return (sim(argc - 2, argv + 2));
-	fprintf(stderr, "usage: ps_tool gen|perms|sim ...\n");
+	fprintf(stderr, "usage: ps_tool gen|perms|solve|disorder|sim ...\n");
 	return (2);
 }

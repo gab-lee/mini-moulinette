@@ -76,13 +76,14 @@ detect_assignment() {
 
 print_usage() {
   printf "Usage: mini [-<suite>] [--show] [function ...]\n"
-  printf "       mini [-<suite>] --try <function> [arg ...]\n"
+  printf "       mini [-<suite>] --try [--bonus] <function> [arg ...]\n"
   printf "\n"
   printf "  mini                       run every test for the suite named after this folder\n"
   printf "  mini ft_strlen ft_split    run only these functions (the ft_ prefix is optional)\n"
   printf "  mini -libft strlen         pick the suite explicitly, for a folder with another name\n"
   printf "  mini --show [function ...] also print every case of a passing test, not only failures\n"
-  printf "  mini --try strlen \"hello\"  call one function with your own arguments (libft only)\n"
+  printf "  mini --try --bonus printf ...  run make bonus first, to try the bonus flags (ft_printf)\n"
+  printf "  mini --try strlen \"hello\"  call one function with your own arguments (libft and ft_printf)\n"
   printf "  mini -h, --help            show this help\n"
   printf "\n"
   printf "Arguments for --try (quote each one):\n"
@@ -96,6 +97,7 @@ print_usage() {
   printf "  mini --try substr \"hello world\" 6 5\n"
   printf "  mini --try strmapi \"hello\" toupper\n"
   printf "  mini --try lstsize a b c\n"
+  printf "  mini -ft_printf --try printf \"%%d|%%s|%%5c\" 42 hi z   ft_printf takes the format, then one argument per conversion\n"
 }
 
 # Options first (-<suite>, --show, --try, in any order), then function
@@ -103,6 +105,7 @@ print_usage() {
 # is passed to it as is, so an argument like -1 is not read as an option.
 assignment_flag=""
 mode=""
+bonus_flag=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help) print_usage; exit 0 ;;
@@ -112,6 +115,10 @@ while [ $# -gt 0 ]; do
         exit 1
       fi
       mode="$1"
+      shift
+      ;;
+    --bonus)
+      bonus_flag="--bonus"
       shift
       ;;
     --*)
@@ -124,6 +131,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+if [ -n "$bonus_flag" ] && [ "$mode" != "--try" ]; then
+  printf "${RED}--bonus only works with --try.${DEFAULT}\n"
+  exit 1
+fi
+
 if [ "$mode" = "--try" ] && [ $# -eq 0 ]; then
   printf "${RED}--try needs a function name, e.g. mini --try strlen \"hello\".${DEFAULT}\n"
   exit 1
@@ -135,7 +147,7 @@ if detect_assignment; then
   cp -R ~/mini-moulinette/mini-moul mini-moul
   trap handle_sigint SIGINT
   cd mini-moul
-  ./test.sh $mode "$assignment" "$@"
+  ./test.sh $mode $bonus_flag "$assignment" "$@"
   rm -R ../mini-moul
 else
   if [ -n "$assignment_flag" ]; then

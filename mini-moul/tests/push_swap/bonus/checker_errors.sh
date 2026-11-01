@@ -49,6 +49,17 @@ for entry in "${cases[@]}"; do
 done
 rm -f .ps_in
 
+# An empty argument is not an integer (subject example: ./checker "" 1)
+ps_run_input /dev/null "" 1
+problem="$(ps_crash_text)"
+if [ -n "$problem" ]; then
+	pc_bad "an empty argument: $problem"
+elif [ -s .ps_out ] || [ "$(cat .ps_err)" != "Error" ]; then
+	pc_bad "an empty argument (./checker \"\" 1): must display only \"Error\" on stderr"
+else
+	pc_ok "an empty argument: Error"
+fi
+
 ps_run
 problem="$(ps_crash_text)"
 if [ -n "$problem" ]; then

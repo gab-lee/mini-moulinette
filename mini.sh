@@ -44,13 +44,17 @@ _mini_complete()
 	done
 	words=""
 	if [ "$options" -eq 1 ]; then
-		words="--show --try --help"
+		words="--show --try --bonus --help"
 		for name in $(ls "$tests" 2> /dev/null); do
 			words="$words -$name"
 		done
 	fi
+	# After --try, the functions are the ones with a driver in try/<suite>
+	if [ "$try" -eq 1 ]; then
+		tests=~/mini-moulinette/mini-moul/try
+	fi
 	if [ -d "$tests/$suite" ]; then
-		for name in $(find "$tests/$suite" -mindepth 2 -maxdepth 2 -name '*.c' 2> /dev/null); do
+		for name in $(find "$tests/$suite" -mindepth "$([ "$try" -eq 1 ] && echo 1 || echo 2)" -maxdepth "$([ "$try" -eq 1 ] && echo 1 || echo 2)" -name '*.c' 2> /dev/null); do
 			name="$(basename "${name%.c}")"
 			# Offer ft_strlen once the user has typed an f, strlen otherwise
 			case "$cur" in
