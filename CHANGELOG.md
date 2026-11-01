@@ -9,6 +9,13 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-11-01
+
+### Added
+- `mini --try --bonus printf ...` runs `make bonus` before building the
+  driver, so the bonus flags of ft_printf can be tried on their own. Only
+  for suites built as a library; `--bonus` without `--try` is refused.
+
 ## [2.9.0] - 2026-11-01
 
 ### Added

@@ -44,7 +44,7 @@ _mini_complete()
 	done
 	words=""
 	if [ "$options" -eq 1 ]; then
-		words="--show --try --help"
+		words="--show --try --bonus --help"
 		for name in $(ls "$tests" 2> /dev/null); do
 			words="$words -$name"
 		done

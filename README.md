@@ -118,7 +118,10 @@ Each argument is one shell word, so quote anything with spaces:
 ```bash
 mini --try printf "%d|%s|%5c" 42 hi z
 mini --try printf "%p" @null
+mini --try --bonus printf "%#x|%+d" 255 5
 ```
+
+`--try` runs plain `make`; `--try --bonus` runs `make bonus` instead, so use it for the bonus flags. A build that is already up to date is not rebuilt, so after trying the bonus run `make re` (or `fclean`) before trying the mandatory build again.
 
 A wrong number of arguments prints what that function takes. `--try` runs under AddressSanitizer like the tests, so a crash, leak or overflow in the call is reported as a `Memory fail`.
 

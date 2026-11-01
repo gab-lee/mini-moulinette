@@ -270,13 +270,18 @@ show_cases=0
 # get_next_line: print each test's duration on its PASS/FAIL line
 show_time=0
 
-# try_main <suite> <function> [arg ...]
+# try_main [--bonus] <suite> <function> [arg ...]
 # --try: builds the manual driver try/<suite>/<function>.c against the
 # student's objects and runs it with the given arguments, under the same
 # AddressSanitizer flags, timeout and Memory fail reporting as a test. The
 # objects go into an archive so only the ones the call needs are linked.
 try_main()
 {
+    local try_bonus=0
+    if [ "$1" = "--bonus" ]; then
+        try_bonus=1
+        shift
+    fi
     local suite=$1 try_fn=$2 try_dir="$SCRIPT_DIR/try/$1" fail_detail code note
     local memory_error test_err status_file=.test_status bin=try_bin
     if [ ! -d "$try_dir" ]; then
@@ -305,11 +310,19 @@ try_main()
 
     local library="" link_input
     [ -f "$SCRIPT_DIR/tests/$suite/library" ] && library="$(cat "$SCRIPT_DIR/tests/$suite/library")"
+    local make_target=""
+    if [ $try_bonus -eq 1 ]; then
+        if [ -z "$library" ]; then
+            printf "${RED}--bonus is not available for '%s'.${DEFAULT}\n" "$suite"
+            exit 1
+        fi
+        make_target="bonus"
+    fi
     if [ -n "$library" ]; then
         # Library mode: build what the student's Makefile builds, like the
-        # tests link against
-        if ! make -C .. > make_error.tmp 2>&1 || [ ! -f "../$library" ]; then
-            printf "${RED}make did not build %s:${DEFAULT}\n" "$library"
+        # tests link against ("make bonus" with --bonus)
+        if ! make -C .. $make_target > make_error.tmp 2>&1 || [ ! -f "../$library" ]; then
+            printf "${RED}make %s did not build %s:${DEFAULT}\n" "$make_target" "$library"
             sed 's/^/    /' make_error.tmp | head -15
             rm -f make_error.tmp
             exit 1
