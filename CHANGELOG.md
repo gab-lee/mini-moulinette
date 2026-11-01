@@ -9,6 +9,21 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-11-01
+
+### Added
+- `mini --try printf <format> [argument ...]` for ft_printf. The driver
+  reads the format's conversions to decode the arguments (`%c` char, `%s`
+  string or `@null`, `%p` number or `@null`, `%d %i %u %x %X` numbers),
+  runs ft_printf and the real printf each in a forked child and compares
+  the bytes written and the return value. A crash, timeout or sanitizer
+  report is shown against the call.
+
+### Changed
+- `--try` works for suites built as a library (ft_printf): it runs the
+  student's `make` and links `libftprintf.a`, like the tests do.
+- Tab completion after `--try` offers the functions that have a driver.
+
 ## [2.8.0] - 2026-10-31
 
 ### Added

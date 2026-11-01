@@ -82,7 +82,7 @@ print_usage() {
   printf "  mini ft_strlen ft_split    run only these functions (the ft_ prefix is optional)\n"
   printf "  mini -libft strlen         pick the suite explicitly, for a folder with another name\n"
   printf "  mini --show [function ...] also print every case of a passing test, not only failures\n"
-  printf "  mini --try strlen \"hello\"  call one function with your own arguments (libft only)\n"
+  printf "  mini --try strlen \"hello\"  call one function with your own arguments (libft and ft_printf)\n"
   printf "  mini -h, --help            show this help\n"
   printf "\n"
   printf "Arguments for --try (quote each one):\n"
@@ -96,6 +96,7 @@ print_usage() {
   printf "  mini --try substr \"hello world\" 6 5\n"
   printf "  mini --try strmapi \"hello\" toupper\n"
   printf "  mini --try lstsize a b c\n"
+  printf "  mini -ft_printf --try printf \"%%d|%%s|%%5c\" 42 hi z   ft_printf takes the format, then one argument per conversion\n"
 }
 
 # Options first (-<suite>, --show, --try, in any order), then function

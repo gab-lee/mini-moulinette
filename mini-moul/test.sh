@@ -303,22 +303,38 @@ try_main()
     fi
     shift 2
 
-    build_student_objects "$SCRIPT_DIR/tests/$suite"
-    fail_detail="$(student_compile_error "$try_fn")"
-    if [ -n "$fail_detail" ]; then
-        printf "${RED}Your ${try_fn}.c cannot compile:${DEFAULT}\n"
-        sed 's/^/    /' "$fail_detail" | head -15
-        rm -rf "$OBJ_DIR"
-        exit 1
-    elif ! student_src_exists "$try_fn"; then
-        printf "${RED}No ${try_fn}.c found in your project.${DEFAULT}\n"
-        rm -rf "$OBJ_DIR"
-        exit 1
+    local library="" link_input
+    [ -f "$SCRIPT_DIR/tests/$suite/library" ] && library="$(cat "$SCRIPT_DIR/tests/$suite/library")"
+    if [ -n "$library" ]; then
+        # Library mode: build what the student's Makefile builds, like the
+        # tests link against
+        if ! make -C .. > make_error.tmp 2>&1 || [ ! -f "../$library" ]; then
+            printf "${RED}make did not build %s:${DEFAULT}\n" "$library"
+            sed 's/^/    /' make_error.tmp | head -15
+            rm -f make_error.tmp
+            exit 1
+        fi
+        rm -f make_error.tmp
+        link_input="../$library"
+    else
+        build_student_objects "$SCRIPT_DIR/tests/$suite"
+        fail_detail="$(student_compile_error "$try_fn")"
+        if [ -n "$fail_detail" ]; then
+            printf "${RED}Your ${try_fn}.c cannot compile:${DEFAULT}\n"
+            sed 's/^/    /' "$fail_detail" | head -15
+            rm -rf "$OBJ_DIR"
+            exit 1
+        elif ! student_src_exists "$try_fn"; then
+            printf "${RED}No ${try_fn}.c found in your project.${DEFAULT}\n"
+            rm -rf "$OBJ_DIR"
+            exit 1
+        fi
+        rm -f "$OBJ_DIR/libstudent.a"
+        ar rcs "$OBJ_DIR/libstudent.a" "${student_objs[@]}"
+        link_input="$OBJ_DIR/libstudent.a"
     fi
-    rm -f "$OBJ_DIR/libstudent.a"
-    ar rcs "$OBJ_DIR/libstudent.a" "${student_objs[@]}"
     if ! cc $CC_FLAGS -o "$bin" "$try_dir/$try_fn.c" "$SCRIPT_DIR/utils/unbuffered_stdout.c" \
-        "$OBJ_DIR/libstudent.a" 2> compile_error.tmp; then
+        "$link_input" 2> compile_error.tmp; then
         printf "${RED}Cannot build the manual test for ${try_fn}:${DEFAULT}\n"
         sed 's/^/    /' compile_error.tmp | head -15
         rm -rf "$OBJ_DIR" compile_error.tmp
