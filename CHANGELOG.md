@@ -9,6 +9,13 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.12.1] - 2026-11-07
+
+### Removed
+- `mini --try printf` (the ft_printf driver), `--try --bonus` and the
+  library mode of `--try`, added in 2.9.0 and 2.10.0. `--try` is libft only
+  again.
+
 ## [2.12.0] - 2026-11-07
 
 ### Added

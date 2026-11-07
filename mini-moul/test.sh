@@ -270,18 +270,13 @@ show_cases=0
 # get_next_line: print each test's duration on its PASS/FAIL line
 show_time=0
 
-# try_main [--bonus] <suite> <function> [arg ...]
+# try_main <suite> <function> [arg ...]
 # --try: builds the manual driver try/<suite>/<function>.c against the
 # student's objects and runs it with the given arguments, under the same
 # AddressSanitizer flags, timeout and Memory fail reporting as a test. The
 # objects go into an archive so only the ones the call needs are linked.
 try_main()
 {
-    local try_bonus=0
-    if [ "$1" = "--bonus" ]; then
-        try_bonus=1
-        shift
-    fi
     local suite=$1 try_fn=$2 try_dir="$SCRIPT_DIR/try/$1" fail_detail code note
     local memory_error test_err status_file=.test_status bin=try_bin
     if [ ! -d "$try_dir" ]; then
@@ -308,46 +303,22 @@ try_main()
     fi
     shift 2
 
-    local library="" link_input
-    [ -f "$SCRIPT_DIR/tests/$suite/library" ] && library="$(cat "$SCRIPT_DIR/tests/$suite/library")"
-    local make_target=""
-    if [ $try_bonus -eq 1 ]; then
-        if [ -z "$library" ]; then
-            printf "${RED}--bonus is not available for '%s'.${DEFAULT}\n" "$suite"
-            exit 1
-        fi
-        make_target="bonus"
+    build_student_objects "$SCRIPT_DIR/tests/$suite"
+    fail_detail="$(student_compile_error "$try_fn")"
+    if [ -n "$fail_detail" ]; then
+        printf "${RED}Your ${try_fn}.c cannot compile:${DEFAULT}\n"
+        sed 's/^/    /' "$fail_detail" | head -15
+        rm -rf "$OBJ_DIR"
+        exit 1
+    elif ! student_src_exists "$try_fn"; then
+        printf "${RED}No ${try_fn}.c found in your project.${DEFAULT}\n"
+        rm -rf "$OBJ_DIR"
+        exit 1
     fi
-    if [ -n "$library" ]; then
-        # Library mode: build what the student's Makefile builds, like the
-        # tests link against ("make bonus" with --bonus)
-        if ! make -C .. $make_target > make_error.tmp 2>&1 || [ ! -f "../$library" ]; then
-            printf "${RED}make %s did not build %s:${DEFAULT}\n" "$make_target" "$library"
-            sed 's/^/    /' make_error.tmp | head -15
-            rm -f make_error.tmp
-            exit 1
-        fi
-        rm -f make_error.tmp
-        link_input="../$library"
-    else
-        build_student_objects "$SCRIPT_DIR/tests/$suite"
-        fail_detail="$(student_compile_error "$try_fn")"
-        if [ -n "$fail_detail" ]; then
-            printf "${RED}Your ${try_fn}.c cannot compile:${DEFAULT}\n"
-            sed 's/^/    /' "$fail_detail" | head -15
-            rm -rf "$OBJ_DIR"
-            exit 1
-        elif ! student_src_exists "$try_fn"; then
-            printf "${RED}No ${try_fn}.c found in your project.${DEFAULT}\n"
-            rm -rf "$OBJ_DIR"
-            exit 1
-        fi
-        rm -f "$OBJ_DIR/libstudent.a"
-        ar rcs "$OBJ_DIR/libstudent.a" "${student_objs[@]}"
-        link_input="$OBJ_DIR/libstudent.a"
-    fi
+    rm -f "$OBJ_DIR/libstudent.a"
+    ar rcs "$OBJ_DIR/libstudent.a" "${student_objs[@]}"
     if ! cc $CC_FLAGS -o "$bin" "$try_dir/$try_fn.c" "$SCRIPT_DIR/utils/unbuffered_stdout.c" \
-        "$link_input" 2> compile_error.tmp; then
+        "$OBJ_DIR/libstudent.a" 2> compile_error.tmp; then
         printf "${RED}Cannot build the manual test for ${try_fn}:${DEFAULT}\n"
         sed 's/^/    /' compile_error.tmp | head -15
         rm -rf "$OBJ_DIR" compile_error.tmp

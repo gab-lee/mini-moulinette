@@ -113,16 +113,6 @@ Each argument is one shell word, so quote anything with spaces:
 - **callbacks** (`ft_strmapi`, `ft_striteri`, `ft_lstiter`, `ft_lstmap`): `toupper`, `tolower`, `addindex` (adds the index to the character) or `digit` (replaces it with its index's last digit).
 - **fd** (`ft_put*_fd`): optional, default `1`. Output to fd 1 is captured and shown escaped; other fds are written to directly.
 
-**ft_printf**: `mini -ft_printf --try printf <format> [argument ...]` (or just `mini --try printf ...` from the `ft_printf` folder). It runs your `make`, calls `ft_printf` and the real `printf` with the same format and arguments, and compares the bytes written and the return value. The format's conversions tell how to read the arguments: `%c` a char, `%s` a string (`@null` for NULL), `%p` a number (`42`, `0x2a`) or `@null`, `%d %i` a number, `%u %x %X` a number (negative wraps). Flags, width and precision are allowed; at most 8 arguments, and one per conversion.
-
-```bash
-mini --try printf "%d|%s|%5c" 42 hi z
-mini --try printf "%p" @null
-mini --try --bonus printf "%#x|%+d" 255 5
-```
-
-`--try` runs plain `make`; `--try --bonus` runs `make bonus` instead, so use it for the bonus flags. A build that is already up to date is not rebuilt, so after trying the bonus run `make re` (or `fclean`) before trying the mandatory build again.
-
 A wrong number of arguments prints what that function takes. `--try` runs under AddressSanitizer like the tests, so a crash, leak or overflow in the call is reported as a `Memory fail`.
 
 

@@ -10,16 +10,7 @@ source ./tests/growing_code/gc_harness.sh
 file=../ex7/ft_seed_inventory.py
 gc_check_file "$file" print ft_seed_inventory --typed
 
-mypy_cmd="$(gc_tool mypy)"
-if [ -z "$mypy_cmd" ]; then
-	pc_warn "mypy is not installed, so the type hints are not checked"
-elif $mypy_cmd --cache-dir=.mypy_cache "$file" > .gc_mypy 2>&1; then
-	pc_ok "mypy reports no error"
-else
-	pc_bad "mypy reports errors:"
-	head -5 .gc_mypy | sed 's/^/        /'
-fi
-rm -rf .gc_mypy .mypy_cache
+py_mypy "$file"
 
 gc_case "tomato, 15, packets" "$file" ft_seed_inventory "" \
 	"Tomato seeds: 15 packets available\n" '["tomato",15,"packets"]'

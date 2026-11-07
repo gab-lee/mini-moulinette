@@ -10,7 +10,7 @@
 source ./config.sh
 source ./tests/growing_code/gc_harness.sh
 
-gc_need_python
+py_need_python
 version="$(python3 -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])')"
 if python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
 	pc_ok "python3 $version (3.10 or newer)"
@@ -18,7 +18,7 @@ else
 	pc_bad "python3 $version is older than 3.10, which the subject requires"
 fi
 for tool in flake8 mypy; do
-	if [ -n "$(gc_tool $tool)" ]; then
+	if [ -n "$(py_tool $tool)" ]; then
 		pc_ok "$tool is installed"
 	else
 		pc_warn "$tool is not installed; install it (pip install $tool) so the checks that use it can run"
