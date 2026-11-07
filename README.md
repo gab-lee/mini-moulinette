@@ -165,7 +165,7 @@ The original project covers the piscine (C00–C08). The goal of this fork is to
 - [ ] **Circle 1** — push_swap (alpha: argument errors, instruction replay, benchmark operation counts, strategy selectors and --bench, checker bonus)
 - [ ] **Circle 2** — minitalk / pipex
 - [ ] **Circle 3** — philosophers (alpha: death timing, no-death scenarios, data races, bonus processes), minishell (alpha: output comparison against bash, bonus operators and wildcards)
-- [ ] **Python** — P00 Growing Code, P01 Code Cultivation, P02 Garden Guardian (alpha)
+- [ ] **Python** — P00 Growing Code, P01 Code Cultivation, P02 Garden Guardian, P03 Data Quest (alpha)
 - [ ] **Circle 4** — CPP Modules 00–04
 - [ ] **Circle 5** — CPP Modules 05–09, webserv / ft_irc basic conformance tests
 
@@ -249,6 +249,10 @@ The Python project P01 "Code Cultivation" (subject v3.2), object-oriented garden
 ### garden_guardian
 
 The Python project P02 "Garden Guardian" (subject v3.0), exception handling. Run it from the folder that holds `ex0` to `ex4`: plain `mini` works in a folder named `P02` (or `garden_guardian`), otherwise use `mini -garden_guardian`. mini imports each file and calls what the subject names: `input_temperature("25")` returns the integer and `"abc"` raises `ValueError`; from exercise 1 the temperature must be 0 to 40 (limits included) or an exception is raised; `garden_operations(0)` to `(3)` raise `ValueError`, `ZeroDivisionError`, `FileNotFoundError` and `TypeError` and other numbers simply return; `GardenError`, `PlantError` and `WaterError` inherit as the subject says, have a default message and keep the one they are given; `water_plant()` accepts a capitalized name and raises `PlantError` otherwise, and `test_watering_system()` closes the system as often as it opens it, even when `water_plant()` fails. The file is also checked for the structure each exercise asks for (try/except, one `except` for several types, `raise`, `finally`), authorized functions, type hints, flake8 and mypy (the `TypeError` of exercise 2 is kept on purpose, so mypy's error there is only a `[!]`). Each program must run without crashing; a difference from the subject's example output is only a `[!]`.
+
+### data_quest
+
+The Python project P03 "Data Quest" (subject v3.1), collections. Run it from the folder that holds `ex0` to `ex6`: plain `mini` works in a folder named `P03` (or `data_quest`), otherwise use `mini -data_quest`. Each program is run from its own folder with the arguments or the input the subject's examples use (`hello world 42` for `ft_command_quest.py`, five scores for `ft_score_analytics.py`, a session with bad coordinates for `ft_coordinate_system.py`, the `sword:1 potion:5 ... hello key:value` line for `ft_inventory_system.py`) and must end without a traceback. The values the examples show must appear (counts, total, average, range, distances, percentages, the dictionary and list), whatever the wording around them; a difference from the example text is only a `[!]`. The random programs are checked for consistency: the achievement sets against their own union, intersection, "only X has" and "X is missing"; the stream for 1000 events numbered 0 to 999, the built list of 10 and the 10 steps that empty it; the alchemist for its capitalized lists, score dictionary, average and high scores. mini also imports the files and calls `get_player_pos()` with bad input before good, `gen_player_achievements()`, the endless `gen_event()` and `consume_event()`. The functions each exercise authorizes (plus `int`, `float` and `str`) and the modules it imports are enforced, so `enumerate()` or `len()` where the subject does not list them fail. Exercise 5 needs two generators and exercise 6 at least two list and two dictionary comprehensions.
 
 ### philo
 

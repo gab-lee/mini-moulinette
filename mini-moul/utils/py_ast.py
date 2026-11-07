@@ -22,6 +22,9 @@ structure an exercise asks for:
   --finally           the file has a try with a finally block
   --multi-except      one except clause catches several exception types
   --raise             the file has a raise statement
+  --imports a,b       only these modules may be imported
+  --count K:N         the file has at least N nodes of kind K (ListComp,
+                      DictComp, SetComp, Yield)
 Calls to names that end in Error or Exception (raise ValueError(...)), to
 super, and to names the file binds itself (a parameter, a loop variable)
 are always allowed.
@@ -253,6 +256,32 @@ def main(argv):
                 say("OK", "uses a finally block")
             else:
                 say("BAD", "no finally block")
+        elif kind == "--imports":
+            allowed = set(filter(None, arg.split(",")))
+            used = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    used += [a.name.split(".")[0] for a in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    used.append(node.module.split(".")[0])
+            extra = sorted(set(used) - allowed)
+            if extra:
+                say("BAD", "imports %s, which the subject does not allow "
+                    "(allowed: %s)" % (", ".join(extra),
+                                       ", ".join(sorted(allowed)) or "none"))
+            else:
+                say("OK", "only allowed modules are imported")
+        elif kind == "--count":
+            name, count = arg.split(":")
+            kinds = {"ListComp": ast.ListComp, "DictComp": ast.DictComp,
+                     "SetComp": ast.SetComp,
+                     "Yield": (ast.Yield, ast.YieldFrom)}
+            found = sum(isinstance(n, kinds[name]) for n in ast.walk(tree))
+            if found >= int(count):
+                say("OK", "uses %d %s" % (found, name))
+            else:
+                say("BAD", "needs at least %s %s (found %d)"
+                    % (count, name, found))
         elif kind == "--raise":
             if any(isinstance(n, ast.Raise) for n in ast.walk(tree)):
                 say("OK", "raises an exception")

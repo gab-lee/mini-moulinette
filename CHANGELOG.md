@@ -9,6 +9,28 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.15.0] - 2026-11-07
+
+### Added
+- `data_quest` suite (alpha) for the Python project P03 "Data Quest"
+  (subject v3.1), alias `P03`: parts `ex0` to `ex6`. Every program runs in
+  its own directory (`python3 ft_x.py`) with the subject's arguments or
+  stdin and must end without a traceback. The values the subject's
+  examples show are required (a FAIL when missing, whatever the wording);
+  the whole example text is only a `[!]` when it differs. The random
+  exercises are checked for consistency: `ex3` against the set algebra of
+  its own output (union, intersection, only-one-has, missing), `ex5` for
+  1000 numbered events and the 10-step consumption of its list, `ex6` for
+  the capitalized lists, the dictionary, the average and the high scores.
+  `get_player_pos()`, `gen_player_achievements()`, `gen_event()` and
+  `consume_event()` are also imported and called. The `ast` pass checks the
+  authorized functions of each exercise (plus `int`, `float`, `str`), the
+  allowed imports, the number of generators and comprehensions, type hints,
+  flake8 and mypy.
+
+### Changed
+- `utils/py_ast.py` gains `--imports` and `--count`.
+
 ## [2.14.0] - 2026-11-07
 
 ### Added
