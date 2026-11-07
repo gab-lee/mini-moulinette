@@ -9,6 +9,16 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.11.1] - 2026-11-07
+
+### Fixed
+- ft_printf: `%p` of `NULL` is now expected as `(nil)` (Linux) on every host.
+  On macOS the real `printf` prints `0x0`, so a correct Linux-style
+  `ft_printf` failed `ft_printf("%p", NULL)` there. The two cases with a
+  NULL `%p` (`ft_printf_p` 3 and `ft_printf_edge_cases` 36) compare against
+  `linux_printf` in `printf_compare.h`; every other case still compares
+  with the host's `printf`.
+
 ## [2.11.0] - 2026-11-07
 
 ### Added

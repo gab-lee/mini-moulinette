@@ -10,6 +10,8 @@
 ** even from call to call for stack locals. Every case below passes the
 ** SAME pointer value to both ft_printf and printf so the comparison is
 ** apples-to-apples regardless of where that value actually points.
+** A NULL pointer is expected as "(nil)" (Linux), also when mini runs on
+** macOS, whose printf prints "0x0": see linux_printf.
 */
 
 int main(void)
@@ -45,7 +47,7 @@ int main(void)
 
 	ptr = NULL;
 	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "%p", ptr);
-	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "%p", ptr);
+	PF_RUN(linux_printf, ret_ref, out_ref, len_ref, "%p", ptr);
 	error += check_printf(3, "ft_printf(\"%p\", NULL)",
 		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
 	free(out_mine);
