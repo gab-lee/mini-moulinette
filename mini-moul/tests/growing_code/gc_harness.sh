@@ -38,7 +38,7 @@ gc_check_file()
 		esac
 		shift
 	done
-	python3 -I "$GC_DIR/gc_check.py" "$file" --allow "$allow" "${options[@]}" | py_report
+	py_report < <(python3 -I "$GC_DIR/gc_check.py" "$file" --allow "$allow" "${options[@]}")
 }
 
 # gc_show <file>: the start of a file with escapes, for failure messages

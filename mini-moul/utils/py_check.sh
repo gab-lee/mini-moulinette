@@ -10,7 +10,8 @@
 #   py_need_python        exits when python3 is missing
 #   py_flake8 <file>      flake8 result as a numbered line
 #   py_mypy <file>        mypy result as a numbered line
-#   py_report             reads "OK|BAD|WARN <text>" lines on stdin (what
+#   py_report             (run it with < <(command), not in a pipe, so its
+#                         failures count) reads "OK|BAD|WARN <text>" lines on stdin (what
 #                         the suites' Python checkers print) as numbered lines
 
 source ./utils/program_check.sh

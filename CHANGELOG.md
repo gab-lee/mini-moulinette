@@ -9,6 +9,28 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.13.0] - 2026-11-07
+
+### Added
+- `code_cultivation` suite (alpha) for the Python project P01 "Code
+  Cultivation" (subject v3.2), alias `P01`: parts `ex0` to `ex6`. The
+  subject leaves the design free and does not check the output strictly,
+  so each exercise checks structure with `ast` (classes in PascalCase,
+  functions in snake_case, type hints on every function, only authorized
+  calls, the classes, methods, inheritance, protected attributes, static
+  and class methods and nested class each exercise asks for), flake8 and
+  mypy, behaviour through import (`Plant(name, height, age)`, `show()`,
+  `grow()`, `age()`, validation and getters of exercise 4, the static and
+  class methods of exercise 6), the number of plants the script creates,
+  and that `python3 ft_*.py` runs without error. A difference from the
+  subject's example output is only a `[!]`.
+- `utils/py_check.sh`: helpers shared by the Python suites (flake8, mypy,
+  Python 3.10 check, `OK/BAD/WARN` report lines).
+
+### Fixed
+- growing_code: the lines printed by `gc_check.py` were read in a
+  subshell, so a failed structure check did not fail the test.
+
 ## [2.12.1] - 2026-11-07
 
 ### Removed

@@ -165,7 +165,7 @@ The original project covers the piscine (C00–C08). The goal of this fork is to
 - [ ] **Circle 1** — push_swap (alpha: argument errors, instruction replay, benchmark operation counts, strategy selectors and --bench, checker bonus)
 - [ ] **Circle 2** — minitalk / pipex
 - [ ] **Circle 3** — philosophers (alpha: death timing, no-death scenarios, data races, bonus processes), minishell (alpha: output comparison against bash, bonus operators and wildcards)
-- [ ] **Python** — Growing Code (alpha)
+- [ ] **Python** — P00 Growing Code, P01 Code Cultivation (alpha)
 - [ ] **Circle 4** — CPP Modules 00–04
 - [ ] **Circle 5** — CPP Modules 05–09, webserv / ft_irc basic conformance tests
 
@@ -241,6 +241,10 @@ All three are programs your Makefile builds, so each starts with a `setup` part 
 ### growing_code
 
 The Python project "Growing Code" (subject v3.0). Run it from the folder that holds `ex0` to `ex7`: plain `mini` works in a folder named `P00` (or `growing_code`), otherwise use `mini -growing_code`. Each exercise is a part of its own: flake8 must be clean, the file may hold only the requested function (no `if __name__` block, no call at module level, no call to a function the subject does not authorize), and the function is called with a piped stdin, so `input()` prints its prompt and the typed text is not echoed. The output is compared exactly, boundaries included (more than 60 days is ready, more than 2 days since the last watering is a reminder). `ft_count_harvest_recursive` must use recursion (nested helper, default parameters or a separate helper), and `ft_seed_inventory` must have the exact annotated signature and pass mypy. `flake8` and `mypy` are looked up on your `PATH`; when one is missing the checks that use it print a `[!]` and are skipped. Python 3.10 or newer is required.
+
+### code_cultivation
+
+The Python project P01 "Code Cultivation" (subject v3.2), object-oriented garden systems. Run it from the folder that holds `ex0` to `ex6`: plain `mini` works in a folder named `P01` (or `code_cultivation`), otherwise use `mini -code_cultivation`. The subject leaves the design free and says the output is not checked strictly, so mini checks what it names: flake8 and mypy, classes in PascalCase and functions in snake_case, type hints on every function and method, only the authorized functions, and for each exercise the structure it asks for (the `Plant` class and its `show`, `grow` and `age` methods, a constructor, protected attributes with validating setters and getters, `Flower`, `Tree` and `Vegetable` inheriting from `Plant` and calling `super()`, a static method, a class method, `Seed` inheriting from `Flower`, a nested statistics class and a function outside any class). mini also imports your file and tries `Plant("Rose", 25.0, 30)`: the constructor takes the name, height and age, `show()` prints them, `grow()` and `age()` increase the plant, a negative height or age is rejected with a message, `is_older_than_one_year`-style static methods answer 30 days false and 400 days true. Exercise 0 needs the `if __name__ == "__main__":` block. Every `python3 ft_*.py` must run without error; a difference from the subject's example output is only a `[!]`.
 
 ### philo
 
