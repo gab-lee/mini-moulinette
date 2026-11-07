@@ -23,6 +23,8 @@ structure an exercise asks for:
   --multi-except      one except clause catches several exception types
   --raise             the file has a raise statement
   --imports a,b       only these modules may be imported
+  --with              the file uses a with statement
+  --no-with           the file must not use a with statement
   --count K:N         the file has at least N nodes of kind K (ListComp,
                       DictComp, SetComp, Yield)
 Calls to names that end in Error or Exception (raise ValueError(...)), to
@@ -60,7 +62,7 @@ def main(argv):
             allow = set(filter(None, argv[i + 1].split(",")))
             i += 1
         elif argv[i] in ("--main-guard", "--function", "--try", "--finally",
-                         "--multi-except", "--raise"):
+                         "--multi-except", "--raise", "--with", "--no-with"):
             wants.append((argv[i], None))
         else:
             wants.append((argv[i], argv[i + 1]))
@@ -256,6 +258,17 @@ def main(argv):
                 say("OK", "uses a finally block")
             else:
                 say("BAD", "no finally block")
+        elif kind == "--with":
+            if any(isinstance(n, ast.With) for n in ast.walk(tree)):
+                say("OK", "uses a with statement")
+            else:
+                say("BAD", "no with statement (context manager)")
+        elif kind == "--no-with":
+            if any(isinstance(n, ast.With) for n in ast.walk(tree)):
+                say("BAD", "uses a with statement, which the subject "
+                    "introduces later (exercise 3)")
+            else:
+                say("OK", "no with statement yet")
         elif kind == "--imports":
             allowed = set(filter(None, arg.split(",")))
             used = []

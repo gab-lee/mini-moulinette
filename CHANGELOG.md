@@ -9,6 +9,30 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.16.0] - 2026-11-07
+
+### Added
+- `data_archivist` suite (alpha) for the Python project P04 "Data
+  Archivist" (subject v3.0), alias `P04`: parts `ex0` to `ex3`. Each
+  program runs in a scratch directory holding `ancient_fragment.txt`. The
+  subject lets you reword the messages "as long as the essential
+  information is preserved", so the checks look for that information: the
+  file name and the system error text (a nonexistent file, a directory, an
+  inaccessible file when not running as root) reported rather than raised,
+  the content shown, the exact content of the saved file (every line
+  followed by `#`, an existing file replaced, nothing created for an empty
+  name, the original untouched), the errors of exercise 2 on stderr and not
+  on stdout (the `[STDERR]` prefix is a `[!]`), and end of input handled.
+  `secure_archive()` is imported and called: `(False, error text)` for a
+  missing file, a directory or a missing folder, `(True, content)` for a
+  read, `(True, message)` and the saved content for a write (the action
+  value is the student's choice, so `"write"`, `1`, `"w"` and `"WRITE"` are
+  tried). The `ast` pass forbids `with` before exercise 3 and requires it
+  there, and enforces the authorized functions and imports.
+
+### Changed
+- `utils/py_ast.py` gains `--with` and `--no-with`.
+
 ## [2.15.0] - 2026-11-07
 
 ### Added

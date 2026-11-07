@@ -165,7 +165,7 @@ The original project covers the piscine (C00–C08). The goal of this fork is to
 - [ ] **Circle 1** — push_swap (alpha: argument errors, instruction replay, benchmark operation counts, strategy selectors and --bench, checker bonus)
 - [ ] **Circle 2** — minitalk / pipex
 - [ ] **Circle 3** — philosophers (alpha: death timing, no-death scenarios, data races, bonus processes), minishell (alpha: output comparison against bash, bonus operators and wildcards)
-- [ ] **Python** — P00 Growing Code, P01 Code Cultivation, P02 Garden Guardian, P03 Data Quest (alpha)
+- [ ] **Python** — P00 Growing Code, P01 Code Cultivation, P02 Garden Guardian, P03 Data Quest, P04 Data Archivist (alpha)
 - [ ] **Circle 4** — CPP Modules 00–04
 - [ ] **Circle 5** — CPP Modules 05–09, webserv / ft_irc basic conformance tests
 
@@ -253,6 +253,10 @@ The Python project P02 "Garden Guardian" (subject v3.0), exception handling. Run
 ### data_quest
 
 The Python project P03 "Data Quest" (subject v3.1), collections. Run it from the folder that holds `ex0` to `ex6`: plain `mini` works in a folder named `P03` (or `data_quest`), otherwise use `mini -data_quest`. Each program is run from its own folder with the arguments or the input the subject's examples use (`hello world 42` for `ft_command_quest.py`, five scores for `ft_score_analytics.py`, a session with bad coordinates for `ft_coordinate_system.py`, the `sword:1 potion:5 ... hello key:value` line for `ft_inventory_system.py`) and must end without a traceback. The values the examples show must appear (counts, total, average, range, distances, percentages, the dictionary and list), whatever the wording around them; a difference from the example text is only a `[!]`. The random programs are checked for consistency: the achievement sets against their own union, intersection, "only X has" and "X is missing"; the stream for 1000 events numbered 0 to 999, the built list of 10 and the 10 steps that empty it; the alchemist for its capitalized lists, score dictionary, average and high scores. mini also imports the files and calls `get_player_pos()` with bad input before good, `gen_player_achievements()`, the endless `gen_event()` and `consume_event()`. The functions each exercise authorizes (plus `int`, `float` and `str`) and the modules it imports are enforced, so `enumerate()` or `len()` where the subject does not list them fail. Exercise 5 needs two generators and exercise 6 at least two list and two dictionary comprehensions.
+
+### data_archivist
+
+The Python project P04 "Data Archivist" (subject v3.0), file handling. Run it from the folder that holds `ex0` to `ex3`: plain `mini` works in a folder named `P04` (or `data_archivist`), otherwise use `mini -data_archivist`. Each program runs in a scratch folder that holds the subject's `ancient_fragment.txt`. The subject lets you reword the messages as long as the essential information stays, so mini looks for that information: the file name and the system's error text (nonexistent file, a directory, and an unreadable file when you are not root) shown instead of raised; the file content; the exact content of the saved file (every line followed by `#`, an existing file replaced, nothing created for an empty name, the original left alone); in exercise 2 the errors on stderr and not on stdout (a missing `[STDERR]` prefix is a `[!]`) and an input that ends without a name. `secure_archive()` is imported and called: `(False, error text)` for a missing file, a directory or a missing folder, `(True, content)` for a read, `(True, message)` and the saved content for a write; the action is your choice, so mini tries `"write"`, `1`, `"w"` and `"WRITE"`. `with` must not appear before exercise 3 and must appear in it. A difference from the subject's example text is only a `[!]`.
 
 ### philo
 
