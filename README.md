@@ -165,7 +165,7 @@ The original project covers the piscine (C00–C08). The goal of this fork is to
 - [ ] **Circle 1** — push_swap (alpha: argument errors, instruction replay, benchmark operation counts, strategy selectors and --bench, checker bonus)
 - [ ] **Circle 2** — minitalk / pipex
 - [ ] **Circle 3** — philosophers (alpha: death timing, no-death scenarios, data races, bonus processes), minishell (alpha: output comparison against bash, bonus operators and wildcards)
-- [ ] **Python** — P00 Growing Code, P01 Code Cultivation (alpha)
+- [ ] **Python** — P00 Growing Code, P01 Code Cultivation, P02 Garden Guardian (alpha)
 - [ ] **Circle 4** — CPP Modules 00–04
 - [ ] **Circle 5** — CPP Modules 05–09, webserv / ft_irc basic conformance tests
 
@@ -245,6 +245,10 @@ The Python project "Growing Code" (subject v3.0). Run it from the folder that ho
 ### code_cultivation
 
 The Python project P01 "Code Cultivation" (subject v3.2), object-oriented garden systems. Run it from the folder that holds `ex0` to `ex6`: plain `mini` works in a folder named `P01` (or `code_cultivation`), otherwise use `mini -code_cultivation`. The subject leaves the design free and says the output is not checked strictly, so mini checks what it names: flake8 and mypy, classes in PascalCase and functions in snake_case, type hints on every function and method, only the authorized functions, and for each exercise the structure it asks for (the `Plant` class and its `show`, `grow` and `age` methods, a constructor, protected attributes with validating setters and getters, `Flower`, `Tree` and `Vegetable` inheriting from `Plant` and calling `super()`, a static method, a class method, `Seed` inheriting from `Flower`, a nested statistics class and a function outside any class). mini also imports your file and tries `Plant("Rose", 25.0, 30)`: the constructor takes the name, height and age, `show()` prints them, `grow()` and `age()` increase the plant, a negative height or age is rejected with a message, `is_older_than_one_year`-style static methods answer 30 days false and 400 days true. Exercise 0 needs the `if __name__ == "__main__":` block. Every `python3 ft_*.py` must run without error; a difference from the subject's example output is only a `[!]`.
+
+### garden_guardian
+
+The Python project P02 "Garden Guardian" (subject v3.0), exception handling. Run it from the folder that holds `ex0` to `ex4`: plain `mini` works in a folder named `P02` (or `garden_guardian`), otherwise use `mini -garden_guardian`. mini imports each file and calls what the subject names: `input_temperature("25")` returns the integer and `"abc"` raises `ValueError`; from exercise 1 the temperature must be 0 to 40 (limits included) or an exception is raised; `garden_operations(0)` to `(3)` raise `ValueError`, `ZeroDivisionError`, `FileNotFoundError` and `TypeError` and other numbers simply return; `GardenError`, `PlantError` and `WaterError` inherit as the subject says, have a default message and keep the one they are given; `water_plant()` accepts a capitalized name and raises `PlantError` otherwise, and `test_watering_system()` closes the system as often as it opens it, even when `water_plant()` fails. The file is also checked for the structure each exercise asks for (try/except, one `except` for several types, `raise`, `finally`), authorized functions, type hints, flake8 and mypy (the `TypeError` of exercise 2 is kept on purpose, so mypy's error there is only a `[!]`). Each program must run without crashing; a difference from the subject's example output is only a `[!]`.
 
 ### philo
 

@@ -50,6 +50,8 @@ py_flake8()
 	rm -f .py_flake8
 }
 
+# py_mypy <file> [warn]: with "warn", errors are only a [!] (an exercise
+# that keeps a typing error on purpose)
 py_mypy()
 {
 	local cmd
@@ -58,6 +60,8 @@ py_mypy()
 		pc_warn "mypy is not installed, so the type hints are not checked"
 	elif $cmd --cache-dir=.mypy_cache "$1" > .py_mypy 2>&1; then
 		pc_ok "mypy reports no error"
+	elif [ "$2" = "warn" ]; then
+		pc_warn "mypy reports $(tail -1 .py_mypy | sed 's/^Found //; s/ (checked.*//') (expected: the subject keeps this typing error on purpose)"
 	else
 		pc_bad "mypy reports errors:"
 		head -5 .py_mypy | sed 's/^/        /'

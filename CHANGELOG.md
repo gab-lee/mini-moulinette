@@ -9,6 +9,29 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-11-07
+
+### Added
+- `garden_guardian` suite (alpha) for the Python project P02 "Garden
+  Guardian" (subject v3.0), alias `P02`: parts `ex0` to `ex4`. Each
+  exercise imports the file and calls what the subject names:
+  `input_temperature()` (0 to 40 limits included, `ValueError` for text),
+  `garden_operations(0..3)` raising `ValueError`, `ZeroDivisionError`,
+  `FileNotFoundError` and `TypeError`, the `GardenError`, `PlantError` and
+  `WaterError` hierarchy with default messages, and `water_plant()` /
+  `test_watering_system()` (the system must be closed as often as it is
+  opened, also when `water_plant()` fails). The `ast` pass checks try/except,
+  one except clause for several types, `raise`, `finally`, authorized calls
+  and type hints; flake8 and mypy run (mypy's error on the deliberate
+  `TypeError` of exercise 2 is only a `[!]`). The subject's example output
+  is compared, a difference is a `[!]`.
+
+### Changed
+- The `ast` checker moved to `utils/py_ast.py` and is shared by
+  `code_cultivation` and `garden_guardian`; it allows calls to exception
+  classes, `super` and names the file binds itself (a parameter, a loop
+  variable).
+
 ## [2.13.0] - 2026-11-07
 
 ### Added

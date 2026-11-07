@@ -1,6 +1,7 @@
-"""Static checks for the code_cultivation suite; it is not student code.
+"""Static checks shared by the Python suites (code_cultivation,
+garden_guardian, ...); it is not student code.
 
-usage: cc_check.py <file.py> [--allow a,b] [options]
+usage: py_ast.py <file.py> [--allow a,b] [options]
 
 Always checked: the file parses, classes are PascalCase, functions are
 snake_case, and every function and method has type hints. Options add the
@@ -16,6 +17,14 @@ structure an exercise asks for:
   --function          a function is defined outside any class
   --new C:N           C is instantiated at least N times in the file
   --uses name         the file calls name (e.g. super)
+  --def name          a function called name is defined
+  --try               the file has a try/except
+  --finally           the file has a try with a finally block
+  --multi-except      one except clause catches several exception types
+  --raise             the file has a raise statement
+Calls to names that end in Error or Exception (raise ValueError(...)), to
+super, and to names the file binds itself (a parameter, a loop variable)
+are always allowed.
 Prints one line per check: "OK <text>", "BAD <text>" or "WARN <text>".
 """
 import ast
@@ -47,7 +56,8 @@ def main(argv):
         if argv[i] == "--allow":
             allow = set(filter(None, argv[i + 1].split(",")))
             i += 1
-        elif argv[i] in ("--main-guard", "--function"):
+        elif argv[i] in ("--main-guard", "--function", "--try", "--finally",
+                         "--multi-except", "--raise"):
             wants.append((argv[i], None))
         else:
             wants.append((argv[i], argv[i + 1]))
@@ -94,13 +104,21 @@ def main(argv):
     elif functions:
         say("OK", "every function and method has type hints")
 
+    bound = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            bound.add(node.id)
+        elif isinstance(node, ast.arg):
+            bound.add(node.arg)
     bad_names = []
     called = set()
     for call in ast.walk(tree):
         if isinstance(call, ast.Call) and isinstance(call.func, ast.Name):
             called.add(call.func.id)
             if call.func.id not in allow and call.func.id not in classes \
-                    and call.func.id != "cls" \
+                    and call.func.id not in ("cls", "super") \
+                    and call.func.id not in bound \
+                    and not re.search(r"(Error|Exception)$", call.func.id) \
                     and call.func.id not in {f.name for f in functions} \
                     and call.func.id not in bad_names:
                 bad_names.append(call.func.id)
@@ -217,6 +235,37 @@ def main(argv):
             else:
                 say("BAD", "%s must be instantiated at least %s times "
                     "(found %d)" % (cname, count, made))
+        elif kind == "--def":
+            if any(isinstance(n, ast.FunctionDef) and n.name == arg
+                   for n in tree.body):
+                say("OK", "function %s is defined" % arg)
+            else:
+                say("BAD", "no function named %s at the top of the file"
+                    % arg)
+        elif kind == "--try":
+            if any(isinstance(n, ast.Try) for n in ast.walk(tree)):
+                say("OK", "uses try/except")
+            else:
+                say("BAD", "no try/except block")
+        elif kind == "--finally":
+            if any(isinstance(n, ast.Try) and n.finalbody
+                   for n in ast.walk(tree)):
+                say("OK", "uses a finally block")
+            else:
+                say("BAD", "no finally block")
+        elif kind == "--raise":
+            if any(isinstance(n, ast.Raise) for n in ast.walk(tree)):
+                say("OK", "raises an exception")
+            else:
+                say("BAD", "no raise statement")
+        elif kind == "--multi-except":
+            if any(isinstance(h.type, ast.Tuple)
+                   for n in ast.walk(tree) if isinstance(n, ast.Try)
+                   for h in n.handlers):
+                say("OK", "one except clause catches several exception types")
+            else:
+                say("BAD", "no except clause catching several exception "
+                    "types at once, e.g. except (ValueError, TypeError)")
         elif kind == "--uses":
             if arg in called:
                 say("OK", "calls %s()" % arg)

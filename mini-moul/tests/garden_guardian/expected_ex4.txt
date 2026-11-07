@@ -1,0 +1,17 @@
+=== Garden Watering System ===
+
+Testing valid plants...
+Opening watering system
+Watering Tomato: [OK]
+Watering Lettuce: [OK]
+Watering Carrots: [OK]
+Closing watering system
+
+Testing invalid plants...
+Opening watering system
+Watering Tomato: [OK]
+Caught PlantError: Invalid plant name to water: 'lettuce'
+.. ending tests and returning to main
+Closing watering system
+
+Cleanup always happens, even with errors!

@@ -16,7 +16,7 @@ source ./utils/py_check.sh
 CC_TIMEOUT=${CC_TIMEOUT:-10}
 CC_DIR=./tests/code_cultivation
 
-# cc_check_file <file> <allowed calls, comma separated> [cc_check.py options...]
+# cc_check_file <file> <allowed calls, comma separated> [utils/py_ast.py options...]
 # Exits when the file does not exist.
 cc_check_file()
 {
@@ -30,7 +30,7 @@ cc_check_file()
 	pc_ok "${file#../} exists"
 	py_flake8 "$file"
 	py_mypy "$file"
-	py_report < <(python3 -I "$CC_DIR/cc_check.py" "$file" --allow "$allow" "$@")
+	py_report < <(python3 -I ./utils/py_ast.py "$file" --allow "$allow" "$@")
 }
 
 # cc_dynamic <file> <ex1|ex2|...|instances N>: tries the Plant class
