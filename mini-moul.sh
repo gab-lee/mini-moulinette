@@ -71,6 +71,19 @@ detect_assignment() {
   else
     assignment="$assignment_flag"
   fi
+  # A suite may list other names in tests/<suite>/aliases (one per line,
+  # any letter case), e.g. P00 for growing_code
+  if [ ! -d ~/mini-moulinette/mini-moul/tests/"$assignment" ]; then
+    local lower alias_file
+    lower=$(printf '%s' "$assignment" | tr '[:upper:]' '[:lower:]')
+    for alias_file in ~/mini-moulinette/mini-moul/tests/*/aliases; do
+      [ -f "$alias_file" ] || continue
+      if tr '[:upper:]' '[:lower:]' < "$alias_file" | grep -qx "$lower"; then
+        assignment=$(basename "$(dirname "$alias_file")")
+        break
+      fi
+    done
+  fi
   [ -d ~/mini-moulinette/mini-moul/tests/"$assignment" ]
 }
 

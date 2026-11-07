@@ -9,6 +9,14 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.12.0] - 2026-11-07
+
+### Added
+- A suite can list other names in `tests/<suite>/aliases` (one per line,
+  any letter case); `mini` run from a folder with one of those names uses
+  the suite. `growing_code` answers to `P00`, the project's name in the
+  curriculum.
+
 ## [2.11.1] - 2026-11-07
 
 ### Fixed
