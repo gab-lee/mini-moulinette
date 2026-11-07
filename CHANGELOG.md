@@ -9,6 +9,19 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.11.0] - 2026-11-07
+
+### Added
+- `growing_code` suite (alpha) for the Python project "Growing Code"
+  (subject v3.0): one part per exercise (`ex0` to `ex7`) plus `setup`
+  (Python 3.10+, the nine files, flake8 and mypy availability). Each
+  exercise runs flake8, checks with the `ast` module that the file holds
+  only the requested function (no `__main__` block, only the authorized
+  calls, recursion in `ft_count_harvest_recursive`, the exact typed
+  signature of `ft_seed_inventory`, mypy), then calls the function with a
+  piped stdin and compares the output byte for byte, boundaries included
+  (60 days, 2 days).
+
 ## [2.10.0] - 2026-11-01
 
 ### Added

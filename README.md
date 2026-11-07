@@ -175,6 +175,7 @@ The original project covers the piscine (C00–C08). The goal of this fork is to
 - [ ] **Circle 1** — push_swap (alpha: argument errors, instruction replay, benchmark operation counts, strategy selectors and --bench, checker bonus)
 - [ ] **Circle 2** — minitalk / pipex
 - [ ] **Circle 3** — philosophers (alpha: death timing, no-death scenarios, data races, bonus processes), minishell (alpha: output comparison against bash, bonus operators and wildcards)
+- [ ] **Python** — Growing Code (alpha)
 - [ ] **Circle 4** — CPP Modules 00–04
 - [ ] **Circle 5** — CPP Modules 05–09, webserv / ft_irc basic conformance tests
 
@@ -246,6 +247,10 @@ All three are programs your Makefile builds, so each starts with a `setup` part 
 - `sorting`: your instructions are replayed on a simulator. Every order of 2 to 5 numbers must be sorted (3 numbers in at most 3 instructions, 5 in at most 12); 100 random numbers must take fewer than 2000 instructions and 500 fewer than 12000 (the subject's pass limits). Under 1500 / 8000 is good and under 700 / 5500 is excellent; below excellent prints a `[!]`. The 3 and 5 number limits come from the public evaluation sheet and are not in the subject.
 - `strategies`: `--simple`, `--medium`, `--complex` and `--adaptive` must each sort lists of 2 to 500 numbers (no operation limit) and report errors. `--bench` must print on stderr the disorder with two decimals, the strategy's complexity class, the total and the count of each of the 11 operations, without changing stdout. The subject fixes no layout, so mini looks for each number next to its label (`sa: 3`).
 - `bonus`: a `checker` built by `make bonus`: `Error` (including for an empty argument), `OK` and `KO` on hand-made cases, and your push_swap piped into it.
+
+### growing_code
+
+The Python project "Growing Code" (subject v3.0). Run it from the folder that holds `ex0` to `ex7` with `mini -growing_code`. Each exercise is a part of its own: flake8 must be clean, the file may hold only the requested function (no `if __name__` block, no call at module level, no call to a function the subject does not authorize), and the function is called with a piped stdin, so `input()` prints its prompt and the typed text is not echoed. The output is compared exactly, boundaries included (more than 60 days is ready, more than 2 days since the last watering is a reminder). `ft_count_harvest_recursive` must use recursion (nested helper, default parameters or a separate helper), and `ft_seed_inventory` must have the exact annotated signature and pass mypy. `flake8` and `mypy` are looked up on your `PATH`; when one is missing the checks that use it print a `[!]` and are skipped. Python 3.10 or newer is required.
 
 ### philo
 
