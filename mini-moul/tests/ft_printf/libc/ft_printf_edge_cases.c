@@ -301,7 +301,7 @@ int main(void)
 	free(out_ref);
 
 	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "%p %p", (void *)0, (void *)0);
-	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "%p %p", (void *)0, (void *)0);
+	PF_RUN(linux_printf, ret_ref, out_ref, len_ref, "%p %p", (void *)0, (void *)0);
 	error += check_printf(36, "ft_printf(\"%p %p\", (void *)0, (void *)0) (NULL twice)",
 		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
 	free(out_mine);

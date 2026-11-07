@@ -9,6 +9,135 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.16.0] - 2026-11-07
+
+### Added
+- `data_archivist` suite (alpha) for the Python project P04 "Data
+  Archivist" (subject v3.0), alias `P04`: parts `ex0` to `ex3`. Each
+  program runs in a scratch directory holding `ancient_fragment.txt`. The
+  subject lets you reword the messages "as long as the essential
+  information is preserved", so the checks look for that information: the
+  file name and the system error text (a nonexistent file, a directory, an
+  inaccessible file when not running as root) reported rather than raised,
+  the content shown, the exact content of the saved file (every line
+  followed by `#`, an existing file replaced, nothing created for an empty
+  name, the original untouched), the errors of exercise 2 on stderr and not
+  on stdout (the `[STDERR]` prefix is a `[!]`), and end of input handled.
+  `secure_archive()` is imported and called: `(False, error text)` for a
+  missing file, a directory or a missing folder, `(True, content)` for a
+  read, `(True, message)` and the saved content for a write (the action
+  value is the student's choice, so `"write"`, `1`, `"w"` and `"WRITE"` are
+  tried). The `ast` pass forbids `with` before exercise 3 and requires it
+  there, and enforces the authorized functions and imports.
+
+### Changed
+- `utils/py_ast.py` gains `--with` and `--no-with`.
+
+## [2.15.0] - 2026-11-07
+
+### Added
+- `data_quest` suite (alpha) for the Python project P03 "Data Quest"
+  (subject v3.1), alias `P03`: parts `ex0` to `ex6`. Every program runs in
+  its own directory (`python3 ft_x.py`) with the subject's arguments or
+  stdin and must end without a traceback. The values the subject's
+  examples show are required (a FAIL when missing, whatever the wording);
+  the whole example text is only a `[!]` when it differs. The random
+  exercises are checked for consistency: `ex3` against the set algebra of
+  its own output (union, intersection, only-one-has, missing), `ex5` for
+  1000 numbered events and the 10-step consumption of its list, `ex6` for
+  the capitalized lists, the dictionary, the average and the high scores.
+  `get_player_pos()`, `gen_player_achievements()`, `gen_event()` and
+  `consume_event()` are also imported and called. The `ast` pass checks the
+  authorized functions of each exercise (plus `int`, `float`, `str`), the
+  allowed imports, the number of generators and comprehensions, type hints,
+  flake8 and mypy.
+
+### Changed
+- `utils/py_ast.py` gains `--imports` and `--count`.
+
+## [2.14.0] - 2026-11-07
+
+### Added
+- `garden_guardian` suite (alpha) for the Python project P02 "Garden
+  Guardian" (subject v3.0), alias `P02`: parts `ex0` to `ex4`. Each
+  exercise imports the file and calls what the subject names:
+  `input_temperature()` (0 to 40 limits included, `ValueError` for text),
+  `garden_operations(0..3)` raising `ValueError`, `ZeroDivisionError`,
+  `FileNotFoundError` and `TypeError`, the `GardenError`, `PlantError` and
+  `WaterError` hierarchy with default messages, and `water_plant()` /
+  `test_watering_system()` (the system must be closed as often as it is
+  opened, also when `water_plant()` fails). The `ast` pass checks try/except,
+  one except clause for several types, `raise`, `finally`, authorized calls
+  and type hints; flake8 and mypy run (mypy's error on the deliberate
+  `TypeError` of exercise 2 is only a `[!]`). The subject's example output
+  is compared, a difference is a `[!]`.
+
+### Changed
+- The `ast` checker moved to `utils/py_ast.py` and is shared by
+  `code_cultivation` and `garden_guardian`; it allows calls to exception
+  classes, `super` and names the file binds itself (a parameter, a loop
+  variable).
+
+## [2.13.0] - 2026-11-07
+
+### Added
+- `code_cultivation` suite (alpha) for the Python project P01 "Code
+  Cultivation" (subject v3.2), alias `P01`: parts `ex0` to `ex6`. The
+  subject leaves the design free and does not check the output strictly,
+  so each exercise checks structure with `ast` (classes in PascalCase,
+  functions in snake_case, type hints on every function, only authorized
+  calls, the classes, methods, inheritance, protected attributes, static
+  and class methods and nested class each exercise asks for), flake8 and
+  mypy, behaviour through import (`Plant(name, height, age)`, `show()`,
+  `grow()`, `age()`, validation and getters of exercise 4, the static and
+  class methods of exercise 6), the number of plants the script creates,
+  and that `python3 ft_*.py` runs without error. A difference from the
+  subject's example output is only a `[!]`.
+- `utils/py_check.sh`: helpers shared by the Python suites (flake8, mypy,
+  Python 3.10 check, `OK/BAD/WARN` report lines).
+
+### Fixed
+- growing_code: the lines printed by `gc_check.py` were read in a
+  subshell, so a failed structure check did not fail the test.
+
+## [2.12.1] - 2026-11-07
+
+### Removed
+- `mini --try printf` (the ft_printf driver), `--try --bonus` and the
+  library mode of `--try`, added in 2.9.0 and 2.10.0. `--try` is libft only
+  again.
+
+## [2.12.0] - 2026-11-07
+
+### Added
+- A suite can list other names in `tests/<suite>/aliases` (one per line,
+  any letter case); `mini` run from a folder with one of those names uses
+  the suite. `growing_code` answers to `P00`, the project's name in the
+  curriculum.
+
+## [2.11.1] - 2026-11-07
+
+### Fixed
+- ft_printf: `%p` of `NULL` is now expected as `(nil)` (Linux) on every host.
+  On macOS the real `printf` prints `0x0`, so a correct Linux-style
+  `ft_printf` failed `ft_printf("%p", NULL)` there. The two cases with a
+  NULL `%p` (`ft_printf_p` 3 and `ft_printf_edge_cases` 36) compare against
+  `linux_printf` in `printf_compare.h`; every other case still compares
+  with the host's `printf`.
+
+## [2.11.0] - 2026-11-07
+
+### Added
+- `growing_code` suite (alpha) for the Python project "Growing Code"
+  (subject v3.0): one part per exercise (`ex0` to `ex7`) plus `setup`
+  (Python 3.10+, the nine files, flake8 and mypy availability). Each
+  exercise runs flake8, checks with the `ast` module that the file holds
+  only the requested function (no `__main__` block, only the authorized
+  calls, recursion in `ft_count_harvest_recursive`, the exact typed
+  signature of `ft_seed_inventory`, mypy), then calls the function with a
+  piped stdin and compares the output byte for byte, boundaries included
+  (60 days, 2 days).
+
 ## [2.10.0] - 2026-11-01
 
 ### Added

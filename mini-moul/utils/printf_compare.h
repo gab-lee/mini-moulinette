@@ -41,6 +41,7 @@
 */
 
 # include <stdio.h>
+# include <stdarg.h>
 # include <stdlib.h>
 # include <string.h>
 # include <signal.h>
@@ -54,6 +55,43 @@
 # define PF_ASAN_EXIT 86
 
 static int (* const real_printf)(const char *, ...) = printf;
+
+/* Reference for formats made of literal text, %% and %p only: a NULL pointer
+** prints "(nil)", the way glibc does, on every host. The real printf of
+** macOS prints "0x0" for it, so a NULL %p is compared against this instead
+** of real_printf; every other pointer is printed by the host as is. */
+static inline int linux_printf(const char *fmt, ...)
+{
+	va_list ap;
+	char buf[512];
+	size_t n;
+	void *p;
+
+	n = 0;
+	va_start(ap, fmt);
+	while (*fmt && n < sizeof(buf) - 40)
+	{
+		if (fmt[0] == '%' && fmt[1] == 'p')
+		{
+			p = va_arg(ap, void *);
+			if (p)
+				n += snprintf(buf + n, 40, "%p", p);
+			else
+				n += snprintf(buf + n, 40, "(nil)");
+			fmt += 2;
+		}
+		else if (fmt[0] == '%' && fmt[1] == '%')
+		{
+			buf[n++] = '%';
+			fmt += 2;
+		}
+		else
+			buf[n++] = *fmt++;
+	}
+	va_end(ap);
+	buf[n] = '\0';
+	return (real_printf("%s", buf));
+}
 
 # define PF_RUN(fn, ret_var, out_var, len_var, ...) \
 	do { \

@@ -1,0 +1,13 @@
+=== Custom Garden Errors Demo ===
+
+Testing PlantError...
+Caught PlantError: The tomato plant is wilting!
+
+Testing WaterError...
+Caught WaterError: Not enough water in the tank!
+
+Testing catching all garden errors...
+Caught GardenError: The tomato plant is wilting!
+Caught GardenError: Not enough water in the tank!
+
+All custom error types work correctly!

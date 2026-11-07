@@ -1,0 +1,12 @@
+=== Garden Security System ===
+Plant created: Rose: 15.0cm, 10 days old
+
+Height updated: 25cm
+Age updated: 30 days
+
+Rose: Error, height can't be negative
+Height update rejected
+Rose: Error, age can't be negative
+Age update rejected
+
+Current state: Rose: 25.0cm, 30 days old
