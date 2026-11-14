@@ -9,3 +9,6 @@ ft_printf_combinations.c
 ft_printf_flag_order.c
 ft_printf_zero_and_precision.c
 ft_printf_wide_fields.c
+ft_printf_pointer_flags.c
+ft_printf_null_string_precision.c
+ft_printf_ignored_flags.c

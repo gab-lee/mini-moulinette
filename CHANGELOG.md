@@ -9,6 +9,27 @@ versioning follows [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+## [2.17.0] - 2026-11-14
+
+### Added
+- ft_printf bonus: three new tests. `ft_printf_pointer_flags` checks `%p`
+  with flags as glibc prints it (precision and `0` pad after `0x`, `+` and
+  space add a sign, `(nil)` is never padded with zeros, signed or given a
+  precision). `ft_printf_null_string_precision` checks `%.Ns` with a NULL
+  string (empty below precision 6, `(null)` from 6 up). `ft_printf_ignored_flags`
+  checks `#` on `d i u s c p` (ignored, width still applies; this also runs
+  the bonus error paths under LeakSanitizer), `0` on `s` and `c` (spaces)
+  and a width, `0` or `-` on `%%` (a single `%`).
+- ft_printf setup: a new Makefile check that `make` rebuilds a deleted
+  `libftprintf.a`. The later rule checks are renumbered.
+- `PF_CHECK` in `utils/printf_compare.h`: one case with a literal or
+  library reference.
+
+### Fixed
+- ft_printf bonus `ft_printf_wide_fields` 14 and 15 (`%10p` and `%-10p` of
+  `NULL`) compared against the host's printf and failed on macOS; they now
+  expect `(nil)`.
+
 ## [2.16.0] - 2026-11-07
 
 ### Added

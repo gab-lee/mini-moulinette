@@ -265,4 +265,28 @@ static inline int check_printf(int i, char *desc,
 	return (-1);
 }
 
+# define PF_UNPAREN(...) __VA_ARGS__
+
+/* One case: ft_printf called with the arguments of A, reference called with
+** those of B, both given in parentheses, e.g.
+**   PF_CHECK(error, 1, "ft_printf(\"[%.5p]\", p)", real_printf,
+**       ("[%.5p]", p), ("[%s]", "0x0002a"));
+** The reference can be a literal text, so the expected output does not depend
+** on the host's printf. */
+# define PF_CHECK(err, num, desc, ref_fn, A, B) \
+	do { \
+		int pfc_r1; \
+		int pfc_r2; \
+		char *pfc_o1; \
+		char *pfc_o2; \
+		long pfc_l1; \
+		long pfc_l2; \
+		PF_RUN(ft_printf, pfc_r1, pfc_o1, pfc_l1, PF_UNPAREN A); \
+		PF_RUN(ref_fn, pfc_r2, pfc_o2, pfc_l2, PF_UNPAREN B); \
+		(err) += check_printf(num, desc, pfc_r1, pfc_o1, pfc_l1, \
+			pfc_r2, pfc_o2, pfc_l2); \
+		free(pfc_o1); \
+		free(pfc_o2); \
+	} while (0)
+
 #endif

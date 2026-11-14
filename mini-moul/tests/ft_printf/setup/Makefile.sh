@@ -42,6 +42,16 @@ if make --no-print-directory -C .. > "$make_out" 2>&1; then
 			printf "  ${GREEN}${CHECKMARK}${GREY} [5] make does not relink when nothing changed${DEFAULT}\n"
 		fi
 		rm -f "$marker"
+		# a deleted library must be rebuilt (the objects are still there)
+		rm -f ../libftprintf.a .library_built
+		if make --no-print-directory -C .. > /dev/null 2>&1 \
+			&& [ -f ../libftprintf.a ]; then
+			printf "  ${GREEN}${CHECKMARK}${GREY} [6] make rebuilds libftprintf.a after it is deleted${DEFAULT}\n"
+			touch .library_built
+		else
+			printf "    ${RED}[6] make does not rebuild libftprintf.a after it is deleted${DEFAULT}\n"
+			error=1
+		fi
 	else
 		printf "    ${RED}[4] make succeeded but did not produce libftprintf.a${DEFAULT}\n"
 		error=1
@@ -52,7 +62,7 @@ else
 	error=1
 fi
 
-i=6
+i=7
 for rule in clean fclean re; do
 	if make -C .. -n "$rule" > /dev/null 2>&1; then
 		printf "  ${GREEN}${CHECKMARK}${GREY} [$i] rule '$rule' exists${DEFAULT}\n"

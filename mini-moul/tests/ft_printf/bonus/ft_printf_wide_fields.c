@@ -118,14 +118,14 @@ int main(void)
 	free(out_ref);
 
 	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%10p]", NULL);
-	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%10p]", NULL);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%10s]", "(nil)");
 	error += check_printf(14, "ft_printf(\"[%10p]\", NULL)",
 		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
 	free(out_mine);
 	free(out_ref);
 
 	PF_RUN(ft_printf, ret_mine, out_mine, len_mine, "[%-10p]", NULL);
-	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%-10p]", NULL);
+	PF_RUN(real_printf, ret_ref, out_ref, len_ref, "[%-10s]", "(nil)");
 	error += check_printf(15, "ft_printf(\"[%-10p]\", NULL)",
 		ret_mine, out_mine, len_mine, ret_ref, out_ref, len_ref);
 	free(out_mine);
